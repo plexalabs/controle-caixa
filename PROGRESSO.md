@@ -82,7 +82,8 @@ Branch: `fase-1-backend`. Cada migration é arquivo separado em `supabase/migrat
 
 ### 4.1. Setup do projeto
 
-- [ ] Criar projeto Supabase `controle-caixa-prod` em `sa-east-1` (plano Pro). _Pergunta ao usuário: já existe? credenciais?_
+- [x] **BACK-01** — Projeto Supabase `controle-caixa-prod` criado via MCP em 2026-04-29 18:17 UTC. Org `flptgnpxtbzradqaijdl` (Plexa Lab's), região `sa-east-1`, plano Pro. **Project ref:** `shjtwrojdgotmxdbpbta`. **Postgres 17.6.1.111** (release channel `ga`). Custo: $10/mês recorrente.
+- [x] **BACK-01b** — `.env.example` criado na raiz com placeholders documentados.
 - [ ] Habilitar extensões: `pgcrypto`, `uuid-ossp`, `pg_cron`, `pgjwt`, `http`, `pg_net`.
 - [ ] Definir timezone `America/Sao_Paulo`.
 - [ ] Cadastrar variáveis de ambiente em Project Settings + Edge Functions Secrets.
