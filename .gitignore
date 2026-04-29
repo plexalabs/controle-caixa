@@ -13,6 +13,15 @@ secrets.*
 *.credentials.json
 service_role*.json
 
+# Arquivos de vault local — NUNCA versionar.
+Vault.md
+vault.md
+vault.*.md
+**/Vault.md
+**/vault.md
+docs/Vault*
+docs/vault*
+
 # --- Node / ferramentas -----------------------------------------------------
 node_modules/
 npm-debug.log*

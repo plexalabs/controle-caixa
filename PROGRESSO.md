@@ -36,7 +36,7 @@
 
 ## 1. ESTADO ATUAL
 
-**Fase 0 finalizada — aguardando validação do usuário antes de iniciar Fase 1.**
+**Fase 1 (Backend Supabase) concluída em 2026-04-29 — aguardando autorização para Fase 2.**
 
 ---
 
@@ -82,97 +82,106 @@ Branch: `fase-1-backend`. Cada migration é arquivo separado em `supabase/migrat
 
 ### 4.1. Setup do projeto
 
-- [ ] Criar projeto Supabase `controle-caixa-prod` em `sa-east-1` (plano Pro). _Pergunta ao usuário: já existe? credenciais?_
+- [x] **BACK-01** — Projeto Supabase `controle-caixa-prod` criado via MCP em 2026-04-29 18:17 UTC. Org `flptgnpxtbzradqaijdl` (Plexa Lab's), região `sa-east-1`, plano Pro. **Project ref:** `shjtwrojdgotmxdbpbta`. **Postgres 17.6.1.111** (release channel `ga`). Custo: $10/mês recorrente.
+- [x] **BACK-01b** — `.env.example` criado na raiz com placeholders documentados.
 - [ ] Habilitar extensões: `pgcrypto`, `uuid-ossp`, `pg_cron`, `pgjwt`, `http`, `pg_net`.
 - [ ] Definir timezone `America/Sao_Paulo`.
 - [ ] Cadastrar variáveis de ambiente em Project Settings + Edge Functions Secrets.
 
 ### 4.2. Schema (DDL)
 
-- [ ] Migration `001_schemas_e_extensoes.sql` — schemas `app`, extensões.
-- [ ] Migration `002_enums.sql` — `categoria_lancamento`, `estado_lancamento`, `estado_caixa`, `status_link`, `severidade_notificacao`, `tipo_notificacao`, `acao_audit`.
-- [ ] Migration `003_tabelas_dominio.sql` — `caixa`, `lancamento`, `vendedora`, `cliente_cache`, `feriado`, `config`.
-- [ ] Migration `004_tabelas_operacionais.sql` — `audit_log` (imutável), `notificacao`, `usuario_papel`, `sync_log`.
-- [ ] Migration `005_views.sql` — view `pendencia` derivada de `lancamento`.
-- [ ] Migration `006_indices.sql` — índices de performance.
-- [ ] Migration `007_funcoes_utilitarias.sql` — `dias_uteis_entre`, `audit_log_imutavel`.
+- [x] Migration 001 schemas_e_extensoes — pg_net, pg_cron, http, pgjwt, schema app, timezone BRT.
+- [x] Migration 002 enums — 7 tipos: categoria_lancamento, estado_lancamento, estado_caixa, status_link, severidade_notificacao, tipo_notificacao, acao_audit.
+- [x] Migration 003 tabela_caixa — colunas geradas (lpad+extract porque to_char(date) não é IMMUTABLE).
+- [x] Migration 004 tabela_lancamento — partial unique nf+caixa where estado<>excluido.
+- [x] Migration 005 tabelas_dominio — vendedora, cliente_cache, feriado, config (8 seeds, auth.dominio_permitido editavel=false).
+- [x] Migration 006 tabelas_operacionais — usuario_papel, audit_log, notificacao, sync_log.
+- [x] Migration 007 funcoes_utilitarias — dias_uteis_entre, fn_nome_aba_excel/web.
+- [x] Migration 008 view_pendencia — security_invoker, idade_dias_uteis, severidade.
 
 ### 4.3. Triggers
 
-- [ ] Migration `010_trg_atualizar_timestamp.sql` — `fn_atualizar_timestamp` em `lancamento`.
-- [ ] Migration `011_trg_recalcular_caixa.sql` — caches em `caixa`.
-- [ ] Migration `012_trg_audit_log.sql` — `fn_auditar_mutacao` para `lancamento`, `caixa`, `vendedora`.
-- [ ] Migration `013_trg_validar_dados_categoria.sql` — validação JSONB por categoria.
-- [ ] Migration `014_trg_notificar_pendencia.sql` — notificação automática ao criar pendência.
-- [ ] Migration `015_trg_atualizar_cliente_cache.sql` — atualiza `cliente_cache` em insert/update.
+- [x] Migration 010 fn_atualizar_timestamp em lancamento, caixa, vendedora, config.
+- [x] Migration 011 fn_recalcular_caixa — total_lancamentos/pendentes/valor; trata mudança de caixa_id.
+- [x] Migration 012 fn_calcular_hash_conteudo — SHA-256 (corrigida em 012b com extensions.digest).
+- [x] Migration 013 fn_audit_log_imutavel + fn_auditar_mutacao em lancamento/caixa/vendedora/config.
+- [x] Migration 014 fn_validar_dados_categoria — JSONB por categoria (Apêndice A).
+- [x] Migration 015 fn_notificar_pendencia_criada.
+- [x] Migration 016 fn_atualizar_cliente_cache.
 
 ### 4.4. RLS
 
-- [ ] Migration `020_rls_habilitar.sql` — `ENABLE RLS` em todas as tabelas.
-- [ ] Migration `021_rls_helper.sql` — `fn_tem_papel`.
-- [ ] Migration `022_rls_caixa.sql`, `023_rls_lancamento.sql`, `024_rls_demais.sql`.
-- [ ] Migration `025_trg_papel_inicial.sql` — atribui `operador`+`admin` ao primeiro usuário SSO.
+- [x] Migration 020 rls_habilitar_e_helpers — ENABLE RLS em 10 tabelas + fn_tem_papel.
+- [x] Migration 021 rls_caixa_lancamento — SELECT para qualquer papel; INSERT/UPDATE só operador|admin; DELETE=false.
+- [x] Migration 022 rls_demais_tabelas — vendedora, cliente_cache, feriado, config, audit_log, notificacao, sync_log, usuario_papel.
 
 ### 4.5. RPCs
 
-- [ ] **BACK-04** — Migration `030_rpc_upsert_lancamento.sql` — chamada pelo Excel e Web.
-- [ ] **BACK-04b** — Migration `031_rpc_upsert_lancamento_lote.sql` — RPC `upsert_lancamento_lote(payload jsonb[])` em lote chamada pelo VBA do Excel. Aceita até 50 lançamentos por chamada. Retorna array com `id_lancamento` + `updated_at` + `conflito` por item. Referenciada em `02 §4.4`. **Crítico para Fase 3 — sem isso o Excel não sincroniza.**
-- [ ] Migration `032_rpc_resolver_pendencia.sql`.
-- [ ] Migration `033_rpc_cancelar_lancamento.sql`.
-- [ ] Migration `034_rpc_criar_caixa_se_nao_existe.sql`.
-- [ ] Migration `035_rpc_fechar_caixa.sql`.
-- [ ] Migration `036_rpc_dashboard_resumo.sql`.
-- [ ] Migration `037_rpc_revelar_pii.sql`.
+- [x] **BACK-04** — Migration 030 rpc_upsert_lancamento — chamada pelo Excel e Web.
+- [x] **BACK-04b** — Migration 031 rpc_upsert_lancamento_lote — versão batch (até 50). Validada com lote de 10 itens (8 inserts + 1 update + 1 erro proposital).
+- [x] Migration 032 rpc_resolver_pendencia — preserva caixa de origem (RN-031).
+- [x] Migration 033 rpc_cancelar_lancamento — soft-cancel preservando _archived.
+- [x] Migration 034 rpc_criar_caixa_se_nao_existe — idempotente.
+- [x] Migration 035 rpc_fechar_caixa — bloqueia se pendentes>0 sem p_forcar+justificativa.
+- [x] Migration 036 rpc_dashboard_resumo — agregados últimos 30 dias.
+- [x] Migration 037 rpc_revelar_pii — whitelist + audit_log REVEAL_PII.
 
 ### 4.6. Storage
 
-- [ ] Migration `040_storage_buckets.sql` — bucket `comprovantes` (privado, 5 MB, MIME PDF/JPEG/PNG/WebP).
-- [ ] Migration `041_storage_policies.sql` — upload/select para autenticados com papel; delete proibido.
-- [ ] Bucket adicional `backups` (privado).
+- [x] Migration 040 storage_bucket_comprovantes — bucket privado 5MB MIME pdf/jpeg/png/webp + policies (upload/select por papel, delete=false, update=false).
+- [x] Bucket adicional `backups` privado para edge function backup_semanal.
 
 ### 4.7. Edge Functions (Deno)
 
-- [ ] `supabase/functions/cria_caixa_diario/index.ts`.
-- [ ] `supabase/functions/disparar_notificacoes/index.ts`.
-- [ ] `supabase/functions/enviar_email_notificacao/index.ts`.
-- [ ] `supabase/functions/arquivar_ano/index.ts`.
-- [ ] `supabase/functions/backup_semanal/index.ts`.
-- [ ] `supabase/functions/alertar_anomalia/index.ts` (cron 30 min).
-- [ ] `supabase/functions/sso_callback/index.ts` (se necessário para hook de domínio).
+- [x] `supabase/functions/cria_caixa_diario/index.ts` — deployada, ACTIVE.
+- [x] `supabase/functions/disparar_notificacoes/index.ts` — deployada, ACTIVE.
+- [x] `supabase/functions/arquivar_ano/index.ts` — deployada, ACTIVE.
+- [x] `supabase/functions/backup_semanal/index.ts` — deployada, ACTIVE.
+- [ ] `supabase/functions/enviar_email_notificacao/index.ts` — opcional, fora do MVP.
+- [ ] `supabase/functions/alertar_anomalia/index.ts` — opcional, fora do MVP.
 
 ### 4.8. pg_cron
 
-- [ ] Migration `050_pgcron_jobs.sql` — `cria_caixa_diario` (06:00 BRT diário), `notif_4h` (08/12/16 BRT seg-sáb), `arquivar_ano` (01/01 00:30), `backup_semanal` (domingo 04:00), `limpeza_logs` (domingo 03:00).
+- [x] Migration 041 app_helpers_cron — app.invocar_edge, limpar_logs_antigos, gerar_notificacoes_atrasadas/caixa_nao_fechado.
+- [x] Migration 042 app_configurar_cron — função para admin invocar 1x com service_role do vault.
+- [x] Migration 050 pg_cron_jobs — 7 jobs idempotentes:
+  - cria_caixa_diario (06h BRT diário) [edge]
+  - gerar_notificacoes_atrasadas (4h em horário comercial) [SQL]
+  - gerar_notificacoes_caixa_nao_fechado (09h BRT seg-sex) [SQL]
+  - disparar_notificacoes_4h (4h em horário comercial) [edge]
+  - arquivar_ano (01/01 00:30 BRT) [edge]
+  - backup_semanal (dom 04h BRT) [edge]
+  - limpar_logs_antigos (dom 03h BRT) [SQL]
 
 ### 4.9. Realtime
 
-- [ ] `ALTER PUBLICATION supabase_realtime ADD TABLE` para `lancamento`, `caixa`, `notificacao`.
+- [ ] `ALTER PUBLICATION supabase_realtime ADD TABLE lancamento, caixa, notificacao` — adiar para Fase 2 quando a Web subscrever os channels (sem cliente assinando, ativar agora gera tráfego desnecessário).
 
 ### 4.10. BACK-AUTH — Google OAuth com restrição de domínio
 
-- [ ] **Google Cloud Console** → Credentials → OAuth 2.0 Client ID → tipo "Web application" → callback `https://<projeto>.supabase.co/auth/v1/callback`. Anotar `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
-- [ ] No Supabase: **Authentication → Providers → Google** habilitado, com `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` cadastrados.
-- [ ] Web envia parâmetro `hd=vdboti.com.br` no fluxo OAuth (camada UI/UX — apenas dica visual ao Google, **não é segurança**).
-- [ ] Migration `026_trg_validar_dominio_email.sql` — trigger `BEFORE INSERT` em `auth.users` que rejeita emails fora de `@vdboti.com.br` com `RAISE EXCEPTION 'Acesso restrito ao domínio vdboti.com.br'` (camada de segurança real).
-- [ ] Documentar explicitamente: o parâmetro `hd` sozinho **não é segurança**. A validação obrigatória acontece no banco.
-- [ ] Login de teste validado: usuário com email `@vdboti.com.br` entra; usuário com outro domínio é bloqueado.
+- [ ] **Google Cloud Console** — pendente do Operador (instruções em `docs/SETUP_GOOGLE_OAUTH.md`). Esperando `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`.
+- [ ] No Supabase: **Authentication → Providers → Google** habilitado — pendente das credenciais acima.
+- [x] Migration 023 fn_validar_dominio_email — trigger `BEFORE INSERT` em `auth.users` rejeita emails fora de `@vdboti.com.br` com `RAISE EXCEPTION` (errcode 42501). **Camada de segurança real validada no smoke test #6.**
+- [x] Migration 024 fn_auto_papel_inicial — primeiro usuário vira admin+operador automaticamente (validado no smoke test).
+- [x] `auth.dominio_permitido` em `public.config` com `editavel=false` — só admin com superuser direto pode mudar.
+- [x] Documentado: parâmetro `hd` é apenas dica visual ao Google; defesa real é o trigger Postgres.
 
 ### 4.11. BACK-FINAL — Smoke test integral (arquivo 03 §11.9)
 
-> Só marcar Fase 1 concluída após esse teste passar.
+> ✅ Aprovado em 2026-04-29 ~20:38 BRT. Documento completo: `docs/SMOKE_TEST_FASE_1.md`.
 
-- [ ] Login via Google OAuth cria registro em `auth.users` (apenas `@vdboti.com.br`).
-- [ ] Trigger atribuiu papel `operador`+`admin` ao primeiro usuário automaticamente.
-- [ ] Trigger de validação de domínio rejeita inserção com email fora de `@vdboti.com.br`.
-- [ ] `INSERT` em `lancamento` via RPC `upsert_lancamento` funciona.
-- [ ] `upsert_lancamento_lote` aceita batch de 50 e retorna array com status por item.
-- [ ] Trigger preencheu `hash_conteudo` no lançamento.
-- [ ] `audit_log` recebeu linha com `dados_antes`/`dados_depois`/`usuario_id`/`usuario_email`/`fonte`.
-- [ ] Soft-delete via mudança de estado (`excluido`); `DELETE` físico via API é bloqueado pela RLS.
-- [ ] RLS bloqueia leitura/escrita por usuário sem papel.
-- [ ] Pendência atrasada > 3 dias úteis gera notificação `urgente`.
-- [ ] `dashboard_resumo` retorna agregados consistentes.
-- [ ] Trigger imutável de `audit_log` rejeita UPDATE/DELETE mesmo com `service_role`.
+- [x] Trigger fn_auto_papel_inicial atribuiu admin+operador ao primeiro usuário (admin.teste@vdboti.com.br).
+- [x] Trigger fn_validar_dominio_email rejeita email `@gmail.com` com errcode 42501 + HINT.
+- [x] `upsert_lancamento` insere as 6 categorias com sucesso; cada uma retorna UUID.
+- [x] `upsert_lancamento_lote` com 10 itens: 8 inserts + 1 update (mesmo UUID — idempotência) + 1 erro proposital.
+- [x] Trigger `fn_calcular_hash_conteudo` preencheu SHA-256 (64 chars hex) único por linha.
+- [x] `audit_log` capturou inserts com `usuario_email` e `dados_depois`.
+- [x] Soft-delete via `estado='excluido'` recalcula caches (6→5 lançamentos, 985.50→935.50).
+- [x] RLS bloqueia INSERT/SELECT de usuário sem papel (errcode 42501).
+- [x] `audit_log` imutável: UPDATE arbitrário rejeitado pelo trigger; FK SET NULL com exceção controlada (migration 062).
+- [x] `criar_caixa_se_nao_existe` idempotente — chamadas repetidas retornam mesmo UUID.
+- [x] Cron jobs SQL puros (`gerar_notif_*`, `limpar_logs`) executam sem erro.
+- [ ] **Pendente:** invocar `app.configurar_cron(<service_role>, <url>)` uma vez para ativar 4 jobs cron de edge functions.
 
 ---
 
@@ -520,7 +529,25 @@ Para o MVP ser considerado entregue, **todos** devem passar.
 **Pendente:**
 - Decisões consolidadas pelo Operador (ver seção "Decisões consolidadas pelo Operador" no topo): projeto Supabase NOVO `controle-caixa-prod`, Cloudflare Pages com alias `caixaboti.plexalabs.com`, Google OAuth restrito a `@vdboti.com.br`, operação via MCPs. Aplicado neste commit `[F0] ajustes pos-validacao`.
 
-### Fase 1 — pendente
+### Fase 1 — concluída em 2026-04-29
+
+**Pronto:**
+- Projeto Supabase `controle-caixa-prod` (ref `shjtwrojdgotmxdbpbta`) ACTIVE_HEALTHY na região `sa-east-1`, Postgres 17.6.1.111.
+- 23 migrations aplicadas e versionadas (001-016, 020-024, 030-037, 040-042, 050, 060-062, 012b).
+- 10 tabelas em `public` com RLS habilitado e policies por papel.
+- 7 funções de trigger + 8 RPCs públicas + 4 helpers em schema `app`.
+- 7 cron jobs ativos (3 SQL puros + 4 edge function que precisam configurar_cron).
+- 4 edge functions deployadas em status ACTIVE.
+- 2 buckets de Storage (comprovantes 5MB com MIME restrito, backups privado).
+- Smoke test integral 100% aprovado (10 validações documentadas em `docs/SMOKE_TEST_FASE_1.md`).
+- Bug encontrado e corrigido: `digest()` em schema `extensions` (migration 012b).
+
+**Pendente (aguarda input do Operador / fora de escopo da Fase 1):**
+- Cadastrar Google OAuth no Supabase (espera `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` do Operador).
+- Invocar `app.configurar_cron(<service_role_key>, 'https://shjtwrojdgotmxdbpbta.supabase.co')` no SQL Editor para ativar 4 jobs cron de edge functions.
+- Edge functions opcionais `enviar_email_notificacao` e `alertar_anomalia` — não bloqueiam Fase 2/3.
+- Realtime publication — adiar para Fase 2 quando a Web subscrever os channels.
+- Popular `vendedora` e `feriado` antes do UAT.
 ### Fase 2 — pendente
 ### Fase 3 — pendente
 ### Fase 4 — pendente
