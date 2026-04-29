@@ -205,7 +205,7 @@ Pode fechar a janela depois de salvar tudo.
 3. Em **Authorized redirect URIs**, clicar em **+ ADD URI**.
 4. Colar exatamente a URL que o agente te passou:
    ```
-   https://<project-ref>.supabase.co/auth/v1/callback
+   [https://<project-ref>.supabase.co/auth/v1/callback](https://shjtwrojdgotmxdbpbta.supabase.co/auth/v1/callback)
    ```
    Substituir `<project-ref>` pelo valor real (algo como `xpnvxfcmbgyhpvqebhqq`).
 5. Clicar em **SALVAR** (canto inferior).
