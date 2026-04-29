@@ -1,0 +1,79 @@
+# =============================================================================
+# .gitignore — Sistema de Controle de Caixa
+# Regra de ouro (arquivo 05 §41): nunca comitar segredos.
+# =============================================================================
+
+# --- Segredos e credenciais (CRÍTICO) ---------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.*
+*.credentials.json
+service_role*.json
+
+# --- Node / ferramentas -----------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# --- Supabase ---------------------------------------------------------------
+.supabase/
+supabase/.branches/
+supabase/.temp/
+
+# --- Excel / Office ---------------------------------------------------------
+# Planilhas geradas como artefato vão para outputs/ e não entram no git.
+outputs/
+*.xlsm
+*.xlsb
+*.xlam
+~$*.xls*
+*.tmp.xlsx
+
+# Permitir os fontes do Excel quando não estiverem em outputs/.
+!excel/**/*.bas
+!excel/**/*.cls
+!excel/**/*.frm
+
+# --- Sistema operacional ----------------------------------------------------
+Thumbs.db
+Desktop.ini
+.DS_Store
+ehthumbs.db
+$RECYCLE.BIN/
+
+# --- Editores ---------------------------------------------------------------
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.history/
+
+# --- Logs e cache locais ----------------------------------------------------
+*.log
+*.cache
+.cache/
+.tmp/
+tmp/
+
+# --- Build artifacts da web (mesmo que normalmente não exista build) -------
+web/dist/
+web/build/
+.parcel-cache/
+
+# --- Cobertura e testes -----------------------------------------------------
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# --- Backups locais não destinados ao git -----------------------------------
+backups/
+*.dump
+*.sql.gz

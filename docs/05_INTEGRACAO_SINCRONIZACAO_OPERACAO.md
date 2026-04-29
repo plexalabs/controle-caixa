@@ -235,7 +235,7 @@ Public Sub PushLote(linhas() As Long)
     http.Open "POST", url, False
     http.setRequestHeader "Content-Type", "application/json"
     http.setRequestHeader "apikey", SUPABASE_ANON_KEY
-    http.setRequestHeader "Authorization", "Bearer " & ObterTokenSSO()
+    http.setRequestHeader "Authorization", "Bearer " & ObterTokenAuth()
     http.setRequestHeader "Prefer", "return=representation"
     http.send MontarPayload(linhas)
     If http.Status >= 200 And http.Status < 300 Then
@@ -510,11 +510,12 @@ Este é o **runbook canônico** de deploy. Cada passo tem critério de verifica�
 
 ### 11.1. Pré-requisitos
 
-- [ ] Conta Anthropic SSO da empresa com domínio `@empresa.com.br` (ou domínio real).
-- [ ] Conta Supabase com plano Pro ativo.
-- [ ] Acesso ao DNS da empresa para configurar `app.empresa.com.br`.
-- [ ] Node 18+ instalado (para Supabase CLI).
-- [ ] `supabase` CLI instalado: `npm install -g supabase`.
+- [ ] Conta Google Workspace administrativa do domínio `vdboti.com.br` (para criar OAuth Client e configurar consent screen Internal).
+- [ ] Conta Supabase com plano Pro ativo (organização da Plexalabs).
+- [ ] Conta Cloudflare com acesso à zona DNS `plexalabs.com` (para apontar `caixaboti.plexalabs.com` quando UAT aprovar).
+- [ ] **MCPs autorizados**: Supabase MCP (criação de projeto, migrations, edge functions, secrets) e Cloudflare MCP (Pages, DNS).
+- [ ] Node 18+ instalado (para Supabase CLI quando MCP não cobrir uma operação).
+- [ ] `supabase` CLI instalado: `npm install -g supabase` (fallback ao MCP).
 - [ ] `git` instalado.
 
 ### 11.2. Passo 1 — Criar projeto
@@ -615,18 +616,25 @@ CREATE POLICY "user_access" ON storage.objects
 
 **Verificação:** Dashboard Storage mostra bucket `comprovantes` privado.
 
-### 11.8. Passo 7 — Configurar SSO
+### 11.8. Passo 7 — Configurar Google OAuth
 
-Authentication > Providers > SAML:
+Detalhes completos em `03 §11`. Resumo do passo a passo:
 
-- Metadata URL: `<IDP_DA_EMPRESA>/saml/metadata`
-- Domínio aceito: `empresa.com.br`
-- Atributo email: `email` ou `mail`
-- Atributo nome: `displayName`
+1. **Google Cloud Console** (`console.cloud.google.com`) → projeto `controle-caixa-auth`.
+2. **OAuth consent screen** → tipo **Internal** (restringe ao Workspace `vdboti.com.br`).
+3. **Credentials → Create credentials → OAuth 2.0 Client ID** → tipo **Web application**.
+   - Nome: `Controle de Caixa — Supabase`.
+   - Authorized redirect URIs: `https://<projeto>.supabase.co/auth/v1/callback`.
+4. Anotar `Client ID` e `Client Secret`.
+5. **Supabase Authentication > Providers > Google** → habilitar, colar `Client ID` e `Client Secret`.
+6. **Authentication → URL Configuration**:
+   - Site URL: `https://controle-caixa.pages.dev` (dev) ou `https://caixaboti.plexalabs.com` (prod).
+   - Redirect URLs (Additional): incluir os dois.
+7. Aplicar trigger `BEFORE INSERT` em `auth.users` que valida `email LIKE '%@vdboti.com.br'` (ver `03 §11.4`). **Sem o trigger, qualquer conta Google entra editando a URL** — `hd` é apenas dica visual.
 
-Após salvar, copiar URL de callback do Supabase e cadastrar no IDP.
-
-**Verificação:** Login de teste no `/auth/v1/authorize?provider=saml` redireciona ao IDP e volta autenticado.
+**Verificação:**
+- Login com conta `@vdboti.com.br` → redireciona ao Google, volta autenticado, sessão válida.
+- Login com conta de outro domínio (ex.: pessoal `@gmail.com`) → trigger rejeita com `Acesso restrito ao domínio vdboti.com.br`.
 
 ### 11.9. Passo 8 — Smoke test integral
 
@@ -657,7 +665,8 @@ Salvar em vault da empresa (1Password / LastPass / Vault):
 - `SUPABASE_SERVICE_ROLE_KEY` (CRÍTICA — nunca em código cliente)
 - `PROJECT_REF`
 - `DB_PASSWORD`
-- Acesso ao IDP corporativo
+- `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`
+- Acesso admin ao Google Cloud Console do Workspace `vdboti.com.br`
 - Link para esta documentação
 
 ---
@@ -801,7 +810,9 @@ Lista canônica para colocar o sistema em produção do zero.
 - [ ] Edge functions deployadas.
 - [ ] pg_cron schedules ativos.
 - [ ] Storage bucket `comprovantes` criado e privado.
-- [ ] SSO SAML conectado ao IDP.
+- [ ] Google OAuth provider habilitado no Supabase Auth.
+- [ ] OAuth consent screen do Google em modo **Internal** restrito ao Workspace `vdboti.com.br`.
+- [ ] Trigger `BEFORE INSERT` em `auth.users` validando domínio aplicado e testado.
 - [ ] Backup diário automatizado.
 - [ ] Service Role Key armazenado em vault.
 
@@ -1278,13 +1289,18 @@ data | nome | tipo (nacional|estadual|municipal|empresa) | observacao
 - Hard reload.
 - Para evitar no futuro: estratégia de versionamento do SW (cache name versionado).
 
-### 25.4. "Login SSO em loop"
+### 25.4. "Login Google em loop"
 
-**Causa:** atributos SAML mal mapeados.
+**Causas possíveis:**
+- Trigger `BEFORE INSERT` rejeitando o email mas a UI da Web não mostra o erro e tenta de novo.
+- Redirect URL não cadastrado no Google Cloud Console (Google retorna ao Supabase mas Supabase não consegue redirecionar de volta).
+- Site URL/Redirect URLs mal configurados em Authentication > URL Configuration.
 
 **Solução:**
-- Supabase > Auth > Providers > SAML > revisar atributos.
-- Logs do GoTrue mostram detalhes do payload SAML recebido.
+- Conferir `Authentication > URL Configuration` no Supabase: Site URL e Redirect URLs incluem exatamente o host de origem (com/sem `https://`).
+- Conferir Authorized redirect URIs no Google Cloud Console: precisa incluir `https://<projeto>.supabase.co/auth/v1/callback`.
+- Conferir `Authentication > Logs` no Supabase — buscar por `RAISE EXCEPTION` da função `fn_validar_dominio_email`. Se aparecer, o usuário está usando conta de outro domínio.
+- Conferir consent screen do Google está em modo **Internal**.
 
 ### 25.5. "Modal de novo lançamento congela"
 
@@ -1457,7 +1473,7 @@ Anon key vaza em screenshot, repositório público, ou Service Role Key acidenta
 
 ### 30.2. Política de senhas
 
-- SSO corporativo é a porta de entrada; herda política do IDP (mínimo 12 chars, 2FA).
+- Google OAuth restrito a `@vdboti.com.br` é a porta de entrada; herda política do Workspace (mínimo 12 chars, 2FA, gerência centralizada de offboarding).
 - Não há senhas locais no Excel ou Web.
 - Senhas de proteção de planilha (abas técnicas) ficam no vault.
 
@@ -1769,7 +1785,7 @@ UAT = User Acceptance Test. O Operador valida com casos reais antes do go-live.
 ### 35.3. Sessão UAT-3 — Web no celular (30 min)
 
 **Passos:**
-1. Login SSO no celular.
+1. Login Google OAuth no celular (conta `@vdboti.com.br`).
 2. Lançar 5 NFs em movimento.
 3. Receber notificação de pendência.
 4. Resolver pelo celular.
@@ -1874,7 +1890,7 @@ Financeiro/Controle de Caixa/
 ├── 3_Tecnico/
 │   ├── Diagrama_Arquitetura.png
 │   ├── ERD_Postgres.png
-│   ├── Fluxo_SSO.png
+│   ├── Fluxo_Auth_Google.png
 │   └── README_Repositorio.md
 ├── 4_Acessos/
 │   ├── Lista_de_Pessoas.xlsx (vault)
@@ -2025,7 +2041,7 @@ Algumas mudanças parecem boas mas pioram. Lista negra:
 
 - **Excel** sem o Operador pedir. É a interface preferida em PC corporativo.
 - **Supabase** sem migração testada e plano paralelo.
-- **SSO corporativo** por logins próprios. Aumenta superfície de ataque e atrito.
+- **Google OAuth restrito a `@vdboti.com.br`** por logins próprios. Aumenta superfície de ataque e atrito.
 
 ---
 
@@ -2050,7 +2066,7 @@ Algumas mudanças parecem boas mas pioram. Lista negra:
 | **Edge function** | Função serverless do Supabase. |
 | **pg_cron** | Agendador nativo Postgres. |
 | **RLS** | Row-Level Security. |
-| **SSO** | Single Sign-On corporativo. |
+| **Google OAuth** | Provider de autenticação do Supabase (OAuth 2.0 / OIDC) usando contas Google Workspace `@vdboti.com.br`. Restrição de domínio aplicada via trigger Postgres (segurança real) + parâmetro `hd` (UI/UX). |
 | **2FA** | Autenticação em dois fatores. |
 | **Vault** | Armazenamento seguro de credenciais. |
 | **Sandbox** | Ambiente de teste isolado. |
@@ -2092,7 +2108,7 @@ A empresa preenche e mantém atualizado.
 | TI — Plantão fora do horário | (preencher) | | | 24x7 |
 | Gestão Financeira | (preencher) | | | Seg-Sex |
 | Responsável Supabase | (preencher) | | | Seg-Sex |
-| Responsável SSO/IDP | (preencher) | | | Seg-Sex |
+| Admin Google Workspace `vdboti.com.br` | (preencher) | | | Seg-Sex |
 | Suporte Cloudflare | empresa@cloudflare | — | — | conta enterprise |
 | Suporte Supabase | suporte | — | — | Pro tier inclui email |
 
@@ -2104,7 +2120,7 @@ Modelo de planilha que o Operador preenche durante UAT.
 
 | ID | Cenário | Passos | Resultado esperado | Resultado obtido | Status (✅/❌) | Observações |
 |---|---|---|---|---|---|---|
-| UAT-001 | Login Web SSO | abrir app.empresa.com.br, clicar Entrar com SSO | redireciona ao IDP, autentica, volta logado | | | |
+| UAT-001 | Login Web Google OAuth | abrir caixaboti.plexalabs.com, clicar "Entrar com Google", autenticar com conta `@vdboti.com.br` | redireciona ao Google, autentica, volta logado; conta de outro domínio é bloqueada com `Acesso restrito ao domínio vdboti.com.br` | | | |
 | UAT-002 | Lançamento Cartão completo | Web > Novo lançamento > preencher tudo | linha pinta azul, linha aparece no Excel em até 5 min | | | |
 | UAT-003 | Lançamento Pix com comprovante | preencher e anexar PDF | comprovante salvo em Storage, link na linha | | | |
 | UAT-004 | Lançamento Dinheiro | preencher com vendedora da lista | linha pinta verde claro | | | |

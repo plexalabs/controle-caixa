@@ -22,7 +22,7 @@
 10. Edge Functions (Deno)
 11. Storage — buckets e políticas
 12. Realtime — channels
-13. Autenticação — SSO corporativo
+13. Autenticação — Google OAuth (restrito a `@vdboti.com.br`)
 14. pg_cron — agendamentos
 15. Backup e disaster recovery
 16. Migrations
@@ -39,7 +39,7 @@
 |------------|--------|
 | **Postgres 15+** | Banco de dados relacional, fonte da verdade. |
 | **PostgREST** | API REST automática sobre tabelas e RPCs. |
-| **GoTrue** | Auth com OAuth, magic link, SAML SSO. |
+| **GoTrue** | Auth com OAuth (Google é o provider deste projeto), magic link, SSO SAML disponível mas não usado aqui. |
 | **Storage** | Buckets S3-compatíveis para arquivos (comprovantes). |
 | **Realtime** | WebSocket para alterações em tempo real. |
 | **Edge Functions** | Deno serverless functions para lógica complexa, schedulers, integrações. |
@@ -87,9 +87,9 @@ Configuradas em **Project Settings → API** e em **Edge Functions → Secrets**
 | `SUPABASE_ANON_KEY` | cliente Excel/Web | Chave anônima JWT pública. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Edge Functions | Chave service role (bypass RLS). |
 | `SUPABASE_DB_PASSWORD` | Gerenciador de senhas | Senha do Postgres. |
-| `SSO_TENANT_ID` | Auth provider | ID do tenant da empresa. |
-| `SSO_CLIENT_ID` | Auth provider | Client ID do app registrado. |
-| `SSO_CLIENT_SECRET` | Auth provider (vault) | Secret do app. |
+| `GOOGLE_CLIENT_ID` | Supabase Auth (Provider Google) | OAuth 2.0 Client ID criado em `console.cloud.google.com`. Tipo "Web application". |
+| `GOOGLE_CLIENT_SECRET` | Supabase Auth (Provider Google) — vault | Client Secret correspondente. |
+| `AUTH_DOMINIO_PERMITIDO` | Postgres (`public.config`) | Domínio aceito no login. Valor inicial: `vdboti.com.br`. |
 | `MASTER_ENCRYPTION_KEY` | Edge Functions | Chave usada para encrypt/decrypt PII (AES-256-GCM). |
 | `SMTP_HOST`/`USER`/`PASSWORD` | Edge Functions | Para envio de e-mails de notificação. |
 
@@ -1330,36 +1330,102 @@ supabase
 
 ---
 
-## 11. AUTENTICAÇÃO — SSO CORPORATIVO
+## 11. AUTENTICAÇÃO — GOOGLE OAUTH (restrito a `@vdboti.com.br`)
 
-### 11.1. Configuração SAML
+> Decisão consolidada pelo Operador (2026-04-29): autenticação via Google OAuth, **não** SAML. Provider nativo do Supabase. Restrição de domínio em **duas camadas**:
+> 1. **Camada UI/UX** — parâmetro `hd=vdboti.com.br` na URL OAuth (apenas dica visual ao Google).
+> 2. **Camada de segurança real** — trigger `BEFORE INSERT` em `auth.users` que rejeita emails fora de `@vdboti.com.br`.
+>
+> O parâmetro `hd` sozinho **não é segurança** — qualquer um pode editar a URL. A validação obrigatória é no banco.
 
-No painel Supabase: **Authentication → Providers → SAML**.
+### 11.1. Pré-requisitos no Google Cloud Console
 
-- **Provedor:** Microsoft Entra ID (presumido — confirmar com TI da empresa).
-- **Entity ID:** `https://<projeto>.supabase.co/auth/v1/sso/saml/metadata`
-- **Reply URL:** `https://<projeto>.supabase.co/auth/v1/sso/saml/acs`
-- **Sign-on URL:** `https://<projeto>.supabase.co/auth/v1/sso/saml/login`
+1. Acessar `console.cloud.google.com` autenticado com conta admin do Workspace `vdboti.com.br`.
+2. Criar (ou reutilizar) projeto. Convenção sugerida: `controle-caixa-auth`.
+3. **APIs & Services → OAuth consent screen** → tipo **Internal** (restringe automaticamente ao Workspace `vdboti.com.br`). Preencher: nome do app `Controle de Caixa`, domínio autorizado `caixaboti.plexalabs.com`, email de suporte (`joaopedro@plexalabs.com` ou equivalente).
+4. **APIs & Services → Credentials → Create credentials → OAuth 2.0 Client ID** → tipo **Web application**.
+   - Nome: `Controle de Caixa — Supabase`.
+   - **Authorized redirect URIs:** `https://<projeto>.supabase.co/auth/v1/callback` (substituir `<projeto>` pelo project ref real).
+5. Anotar `Client ID` e `Client Secret`.
 
-### 11.2. Atributos necessários
+### 11.2. Configuração no Supabase
 
-| Atributo SAML | Mapeamento Supabase |
-|---------------|---------------------|
-| `email` | `email` |
-| `name` | `user_metadata.full_name` |
-| `givenName` | `user_metadata.given_name` |
-| `surname` | `user_metadata.family_name` |
+No painel Supabase: **Authentication → Providers → Google** → toggle **Enable**.
 
-### 11.3. Auto-provisioning
+- `Client ID (for OAuth)`: o `GOOGLE_CLIENT_ID` do passo 5 anterior.
+- `Client Secret (for OAuth)`: o `GOOGLE_CLIENT_SECRET`.
+- `Authorized Client IDs`: deixar vazio (não é login com ID Token nativo do Google Sign-In; é fluxo OAuth Web normal).
+- `Skip nonce check`: desativado.
 
-Trigger Postgres atribui papel padrão `operador` ao primeiro usuário criado:
+Salvar.
+
+### 11.3. Atributos retornados pelo Google e mapeamento Supabase
+
+O Supabase popula automaticamente:
+
+| Claim Google (OIDC) | Campo Supabase |
+|---------------------|----------------|
+| `email` | `auth.users.email` |
+| `email_verified` | `auth.users.email_confirmed_at` (preenchido se `true`) |
+| `name` | `auth.users.raw_user_meta_data.full_name` |
+| `given_name` | `auth.users.raw_user_meta_data.given_name` |
+| `family_name` | `auth.users.raw_user_meta_data.family_name` |
+| `picture` | `auth.users.raw_user_meta_data.avatar_url` |
+| `hd` | `auth.users.raw_user_meta_data.hd` (hosted domain — útil para diagnóstico) |
+
+### 11.4. Restrição de domínio — camada de segurança real (trigger Postgres)
+
+```sql
+-- Função que valida o domínio do email no momento do INSERT em auth.users.
+CREATE OR REPLACE FUNCTION public.fn_validar_dominio_email()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_dominio_permitido text;
+BEGIN
+    SELECT (valor #>> '{}') INTO v_dominio_permitido
+    FROM public.config WHERE chave = 'auth.dominio_permitido';
+
+    IF v_dominio_permitido IS NULL THEN
+        v_dominio_permitido := 'vdboti.com.br'; -- fallback seguro
+    END IF;
+
+    IF NEW.email IS NULL OR lower(split_part(NEW.email, '@', 2)) <> lower(v_dominio_permitido) THEN
+        RAISE EXCEPTION 'Acesso restrito ao domínio %', v_dominio_permitido
+            USING ERRCODE = '42501', HINT = 'Use uma conta corporativa autorizada.';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_auth_users_validar_dominio
+BEFORE INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.fn_validar_dominio_email();
+```
+
+E seed correspondente em `public.config`:
+
+```sql
+INSERT INTO public.config (chave, valor, descricao, editavel) VALUES
+    ('auth.dominio_permitido', '"vdboti.com.br"'::jsonb, 'Domínio único aceito no login Google OAuth', false)
+ON CONFLICT (chave) DO NOTHING;
+```
+
+> **Observação:** o trigger é `BEFORE INSERT` em `auth.users` que é schema gerenciado pelo Supabase. Funciona porque `auth.users` aceita triggers `BEFORE`/`AFTER` definidos por `service_role`. Conferir após cada upgrade da plataforma — se o Supabase remover essa capacidade, mover validação para edge function `auth-hook` (`Authentication → Hooks`).
+
+### 11.5. Auto-provisioning de papel
+
+Trigger Postgres atribui papel padrão `operador`+`admin` ao primeiro usuário criado e apenas `operador` aos demais (que precisarão ter `admin` concedido manualmente):
 
 ```sql
 CREATE OR REPLACE FUNCTION public.fn_auto_papel_inicial()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.usuario_papel) THEN
+        -- Primeiro usuário: vira admin + operador automaticamente.
         INSERT INTO public.usuario_papel (usuario_id, papel) VALUES (NEW.id, 'operador'), (NEW.id, 'admin');
+    ELSE
+        -- Demais usuários: só operador. Admin é concedido manualmente.
+        INSERT INTO public.usuario_papel (usuario_id, papel) VALUES (NEW.id, 'operador');
     END IF;
     RETURN NEW;
 END;
@@ -1369,13 +1435,20 @@ CREATE TRIGGER trg_auth_users_papel_inicial
 AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.fn_auto_papel_inicial();
 ```
 
-### 11.4. Domínios permitidos
+> A ordem importa: trigger `BEFORE` (validar domínio) executa primeiro; se passar, trigger `AFTER` (atribuir papel) é disparado.
 
-```sql
-ALTER ROLE authenticator SET request.jwt.claims TO '{"aud":"authenticated"}';
-```
+### 11.6. Side-channel — também checar via dica visual ao Google
 
-Restringir registro a `@empresa.com` via Edge Function de hook (auth_hook).
+A Web envia `?hd=vdboti.com.br` na URL OAuth. Isso faz o Google **filtrar** as contas mostradas ao usuário para apenas as do domínio. Não é segurança — é UX.
+
+Detalhes em `04 §5.2`.
+
+### 11.7. Validação de URL de callback
+
+No Supabase, **Authentication → URL Configuration**:
+
+- `Site URL`: `https://caixaboti.plexalabs.com` (produção). Para dev, `https://controle-caixa.pages.dev`.
+- `Redirect URLs (Additional)`: incluir ambos para que dev e produção funcionem; incluir também `http://localhost:3000` se houver desenvolvimento local com servidor estático.
 
 ---
 
@@ -1569,9 +1642,11 @@ curl -X POST https://<projeto>.supabase.co/functions/v1/cria_caixa_diario \
 ## 18. APÊNDICE I — ROTEIRO DE DEPLOY PASSO A PASSO
 
 ### Pré-requisitos
-- Acesso ao Supabase com conta da empresa.
-- Credenciais SSO (provider, tenant ID, client ID, secret).
+- Acesso ao Supabase com conta da empresa, plano Pro ativo.
+- Acesso ao Google Cloud Console com conta admin do Workspace `vdboti.com.br` (para criar OAuth Client).
+- `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` gerados.
 - Senhas geradas: DB password, master encryption key.
+- MCPs autorizados: Supabase MCP (criação de projeto, migrations, edge functions, secrets) e Cloudflare MCP (Pages, DNS).
 
 ### Passo 1 — Criar projeto
 - Region `sa-east-1`, plano Pro.
@@ -1586,9 +1661,12 @@ supabase link --project-ref <ref>
 supabase db push
 ```
 
-### Passo 4 — Configurar SSO
-- Authentication → Providers → SAML → preencher metadata da empresa.
-- Testar login com conta corporativa de teste.
+### Passo 4 — Configurar Google OAuth
+- Authentication → Providers → Google → habilitar.
+- Cadastrar `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
+- Authentication → URL Configuration → Site URL e Redirect URLs (dev e produção).
+- Aplicar trigger de validação de domínio (§11.4) — sem ele a restrição não é real.
+- Testar login com conta `@vdboti.com.br` (deve passar) e com conta de outro domínio (deve falhar com `Acesso restrito ao domínio vdboti.com.br`).
 
 ### Passo 5 — Deploy Edge Functions
 ```bash
@@ -1606,10 +1684,14 @@ supabase functions deploy backup_semanal
 - SQL Editor → executar seção 9.
 
 ### Passo 8 — Smoke test
-- Login via SSO → confirmar criação do usuário em `auth.users`.
+- Login via Google OAuth com conta `@vdboti.com.br` → confirmar criação do usuário em `auth.users`.
+- Tentar login com conta de outro domínio → confirmar bloqueio com mensagem clara.
 - Verificar atribuição automática de papel em `usuario_papel`.
-- Inserir lançamento via RPC.
-- Confirmar trigger de auditoria gerou linha em `audit_log`.
+- Inserir lançamento via RPC `upsert_lancamento`.
+- Inserir 50 lançamentos em batch via RPC `upsert_lancamento_lote`.
+- Confirmar trigger de auditoria gerou linhas em `audit_log` (com `dados_antes`/`dados_depois`).
+- Confirmar `hash_conteudo` preenchido.
+- Confirmar `audit_log` rejeita UPDATE/DELETE mesmo com `service_role`.
 
 ### Passo 9 — Configurar clientes
 - Excel: preencher `_CONFIG` com URL e anon key.

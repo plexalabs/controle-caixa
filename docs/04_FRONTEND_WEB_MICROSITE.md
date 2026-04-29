@@ -14,7 +14,7 @@
 2. Stack técnica
 3. Estrutura de arquivos
 4. Roteamento (sem framework)
-5. Tela de login (SSO)
+5. Tela de login (Google OAuth)
 6. Tela Dashboard
 7. Tela Caixa do dia (visão única)
 8. Modal "Novo lançamento"
@@ -90,7 +90,7 @@ frontend/
 │   ├── router.js              # Roteamento mínimo
 │   ├── store.js               # State management
 │   ├── supabase.js            # Cliente Supabase configurado
-│   ├── auth.js                # Helpers SSO
+│   ├── auth.js                # Helpers Google OAuth
 │   ├── i18n.js                # Strings pt-BR
 │   ├── utils.js               # Utilities (formatadores, etc.)
 │   ├── notifications.js       # Sistema de toasts e bell
@@ -130,7 +130,7 @@ frontend/
 | URL | Tela |
 |-----|------|
 | `/` | redireciona para `/dashboard` se autenticado, senão `/login` |
-| `/login` | Tela SSO |
+| `/login` | Tela Google OAuth |
 | `/dashboard` | Visão consolidada |
 | `/caixa/:data` | Caixa específico (data ISO `YYYY-MM-DD` ou alias `hoje`) |
 | `/pendencias` | Lista centralizada |
@@ -212,7 +212,7 @@ init();
 
 ---
 
-## 5. TELA DE LOGIN (SSO)
+## 5. TELA DE LOGIN (Google OAuth)
 
 ### 5.1. Layout
 
@@ -225,14 +225,17 @@ init();
 ║   Sistema de auditoria interno       ║
 ║                                      ║
 ║                                      ║
-║   [ Entrar com SSO da empresa ]      ║
+║   [ G  Entrar com Google ]           ║
 ║                                      ║
+║   Acesso restrito a @vdboti.com.br   ║
 ║                                      ║
 ║   Versão 1.0 — Suporte: TI           ║
 ╚══════════════════════════════════════╝
 ```
 
 ### 5.2. `pages/login.js`
+
+> **Importante de segurança:** o parâmetro `hd=vdboti.com.br` na URL OAuth é apenas uma dica visual ao Google (mostra a tela de seleção de conta filtrada por domínio). **Não é uma camada de segurança.** A validação real do domínio acontece no backend, em trigger Postgres `BEFORE INSERT` em `auth.users` (ver `03 §11`). Quem manipular a URL e logar com qualquer conta Google será rejeitado pelo trigger antes do registro persistir.
 
 ```javascript
 import { supabase } from '../supabase.js';
@@ -247,12 +250,19 @@ export function renderLogin() {
           <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Sistema de auditoria interno</p>
         </div>
         
-        <button id="btn-sso" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M11.25 21h-7.5..." />
+        <button id="btn-google" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-medium py-3 rounded-lg transition flex items-center justify-center gap-3">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          Entrar com SSO da empresa
+          Entrar com Google
         </button>
+        
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-4 text-center">
+          Acesso restrito ao domínio <strong>@vdboti.com.br</strong>.
+        </p>
         
         <p class="text-xs text-slate-500 mt-6 text-center">
           Versão 1.0 — Suporte: TI
@@ -261,12 +271,22 @@ export function renderLogin() {
     </div>
   `;
   
-  document.querySelector('#btn-sso').addEventListener('click', async () => {
-    const { data, error } = await supabase.auth.signInWithSSO({
-      domain: 'empresa.com'
+  document.querySelector('#btn-google').addEventListener('click', async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+        queryParams: {
+          // 'hd' = hosted domain. APENAS dica visual ao Google — não é segurança.
+          // A validação obrigatória acontece em trigger Postgres BEFORE INSERT.
+          hd: 'vdboti.com.br',
+          access_type: 'offline',
+          prompt: 'select_account'
+        }
+      }
     });
     if (error) {
-      alert('Erro ao iniciar SSO: ' + error.message);
+      alert('Erro ao iniciar login: ' + error.message);
       return;
     }
     if (data?.url) location.href = data.url;
@@ -274,9 +294,26 @@ export function renderLogin() {
 }
 ```
 
-### 5.3. Callback SSO
+### 5.3. Callback Google OAuth
 
-A URL `/auth/callback` é tratada pelo Supabase automaticamente; após o redirect, recarregar `/` e o `despachar()` envia para `/dashboard`.
+A URL `/auth/callback` é tratada pelo Supabase automaticamente. Fluxo:
+
+1. Usuário clica "Entrar com Google" → redireciona ao Google.
+2. Google autentica e devolve para `https://<projeto>.supabase.co/auth/v1/callback`.
+3. Supabase tenta criar registro em `auth.users`.
+4. **Trigger `BEFORE INSERT` em `auth.users` valida `email LIKE '%@vdboti.com.br'`.** Se não bater, lança `RAISE EXCEPTION` e o login falha — usuário recebe mensagem `Acesso restrito ao domínio vdboti.com.br`.
+5. Se OK, Supabase devolve sessão para `${origin}/auth/callback`, que recarrega `/` e o `despachar()` envia para `/dashboard`.
+
+### 5.4. Tratamento de erro de domínio na UI
+
+Quando o callback retornar erro `auth/identity-not-found` ou similar (trigger rejeitou), a tela de login mostra:
+
+```html
+<div role="alert" class="mt-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-200 p-3 rounded-lg text-sm">
+  Esta conta Google não pertence ao domínio <strong>@vdboti.com.br</strong>.
+  Use uma conta corporativa autorizada ou peça ao TI.
+</div>
+```
 
 ---
 
@@ -1480,7 +1517,7 @@ import { test, expect } from '@playwright/test';
 
 test('fluxo: criar lançamento Cartão', async ({ page }) => {
   await page.goto('http://localhost:3000');
-  await page.click('#btn-sso'); // mock SSO em ambiente de teste
+  await page.click('#btn-google'); // mock Google OAuth em ambiente de teste
   
   await page.click('a[href="/caixa/hoje"]');
   await page.click('#btn-novo');
