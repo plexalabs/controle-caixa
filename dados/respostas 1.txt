@@ -1,0 +1,42 @@
+1.1 mybucks é o sistema do financeiro, é onde ocorre toda a movimentação finaceira da nossa empresa, ele tem uma integração com a maquina de pagamento e sistema de nf, toda nota que é gerada passa por ele, toda compra realizada pelo pdv ou link cai ali, porem coisas que precisam ser auditoradas como, cartão, pix dinheiro eu preciso ter um controle, pois em caso de virada de ciclo onde temos que faturar todos os pedidos para que não tenham cancelamentos, o sistema meio que faz com que o pedido tenha sido entregue para o revendedor, porem, na verdade não, nao ha cobrança e nem retirada, eu preciso ter a certeza que esse pedido esta na central e se ele sair tenho que ter certeza que ele saiu e que a entrada do valor tenha sido feita, isso serve tbm para pedidos que foram faturados e perdemos a nota e outras questões é mais para que eu tenha um controle maior das coisas, (o sistema do mybucks é redondo mas a menina que cuida hj que eu vou subistituir, faz tudo manualmente e eu prefiro fazer tudo digital, ent a ideia é digitalizar todos os processos)
+
+1.2 as 6 categorias seriam [Cartão, Pix, Dinheiro, Cancelado, Cartão Link, obs.] boletos são auditorados automaticamente pelo sitema, ele tem um outro formato de ser contado que não fica na minha ouçada
+devemos manter essas 6 categorias com cores que fiquem distintas uma da outra e que condiza com a categoria
+
+1.3 o volume é entre 50 a 150, depende do dia, porem oq seria para fazer o controle seria por volta de 20 a 50 diários
+
+
+2.1 esta certo esses três colunas, mas podemos trabalhar de uma forma com que consigamnos puxar o código do pedido para ter esse controle, e com o código do pedido ter o nome do cliente/revendedor. ou seja mais duas colunas
+
+2.2 com o cartão e com o link cartão: seria, código de autorização (para o link podemos usar o link que é enviado para o cliente/revendedor); com o pix podemos colocar o comprovante que vem da notinha fical; para o dinheiro, vamos deixar quem foi que recebeu (pois a tras das notas fiscais as vendedoras são obrigadas a colocar o nome de quem atendeu); cancelado, vamos colocar qual o motivo, quem fez e a data; e por fim obs, eu ainda não entendi o que esse quer dizer ent podemos deixar ele em aberto por enquanto
+
+
+3.1 a ideia é uma soma da opção a com a c, onde escolhemos a categoria e ele se transforma e quando completamos ele fuca da cor da etiqueta, como teremos a função de exel, podemo fazer com que ele seja dinamico, se eu preenchi que é de tal forma, ele "oculta" automaticamente as outras categorias e faz com que seja obrigatorio eu responder todos os detalhes, e quando estiver tudo certo ele fica com a linha da cor da categoria
+
+3.2 isso vai depender de como for contruida no sitema, acredito que na verção de exel na linha inteira, no site ele vai ficar na forma que estiver o itens e como ele for destacado 
+
+
+4.1 cada aba vai ter o formato Caixa 01-01 Caixa 02-01 (no exel por conta que não podemos usar a / em nomes de abas mas nas abas do modelo de site vamos usar /)... quando o ano virar mudamos a planilha (que vai ser nosso banco de dados [porem a ideia é fazer uma mescla de bancos, onde usamos um que seja o exel mais simples, e para modelos como o do site usaremos algo como supabase para ter mais tecnologia embarcada e poder acessar em qualquer lugar na planilha teremos links criptografdos para que somente quem tiver acesso ao sistema {com o sso da empresa} vai poder acessar])  
+
+4.2 no site ao lado das outras abas ou com um botão de mais proximo ao canto direito infeiro, ele dara a opção de criar nova aba ou item
+no exel vai ser um script que faz com que todo dia (de segunda ele gera o de sabado e de segunda, e não geramos o de domingo ) 
+
+4.3 acredito que todos os inidicadores sejam maravilhosos, quantos cancelados, quantos carteos e tudo que tivermos de informação podemos juntar e usar aqui
+
+4.4 deve ter uma marca d'água para não mecher e ela deve ser levemente mais escura e bloqueada para alteraões 
+
+5.1 depende, temos dois tipode de pendencias, as do cartão onde ele junta tudo idependente se seja dinheiro ou pix ou oq, e eu tenho que caçar (e esse é o intuito desse contrloe todo) e temos as entradas monetarias onde ele pode ser cartão link ou qualquer outra coisa, e eu preciso ter o controle do que é, quando eu movo ele vai para sua respectiva "caixinha" ele vai para a sua aba certa e fica em verde, eu tenho hoje 5 caixas abertos desde o dia 20 onde tem pendencias, e estou resolvendo cada uma pois ainda tem pedidos do dia 20/04 que foram faturados na empresa, ent eles são atualizados pore exemplo dia 30/04 porem continuam no caixa que pertencem, se foi um pedido do dia 21 e atualizamos ele no dia 25, ele continua no dia 21, porem nos metadados ele fica que foi atualizado dia 25
+
+5.2 sim quero ter esses controles visuais para que eu tenha noção assim que eu abra para poder ser a primeira e a ultima coisa que eu vou ver no dia, podemos trabalahr com um sistema de notificações inteligentes para cada tipo de pedido, com mensagens expecificas que sejam a cada 4h e tudo mais
+
+
+6.1 temos um pc mais lento, eu tenho um plano pago do supabase, podemos usabir o nosso back end e banco de daos como ja falei por la, para termos um alivio no pc do trabalho, podemos baixar cosias basicas mas não quero forçar o coitado
+
+6.2 vamos salvar no banco de dados que sempre estara em atualziação com a nossa planilha 
+
+6.3 sim, como eu ja mensionei em outros momentos, elas andam juntas, sempre sincronizando e com um modelo de troteção de dados parrudo
+
+6.4 so cuido dessa parte
+
+7 não, a ideia dos 5 arquivos é, 5 prompts/contextos iper mega detalhados, quero que vc pegue o que eu te falei aqui e aplie, de mais características cada arquivo tem que ter mais de 2mil linhas, de dados, com um formato para a indústria, onde o nosso agente vai realizar um projeto glorioso e fazer tudo funcionar perfeitamente e integrado
+
