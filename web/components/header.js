@@ -1,5 +1,5 @@
 // header.js — barra superior compartilhada por dashboard, caixa, etc.
-// Desenha logo + nav (Hoje, Pendências, Configurações) + avatar com nome.
+// Desenha logo + nav (Caixas, Pendências, Configurações) + avatar com nome.
 
 import { sair } from '../app/auth.js';
 import { navegar } from '../app/router.js';
@@ -23,7 +23,7 @@ export async function renderHeader(rotaAtiva) {
         </a>
 
         <nav class="app-nav" aria-label="Navegação principal">
-          ${link('/caixa/hoje',     'Hoje',          'caixa')}
+          ${link('/caixas',         'Caixas',        'caixas')}
           ${link('/pendencias',     'Pendências',    'pendencias')}
           ${link('/configuracoes',  'Configurações', 'config')}
         </nav>

@@ -8,6 +8,7 @@ import { renderRecuperar }  from './pages/recuperar.js';
 import { renderRedefinir }  from './pages/redefinir.js';
 import { renderDashboard }  from './pages/dashboard.js';
 import { renderCaixa }      from './pages/caixa.js';
+import { renderCaixas }     from './pages/caixas.js';
 import { pegarSessao }      from './supabase.js';
 
 // Lista de rotas, em ordem. `aberta: true` = não exige sessão.
@@ -22,6 +23,7 @@ const rotas = [
   { padrao: /^\/recuperar$/,         handler: renderRecuperar,             aberta: true },
   { padrao: /^\/redefinir$/,         handler: renderRedefinir,             aberta: true },
   { padrao: /^\/dashboard$/,         handler: renderDashboard },
+  { padrao: /^\/caixas$/,            handler: renderCaixas },
   { padrao: /^\/caixa\/([\w-]+)$/,   handler: renderCaixa },
 ];
 

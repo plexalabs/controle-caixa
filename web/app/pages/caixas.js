@@ -1,0 +1,145 @@
+// caixas.js — tela /caixas: arquivo editorial de todos os caixas.
+// Lista cada caixa que existe (criado manual ou pelo cron diario), com
+// resumo de lancamentos, pendentes, resolvidas, canceladas e status.
+
+import { supabase } from '../supabase.js';
+import { renderHeader, ligarHeader } from '../../components/header.js';
+import { dataLonga, dataCurta, ESTADO_CAIXA } from '../dominio.js';
+import { formatBRL } from '../utils.js';
+
+export async function renderCaixas() {
+  document.querySelector('#app').innerHTML = `
+    ${await renderHeader('caixas')}
+    <main class="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
+      <header class="caixas-cabec reveal reveal-1">
+        <p class="h-eyebrow">Arquivo</p>
+        <h1 class="h-display caixas-titulo">Os caixas, em ordem.</h1>
+        <p class="caixas-subtitulo text-body">
+          Cada dia útil ganha sua página. Aqui ficam todas — abertas,
+          em conferência ou já fechadas.
+        </p>
+      </header>
+
+      <section id="lista-caixas" class="reveal reveal-2 mt-8"></section>
+    </main>
+  `;
+  ligarHeader();
+  await carregarCaixas();
+}
+
+async function carregarCaixas() {
+  const lista = document.querySelector('#lista-caixas');
+  if (!lista) return;
+
+  lista.innerHTML = `
+    <div class="space-y-3">
+      ${[1,2,3,4].map(() => `<div class="skel" style="height:6.5rem"></div>`).join('')}
+    </div>`;
+
+  const [caixasRes, statsRes] = await Promise.all([
+    supabase.from('caixa')
+      .select('id, data, estado, total_lancamentos, total_pendentes, total_valor')
+      .order('data', { ascending: false }),
+    supabase.from('lancamento')
+      .select('caixa_id, categoria, estado')
+      .neq('estado', 'excluido'),
+  ]);
+
+  if (caixasRes.error) {
+    lista.innerHTML = `<p class="alert">Não conseguimos carregar os caixas. ${esc(caixasRes.error.message)}</p>`;
+    return;
+  }
+
+  const caixas       = caixasRes.data ?? [];
+  const lancamentos  = statsRes.data ?? [];
+
+  // Agrega resolvidos e cancelados por caixa.
+  const stats = {};
+  for (const l of lancamentos) {
+    const k = l.caixa_id;
+    if (!stats[k]) stats[k] = { resolvidos: 0, cancelados: 0 };
+    if (l.estado === 'resolvido')    stats[k].resolvidos++;
+    if (l.categoria === 'cancelado') stats[k].cancelados++;
+  }
+
+  if (caixas.length === 0) {
+    lista.innerHTML = `
+      <div class="vazio">
+        <div class="vazio-num">∅</div>
+        <p class="vazio-titulo">Nenhum caixa criado ainda.</p>
+        <p class="vazio-desc">
+          O caixa do dia é gerado automaticamente todo dia útil às 06h.
+          Você também pode abrir um manualmente em
+          <a href="/caixa/hoje" data-link>Caixa de hoje</a>.
+        </p>
+      </div>`;
+    return;
+  }
+
+  lista.innerHTML = caixas.map((c, i) =>
+    linhaCaixa(c, stats[c.id] || { resolvidos: 0, cancelados: 0 }, i)
+  ).join('');
+}
+
+function linhaCaixa(c, s, i) {
+  const total   = c.total_lancamentos ?? 0;
+  const pend    = c.total_pendentes ?? 0;
+  const valor   = c.total_valor ?? 0;
+  const dia     = diaSemana(c.data);
+  const dm      = dataCurta(c.data);
+  const ano     = anoDe(c.data);
+  const titulo  = dataLonga(c.data);
+  const ehHoje  = ehMesmoDia(c.data, new Date());
+
+  return `
+    <a href="/caixa/${c.data}" data-link
+       class="caixa-row" data-estado="${esc(c.estado)}"
+       style="animation-delay:${i * 35}ms">
+      <div class="caixa-row-data">
+        <span class="caixa-row-dia">${dia}</span>
+        <span class="caixa-row-dm">${dm}</span>
+        <span class="caixa-row-ano">${ano}</span>
+        ${ehHoje ? '<span class="caixa-row-marcador">hoje</span>' : ''}
+      </div>
+
+      <div class="caixa-row-corpo">
+        <h3 class="caixa-row-titulo">${esc(titulo)}</h3>
+        <div class="caixa-row-meta">
+          <span><strong>${total}</strong> ${total === 1 ? 'lançamento' : 'lançamentos'}</span>
+          <span class="caixa-row-sep">·</span>
+          <span>Pendentes: <strong class="${pend > 0 ? 'is-warn' : ''}">${pend}</strong></span>
+          <span class="caixa-row-sep">·</span>
+          <span>Resolvidas: <strong>${s.resolvidos}</strong></span>
+          <span class="caixa-row-sep">·</span>
+          <span>Canceladas: <strong>${s.cancelados}</strong></span>
+        </div>
+      </div>
+
+      <div class="caixa-row-direita">
+        <span class="badge-status" data-estado="${esc(c.estado)}">${esc(ESTADO_CAIXA[c.estado] || c.estado)}</span>
+        <span class="caixa-row-valor">${formatBRL(valor)}</span>
+      </div>
+    </a>
+  `;
+}
+
+// ─── Helpers de data ─────────────────────────────────────────────────────
+const fmtDiaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' });
+function diaSemana(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return fmtDiaSemana.format(d).replace('.', '').toUpperCase();
+}
+function anoDe(iso) {
+  return iso.slice(0, 4);
+}
+function ehMesmoDia(iso, dt) {
+  const a = new Date(iso + 'T00:00:00');
+  return a.getFullYear() === dt.getFullYear()
+      && a.getMonth() === dt.getMonth()
+      && a.getDate() === dt.getDate();
+}
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}

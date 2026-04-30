@@ -9,7 +9,6 @@ import { dataLonga, dataCurta, isoData, hora,
          LABEL_CATEGORIA, ESTADO_CAIXA, resumoDetalhes } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
-import { navegar } from '../router.js';
 
 let canalLanc = null;
 let caixaIdAtual = null;
@@ -27,10 +26,15 @@ export async function renderCaixa({ params }) {
   }
 
   document.querySelector('#app').innerHTML = `
-    ${await renderHeader('caixa')}
+    ${await renderHeader('caixas')}
     <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
+      <!-- Voltar para a lista -->
+      <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
+        <a href="/caixas" data-link class="btn-link" style="font-size:0.85rem">← Todos os caixas</a>
+      </nav>
+
       <!-- Cabeçalho do dia -->
-      <header class="mb-6 reveal reveal-1">
+      <header class="mb-7 reveal reveal-2">
         <p class="h-eyebrow">Caixa de</p>
         <div class="flex flex-wrap items-baseline justify-between gap-4 mt-1">
           <h1 class="h-display text-3xl sm:text-4xl" style="font-style:normal;font-weight:500"
@@ -44,9 +48,6 @@ export async function renderCaixa({ params }) {
         </div>
       </header>
 
-      <!-- Tab strip -->
-      <nav class="tab-strip reveal reveal-2" id="tab-strip" aria-label="Selecionar dia"></nav>
-
       <!-- Conteúdo principal -->
       <section id="bloco-conteudo" class="reveal reveal-3">
         ${blocoSkel()}
@@ -59,34 +60,9 @@ export async function renderCaixa({ params }) {
   `;
 
   ligarHeader();
-  renderTabStrip(dataAlvo);
 
   // Carrega caixa do dia. Se não existe, oferece criar.
   await carregarCaixa(dataAlvo);
-}
-
-// ─── Tab strip — últimos 14 dias úteis (incluindo hoje) ───────────────────
-function renderTabStrip(dataAlvo) {
-  const tab = document.querySelector('#tab-strip');
-  if (!tab) return;
-  const hoje = new Date();
-  const dias = [];
-  // Pega últimos 14 dias do calendário (não filtra fim-de-semana — operador
-  // pode ter aberto caixa em sábado, mostrar para navegação).
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(hoje);
-    d.setDate(hoje.getDate() - i);
-    dias.push(d);
-  }
-
-  tab.innerHTML = dias.map(d => {
-    const iso = isoData(d);
-    const ehHoje = iso === isoData(hoje);
-    const ativa = iso === dataAlvo;
-    const rotulo = ehHoje ? 'Hoje' : `Caixa ${dataCurta(d)}`;
-    return `<a href="/caixa/${iso}" data-link class="tab-caixa"
-              ${ativa ? 'aria-current="page"' : ''}>${rotulo}</a>`;
-  }).join('');
 }
 
 // ─── Carrega caixa + lançamentos ──────────────────────────────────────────
@@ -179,24 +155,28 @@ async function carregarLancamentos(caixaId) {
 }
 
 function linhaLancamento(l) {
-  const cat = l.categoria || '';
+  const cat        = l.categoria || '';
+  const catLabel   = LABEL_CATEGORIA[cat] || cat || 'Pendente';
   const ehAtrasado = l.estado === 'pendente' && diasUteisDesde(l.criado_em) > 3;
   const ehResolvido = l.estado === 'resolvido';
 
   return `
     <button class="lanc-row" data-cat="${esc(cat)}"
+            data-cat-label="${esc(catLabel)}"
             data-resolvido="${ehResolvido}" data-atrasado="${ehAtrasado}"
             data-id="${esc(l.id)}">
       <div class="lanc-meta">
         <span class="lanc-meta-nf">NF ${esc(l.numero_nf)}</span>
         <span style="font-style:italic">${hora(l.criado_em)}</span>
       </div>
-      <div>
+      <div class="lanc-corpo">
         <span class="lanc-cliente">${esc(l.cliente_nome)}</span>
-        ${cat ? `<span class="lanc-categoria">${esc(LABEL_CATEGORIA[cat] || cat)}</span>` : ''}
         ${cat ? `<div class="lanc-detalhes">${esc(resumoDetalhes(cat, l.dados_categoria))}</div>` : ''}
       </div>
-      <span class="lanc-valor">${formatBRL(l.valor_nf)}</span>
+      <div class="lanc-direita">
+        <span class="lanc-valor">${formatBRL(l.valor_nf)}</span>
+        ${cat ? `<span class="lanc-categoria">${esc(catLabel)}</span>` : ''}
+      </div>
     </button>`;
 }
 
