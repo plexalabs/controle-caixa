@@ -5,6 +5,7 @@
 import { supabase } from '../supabase.js';
 import { renderHeader, ligarHeader } from '../../components/header.js';
 import { abrirModalAdicionarNF }    from '../../components/modal-adicionar-nf.js';
+import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
 import { dataLonga, dataCurta, isoData, hora,
          LABEL_CATEGORIA, LABEL_CATEGORIA_CURTA, ESTADO_CAIXA,
          resumoDetalhes } from '../dominio.js';
@@ -13,6 +14,7 @@ import { mostrarToast } from '../notifications.js';
 
 let canalLanc = null;
 let caixaIdAtual = null;
+let dataAlvoAtual = null;
 
 export async function renderCaixa({ params }) {
   desmontar();
@@ -105,6 +107,7 @@ async function carregarCaixa(dataAlvo) {
   }
 
   caixaIdAtual = caixa.id;
+  dataAlvoAtual = dataAlvo;
   status.textContent = ESTADO_CAIXA[caixa.estado] || caixa.estado;
   status.dataset.estado = caixa.estado;
   btnNov.disabled = caixa.estado === 'fechado' || caixa.estado === 'arquivado';
@@ -144,11 +147,18 @@ async function carregarLancamentos(caixaId) {
 
   bloco.innerHTML = data.map(linhaLancamento).join('');
 
-  // Click → futuro CP4 abre modal de edição. Por agora, apenas highlight.
+  // Mapa rapido id → lançamento, para abrir o drawer com o objeto certo.
+  const porId = Object.fromEntries(data.map(l => [l.id, l]));
+
   bloco.querySelectorAll('.lanc-row').forEach(el => {
     el.addEventListener('click', () => {
-      el.style.outline = '2px solid var(--c-musgo)';
-      setTimeout(() => el.style.outline = '', 600);
+      const lanc = porId[el.dataset.id];
+      if (!lanc) return;
+      abrirModalEditarLancamento({
+        lancamento: lanc,
+        dataCaixa:  dataAlvoAtual,
+        aoSalvar:   () => carregarLancamentos(caixaId),
+      });
     });
   });
 

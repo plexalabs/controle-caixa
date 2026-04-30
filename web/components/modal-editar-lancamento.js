@@ -1,38 +1,78 @@
-// modal-novo-lancamento.js — Modal de criação de lançamento (CP3.3, Fase 2).
-// Formulário dinâmico: 5 campos comuns + categoria que troca o resto.
-// Submit chama RPC upsert_lancamento. ESC fecha com confirmação se houver dados.
+// modal-editar-lancamento.js — Drawer multi-modo para editar/categorizar
+// um lançamento ja existente. Tres modos detectados pelo estado:
+//
+//   1. CATEGORIZAR  (categoria=null) — formulario completo com campos
+//      comuns + select de categoria + campos dinamicos. Submit aplica
+//      categoria, dados e estado='completo'.
+//   2. GERENCIAR    (categoria!=null, sem estado_final no JSON) — exibe
+//      dados read-only, lista de observacoes, botoes finalizar/cancelar
+//      e textarea para nova observacao. (implementado no proximo commit)
+//   3. FINALIZADO   (dados_categoria.estado_final setado) — banner do
+//      desfecho + dados read-only + observacoes (so adicionar). (idem)
 
 import { supabase } from '../app/supabase.js';
 import { abrirModal, fecharModal } from './modal.js';
 import { CATEGORIAS, BANDEIRAS, MODALIDADES, STATUS_LINK, TIPOS_OBS,
          LABEL_CATEGORIA } from '../app/dominio.js';
 import { mostrarToast } from '../app/notifications.js';
-import { navegar } from '../app/router.js';
 import { debounce } from '../app/utils.js';
 
-// Estado interno do modal (limpo a cada abertura).
+// Estado interno do drawer (limpo a cada abertura).
 let estado = null;
 
-export function abrirModalNovoLancamento({ dataCaixa, aoSalvar = () => {} } = {}) {
+export function abrirModalEditarLancamento({ lancamento, dataCaixa, aoSalvar = () => {} } = {}) {
   estado = {
+    lancamento,                              // pode ser null se for criacao direta
     dataCaixa,
     aoSalvar,
-    categoriaAtual: '',
-    dadosCategoria: {},  // valores dos campos dinâmicos
+    categoriaAtual: lancamento?.categoria || '',
+    dadosCategoria: lancamento?.dados_categoria || {},
     vendedoras: [],
-    sujo: false,         // marca se há dados → ESC pede confirmação
+    sujo: false,
+    modo: detectarModo(lancamento),
   };
 
+  if (estado.modo === 'categorizar') return abrirModoCategorizar();
+
+  // Modos gerenciar/finalizado — fallback ate proximo commit.
   abrirModal({
     lateral: true,
-    eyebrow:  `Novo lançamento · ${formatarDataPt(dataCaixa)}`,
-    titulo:   'Adicionar uma página ao caixa.',
-    conteudo: corpoForm(),
+    eyebrow: `NF ${lancamento?.numero_nf || ''}`,
+    titulo:  'Em construção.',
+    conteudo: `
+      <p class="text-body" style="margin-bottom:1rem">
+        A visualização e gestão deste lançamento estará disponível no próximo
+        ajuste. Por enquanto, ele já está categorizado e seguro no caixa.
+      </p>`,
+    rodape: `
+      <div class="painel-rodape-acoes">
+        <span></span>
+        <button type="button" class="btn-primary" data-fechar>Fechar</button>
+      </div>`,
+  });
+}
+
+function detectarModo(l) {
+  if (!l || l.categoria == null) return 'categorizar';
+  if (l.dados_categoria?.estado_final) return 'finalizado';
+  return 'gerenciar';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MODO 1 — CATEGORIZAR
+// ════════════════════════════════════════════════════════════════════════
+function abrirModoCategorizar() {
+  const l = estado.lancamento;
+  abrirModal({
+    lateral: true,
+    eyebrow: l ? `NF ${l.numero_nf} · em análise` : `Novo lançamento · ${formatarDataPt(estado.dataCaixa)}`,
+    titulo:  l ? 'Categorizar lançamento.' : 'Adicionar uma página ao caixa.',
+    conteudo: corpoFormCategorizar(),
     rodape: `
       <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
       <div class="painel-rodape-acoes">
         <button type="button" id="btn-cancel" class="btn-link">Cancelar</button>
-        <button type="submit" form="form-lanc" id="btn-salvar" class="btn-primary" disabled>Salvar lançamento</button>
+        <button type="submit" form="form-lanc" id="btn-salvar" class="btn-primary" disabled>Salvar categorização</button>
       </div>`,
     onConfirmarFechar: () => {
       if (!estado?.sujo) return true;
@@ -40,38 +80,50 @@ export function abrirModalNovoLancamento({ dataCaixa, aoSalvar = () => {} } = {}
     },
   });
 
-  ligarComportamento();
+  ligarCategorizar();
 }
 
-// ─── HTML do formulário ─────────────────────────────────────────────────
-function corpoForm() {
+function corpoFormCategorizar() {
+  const l = estado.lancamento;
+  const nfReadOnly = !!l;
   return `
+    ${l ? `
+      <p class="text-body" style="font-size:0.9rem;color:var(--c-tinta-3);margin-bottom:1.4rem;line-height:1.5">
+        Você anotou a NF <strong style="color:var(--c-tinta)">${esc(l.numero_nf)}</strong>
+        com valor de <strong style="color:var(--c-tinta)">${formatBRL(l.valor_nf)}</strong>.
+        Agora defina como o pagamento foi feito.
+      </p>` : ''}
+
     <form id="form-lanc" novalidate>
-      <!-- Campos comuns -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="field" style="margin-bottom:0">
           <label class="field-label" for="numero_nf">Número da NF</label>
-          <input id="numero_nf" name="numero_nf" required maxlength="15" class="field-input" />
+          <input id="numero_nf" name="numero_nf" required maxlength="15" class="field-input"
+                 ${nfReadOnly ? 'readonly' : ''}
+                 value="${esc(l?.numero_nf || '')}" />
         </div>
         <div class="field" style="margin-bottom:0">
           <label class="field-label" for="codigo_pedido">Código do pedido</label>
-          <input id="codigo_pedido" name="codigo_pedido" required maxlength="20" class="field-input" />
+          <input id="codigo_pedido" name="codigo_pedido" required maxlength="20" class="field-input"
+                 value="${esc(l?.codigo_pedido || '')}" />
         </div>
       </div>
 
       <div class="field mt-5">
         <label class="field-label" for="cliente_nome">Cliente</label>
-        <input id="cliente_nome" name="cliente_nome" required maxlength="120" class="field-input" />
+        <input id="cliente_nome" name="cliente_nome" required maxlength="120" class="field-input"
+               value="${esc(l?.cliente_nome || '')}" />
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
         <div class="field" style="margin-bottom:0">
           <label class="field-label" for="valor_nf">Valor (R$)</label>
           <input id="valor_nf" name="valor_nf" type="number" step="0.01" min="0.01" required
-                 class="field-input" inputmode="decimal" />
+                 class="field-input" inputmode="decimal"
+                 value="${esc(l?.valor_nf ?? '')}" />
         </div>
         <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="categoria">Categoria</label>
+          <label class="field-label" for="categoria">Forma de pagamento *</label>
           <select id="categoria" name="categoria" required class="field-input">
             <option value="">— escolher —</option>
             ${CATEGORIAS.map(c => `<option value="${c.valor}">${c.rotulo}</option>`).join('')}
@@ -79,11 +131,10 @@ function corpoForm() {
         </div>
       </div>
 
-      <!-- Bloco dinâmico — preenchido depois que a categoria é escolhida -->
       <fieldset id="bloco-cat" class="mt-7 pt-6 border-t" style="border-color:var(--c-papel-3)">
         <legend class="h-eyebrow" style="padding:0">Detalhes da categoria</legend>
         <p id="bloco-cat-vazio" class="text-body text-sm mt-3" style="color:var(--c-tinta-3)">
-          Escolha uma categoria acima para preencher os campos correspondentes.
+          Escolha uma forma de pagamento acima para preencher os campos correspondentes.
         </p>
         <div id="bloco-cat-campos"></div>
       </fieldset>
@@ -91,42 +142,36 @@ function corpoForm() {
   `;
 }
 
-// ─── Ligação de eventos depois do innerHTML ─────────────────────────────
-function ligarComportamento() {
-  const form  = document.querySelector('#form-lanc');
+function ligarCategorizar() {
+  const form = document.querySelector('#form-lanc');
   if (!form) return;
 
-  // Helpers — formulário tem campos dentro do <form>, mas botões e erro
-  // estão no rodapé sticky do drawer (fora do <form>).
-  const f      = (id) => form.querySelector(`#${id}`) || document.querySelector(`#${id}`);
+  const f = (id) => form.querySelector(`#${id}`) || document.querySelector(`#${id}`);
   const erroEl = document.querySelector('#erro-form');
 
-  // Auto-foco no primeiro campo após a animação de abertura.
-  setTimeout(() => f('numero_nf')?.focus(), 360);
+  setTimeout(() => {
+    const alvo = estado.lancamento ? f('categoria') : f('numero_nf');
+    alvo?.focus();
+  }, 360);
 
-  // Marca como sujo qualquer alteração — para a confirmação de ESC.
-  form.addEventListener('input', () => { estado.sujo = true; revalidarSubmit(); });
+  form.addEventListener('input', () => { estado.sujo = true; revalidar(); });
 
-  // Cancelar / fechar.
   f('btn-cancel').addEventListener('click', () => fecharModal(false));
 
-  // ── Autocomplete via cliente_cache ───────────────────────────────────
-  const buscarCliente = debounce(async () => {
+  const buscar = debounce(async () => {
     const codigo = f('codigo_pedido').value.trim();
     if (!codigo) return;
     const { data } = await supabase
-      .from('cliente_cache')
-      .select('cliente_nome, valor_nf_ultimo')
-      .eq('codigo_pedido', codigo)
-      .maybeSingle();
+      .from('cliente_cache').select('cliente_nome, valor_nf_ultimo')
+      .eq('codigo_pedido', codigo).maybeSingle();
     if (!data) return;
     if (!f('cliente_nome').value) f('cliente_nome').value = data.cliente_nome;
     if (!f('valor_nf').value && data.valor_nf_ultimo)
       f('valor_nf').value = Number(data.valor_nf_ultimo).toFixed(2);
+    revalidar();
   }, 350);
-  f('codigo_pedido').addEventListener('blur', buscarCliente);
+  f('codigo_pedido').addEventListener('blur', buscar);
 
-  // ── Troca de categoria com confirmação se já preencheu detalhes ──────
   f('categoria').addEventListener('change', async (e) => {
     const nova = e.target.value;
     if (estado.categoriaAtual && temDadosCategoria() && nova !== estado.categoriaAtual) {
@@ -138,10 +183,9 @@ function ligarComportamento() {
     estado.categoriaAtual = nova;
     estado.dadosCategoria = {};
     await renderCamposCategoria(nova);
-    revalidarSubmit();
+    revalidar();
   });
 
-  // ── Submit ───────────────────────────────────────────────────────────
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     erroEl.classList.add('hidden');
@@ -152,7 +196,7 @@ function ligarComportamento() {
     const payload = construirPayload(form);
     if (!payload) {
       btn.removeAttribute('aria-busy');
-      revalidarSubmit();
+      revalidar();
       return;
     }
 
@@ -166,14 +210,13 @@ function ligarComportamento() {
       return;
     }
 
-    estado.sujo = false;  // já gravou, ESC sem confirmação.
+    estado.sujo = false;
     fecharModal(true);
-    mostrarToast('Lançamento registrado.', 'ok', 2200);
+    mostrarToast('Lançamento categorizado.', 'ok', 2200);
     estado.aoSalvar();
   });
 }
 
-// ─── Render dos campos por categoria ────────────────────────────────────
 async function renderCamposCategoria(cat) {
   const container = document.querySelector('#bloco-cat-campos');
   const vazio     = document.querySelector('#bloco-cat-vazio');
@@ -227,11 +270,10 @@ async function renderCamposCategoria(cat) {
           ${campoSelect('vendedora_id', 'Vendedora que recebeu', opts, { required: true })}
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
             ${campoNumero('valor_recebido', 'Valor recebido (R$)', { required: true, step: 0.01, min: 0.01 })}
-            ${campoNumero('troco', 'Troco (R$)', { step: 0.01, min: 0, readonly: false })}
+            ${campoNumero('troco', 'Troco (R$)', { step: 0.01, min: 0 })}
           </div>
           ${campoTextarea('observacao_caixa', 'Observação (opcional)', { maxlength: 240 })}`;
 
-        // Calcula troco automaticamente ao mudar valor recebido.
         document.querySelector('#campo-valor_recebido').addEventListener('input', () => {
           const recebido = Number(document.querySelector('#campo-valor_recebido').value || 0);
           const valorNF  = Number(document.querySelector('#valor_nf').value || 0);
@@ -270,9 +312,8 @@ async function renderCamposCategoria(cat) {
       break;
   }
 
-  // Liga listeners para revalidação dos campos dinâmicos.
   container.querySelectorAll('input, select, textarea').forEach(el => {
-    el.addEventListener('input', () => { estado.sujo = true; revalidarSubmit(); });
+    el.addEventListener('input', () => { estado.sujo = true; revalidar(); });
   });
 }
 
@@ -329,17 +370,14 @@ function campoTextarea(name, label, opts = {}) {
     </div>`;
 }
 
-// ─── Validação e construção do payload ──────────────────────────────────
 function temDadosCategoria() {
   const campos = document.querySelectorAll('#bloco-cat-campos input, #bloco-cat-campos select, #bloco-cat-campos textarea');
   return Array.from(campos).some(c => c.value && c.value.trim() !== '');
 }
-
-function revalidarSubmit() {
+function revalidar() {
   const form = document.querySelector('#form-lanc');
   const btn  = document.querySelector('#btn-salvar');
   if (!form || !btn) return;
-  // Validação HTML5 nativa serve bem aqui.
   btn.disabled = !form.checkValidity();
 }
 
@@ -349,13 +387,9 @@ function construirPayload(form) {
   for (const el of campos) {
     if (el.name && el.value !== '') dadosCategoria[el.name] = el.value;
   }
-
-  // Conversões de tipos para o que o trigger valida.
   if (dadosCategoria.parcelas) dadosCategoria.parcelas = Number(dadosCategoria.parcelas);
   if (dadosCategoria.valor_recebido) dadosCategoria.valor_recebido = Number(dadosCategoria.valor_recebido);
   if (dadosCategoria.troco != null && dadosCategoria.troco !== '') dadosCategoria.troco = Number(dadosCategoria.troco);
-
-  // Para Dinheiro, guarda nome de cache da vendedora para exibição.
   if (form.categoria.value === 'dinheiro' && dadosCategoria.vendedora_id) {
     const v = estado.vendedoras.find(x => x.id === dadosCategoria.vendedora_id);
     if (v) dadosCategoria.vendedora_nome_cache = v.nome;
@@ -374,10 +408,8 @@ function construirPayload(form) {
   };
 }
 
-// ─── Tradução de erros do banco para pt-BR ──────────────────────────────
 function traduzirErroBanco(error) {
   const m = (error.message || '').toLowerCase();
-
   if (m.includes('numero_nf') && m.includes('duplic')) return 'Já existe lançamento com este número de NF neste caixa.';
   if (m.includes('lancamento_nf_caixa_uk'))           return 'Já existe lançamento com este número de NF neste caixa.';
   if (m.includes('cartão incompletos') || m.includes('cartao incompletos'))    return 'Preencha todos os campos obrigatórios da categoria Cartão.';
@@ -390,14 +422,15 @@ function traduzirErroBanco(error) {
   if (m.includes('obs incompletos'))                  return 'Preencha tipo e descrição da observação.';
   if (m.includes('descrição de obs muito curta') || m.includes('descricao de obs')) return 'Descrição da observação precisa ter ao menos 20 caracteres.';
   if (m.includes('row-level security'))               return 'Você não tem permissão para criar lançamentos. Contate o administrador.';
-
   return error.message || 'Não foi possível salvar. Tente novamente.';
 }
 
-// ─── Helpers de formatação ──────────────────────────────────────────────
 function formatarDataPt(iso) {
   const d = new Date(iso + 'T00:00:00');
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long' }).format(d);
+}
+function formatBRL(n) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(n || 0));
 }
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({
