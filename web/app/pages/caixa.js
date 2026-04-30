@@ -4,7 +4,7 @@
 
 import { supabase } from '../supabase.js';
 import { renderHeader, ligarHeader } from '../../components/header.js';
-import { abrirModalNovoLancamento }  from '../../components/modal-novo-lancamento.js';
+import { abrirModalAdicionarNF }    from '../../components/modal-adicionar-nf.js';
 import { dataLonga, dataCurta, isoData, hora,
          LABEL_CATEGORIA, LABEL_CATEGORIA_CURTA, ESTADO_CAIXA,
          resumoDetalhes } from '../dominio.js';
@@ -109,7 +109,7 @@ async function carregarCaixa(dataAlvo) {
   status.dataset.estado = caixa.estado;
   btnNov.disabled = caixa.estado === 'fechado' || caixa.estado === 'arquivado';
   btnNov.onclick = () =>
-    abrirModalNovoLancamento({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });
+    abrirModalAdicionarNF({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });
 
   await carregarLancamentos(caixa.id);
   ligarRealtime(caixa.id);
