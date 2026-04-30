@@ -266,9 +266,42 @@ Todas as correções foram aplicadas via MCP `apply_migration` e versionadas em 
 
 ---
 
+## Hotfix Vault (migration 187)
+
+A primeira tentativa do admin de rodar `app.configurar_cron(...)` em produção falhou porque o Supabase Cloud **não permite `ALTER DATABASE postgres SET app.settings.*`** (privilégio de superuser indisponível em managed Postgres).
+
+Corrigido pela migration `20260429187000_refatorar_invocar_edge.sql`:
+
+- `supabase_vault` (já habilitada como `vault` 0.3.1) passa a guardar a `service_role_key` cifrada.
+- `app.invocar_edge(p_nome, p_payload)` foi reescrita para ler `vault.decrypted_secrets` em runtime — assinatura preservada, os 4 cron jobs já agendados continuam funcionando sem alteração.
+- `app.configurar_cron` foi marcada como **deprecada**: chamadas agora retornam `RAISE EXCEPTION '0A000'` apontando para o novo método.
+- URL do projeto é hardcoded na função (URL não é segredo — está exposta no anon key público).
+
+### Validação do hotfix Vault
+
+Após o admin rodar uma vez no SQL Editor:
+
+```sql
+SELECT vault.create_secret(
+    '<service_role_key>',
+    'service_role_key',
+    'Chave service_role para invocação de edge functions via pg_cron'
+);
+```
+
+Validar com:
+
+```sql
+SELECT app.invocar_edge('cria_caixa_diario', '{}'::jsonb);
+```
+
+✅ **Critério de aceite:** retorno é um `bigint` (request id do `net.http_post`). Status HTTP 200 ou 401 da edge — qualquer um — prova que o circuito **banco → vault → HTTP → edge** está funcionando. Retorno `NULL` + `WARNING` significa que a secret ainda não foi cadastrada.
+
+---
+
 ## Pendências para fora da Fase 1
 
-1. **`app.configurar_cron(<service_role_key>, '<url>')`** precisa ser invocado **uma vez** pelo admin no SQL Editor para os 4 jobs cron de **edge functions** (`cria_caixa_diario`, `disparar_notificacoes_4h`, `arquivar_ano`, `backup_semanal`) começarem a funcionar. Os 3 jobs SQL puros já operam.
+1. **Cadastrar `service_role_key` no Vault** (uma vez, via SQL Editor — ver bloco "Hotfix Vault" acima). Após isso, os 4 jobs cron de **edge functions** (`cria_caixa_diario`, `disparar_notificacoes_4h`, `arquivar_ano`, `backup_semanal`) começam a funcionar. Os 3 jobs SQL puros já operam.
 2. **Provider Google OAuth** ainda não cadastrado no Supabase Auth — aguardando `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` do Operador.
 3. **Edge functions opcionais** não deployadas (`enviar_email_notificacao`, `alertar_anomalia`) — não bloqueiam Fase 2/3.
 4. **Vendedoras reais** ainda não cadastradas em `public.vendedora` — popular antes do UAT.
