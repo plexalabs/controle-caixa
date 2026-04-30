@@ -172,11 +172,17 @@ function linhaLancamento(l) {
   const ehAtrasado     = l.estado === 'pendente' && diasUteisDesde(l.criado_em) > 3;
   const ehResolvido    = l.estado === 'resolvido';
   const emAnalise      = !cat;
+  const estadoFinal    = l.dados_categoria?.estado_final || '';
+  const detalheBase    = cat ? resumoDetalhes(cat, l.dados_categoria) : '';
+  const detalheSuffix  = estadoFinal === 'finalizado' ? ' · finalizado'
+                       : estadoFinal === 'cancelado'  ? ' · cancelado pós-pagamento'
+                       : '';
 
   return `
     <button class="lanc-row" data-cat="${esc(cat)}"
             data-cat-label="${esc(labelVertical)}"
             data-em-analise="${emAnalise}"
+            data-estado-final="${esc(estadoFinal)}"
             data-resolvido="${ehResolvido}" data-atrasado="${ehAtrasado}"
             data-id="${esc(l.id)}">
       <div class="lanc-meta">
@@ -186,7 +192,7 @@ function linhaLancamento(l) {
       <div class="lanc-corpo">
         <span class="lanc-cliente">${esc(l.cliente_nome || '— sem cliente —')}</span>
         ${cat
-          ? `<div class="lanc-detalhes">${esc(resumoDetalhes(cat, l.dados_categoria))}</div>`
+          ? `<div class="lanc-detalhes">${esc(detalheBase + detalheSuffix)}</div>`
           : `<div class="lanc-detalhes lanc-detalhes--analise">aguardando categorização</div>`}
       </div>
       <div class="lanc-direita">

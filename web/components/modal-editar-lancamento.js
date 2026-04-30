@@ -33,23 +33,7 @@ export function abrirModalEditarLancamento({ lancamento, dataCaixa, aoSalvar = (
   };
 
   if (estado.modo === 'categorizar') return abrirModoCategorizar();
-
-  // Modos gerenciar/finalizado — fallback ate proximo commit.
-  abrirModal({
-    lateral: true,
-    eyebrow: `NF ${lancamento?.numero_nf || ''}`,
-    titulo:  'Em construção.',
-    conteudo: `
-      <p class="text-body" style="margin-bottom:1rem">
-        A visualização e gestão deste lançamento estará disponível no próximo
-        ajuste. Por enquanto, ele já está categorizado e seguro no caixa.
-      </p>`,
-    rodape: `
-      <div class="painel-rodape-acoes">
-        <span></span>
-        <button type="button" class="btn-primary" data-fechar>Fechar</button>
-      </div>`,
-  });
+  return abrirModoGerenciarOuFinalizado();
 }
 
 function detectarModo(l) {
@@ -436,4 +420,325 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MODOS 2/3 — GERENCIAR (categorizado) e FINALIZADO (estado_final setado)
+// ════════════════════════════════════════════════════════════════════════
+function abrirModoGerenciarOuFinalizado() {
+  const l = estado.lancamento;
+  const ef = l.dados_categoria?.estado_final;
+  const finalizado = !!ef;
+  const eyebrow = finalizado
+    ? `NF ${l.numero_nf} · ${ef === 'cancelado' ? 'cancelado' : 'finalizado'}`
+    : `NF ${l.numero_nf} · ${LABEL_CATEGORIA[l.categoria] || l.categoria}`;
+  const titulo  = finalizado ? 'Histórico do lançamento.' : 'Lançamento em curso.';
+
+  abrirModal({
+    lateral: true,
+    eyebrow,
+    titulo,
+    conteudo: corpoGerenciar(),
+    rodape:   rodapeGerenciar(),
+    onConfirmarFechar: () => true,  // sem dados de form pra perder
+  });
+
+  ligarGerenciar();
+}
+
+function corpoGerenciar() {
+  const l  = estado.lancamento;
+  const ef = l.dados_categoria?.estado_final;
+  const ts = l.dados_categoria?.estado_final_em;
+  const motivo = l.dados_categoria?.estado_final_motivo;
+  const observacoes = Array.isArray(l.dados_categoria?.observacoes)
+    ? l.dados_categoria.observacoes
+    : [];
+
+  return `
+    ${ef ? bannerFinal(ef, ts, motivo) : ''}
+
+    <section class="lanc-leitura">
+      ${cardLeitura('Categoria',
+        `<span class="lanc-categoria" style="background:${corBgCat(l.categoria)};color:${corTextoCat(l.categoria)}">
+           ${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}
+         </span>`)}
+      ${cardLeitura('Cliente',  esc(l.cliente_nome))}
+      ${cardLeitura('Código',   esc(l.codigo_pedido) + ' · NF ' + esc(l.numero_nf))}
+      ${cardLeitura('Valor',    `<strong style="font-family:'Fraunces';font-variant-numeric:tabular-nums;font-size:1.2rem">${formatBRL(l.valor_nf)}</strong>`)}
+    </section>
+
+    ${dadosCategoriaLeitura(l)}
+
+    <section class="lanc-obs-bloco">
+      <h3 class="h-eyebrow" style="margin-top:1.75rem;margin-bottom:0.85rem">Observações</h3>
+      <ul id="lista-obs" class="lanc-obs-lista">
+        ${observacoes.length === 0
+          ? `<li class="lanc-obs-vazio">Nenhuma observação ainda.</li>`
+          : observacoes.map(linhaObs).join('')}
+      </ul>
+      <div class="lanc-obs-novo">
+        <label class="field-label" for="nova-obs" style="margin-bottom:0.4rem">Adicionar observação</label>
+        <textarea id="nova-obs" rows="2" class="field-input"
+                  placeholder="ex.: avisei o cliente em 02/05, vence dia 05/05"
+                  maxlength="500" style="resize:vertical"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:0.5rem">
+          <button type="button" id="btn-add-obs" class="btn-primary" style="padding:0.55rem 1.1rem;font-size:0.85rem" disabled>
+            Adicionar
+          </button>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function rodapeGerenciar() {
+  const l  = estado.lancamento;
+  const ef = l.dados_categoria?.estado_final;
+  if (ef) {
+    return `<div class="painel-rodape-acoes">
+      <span class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3)">
+        Lançamento ${ef === 'cancelado' ? 'cancelado' : 'finalizado'}. Apenas observações continuam editáveis.
+      </span>
+      <button type="button" id="btn-fechar-leitura" class="btn-link">Fechar</button>
+    </div>`;
+  }
+  return `
+    <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
+    <div class="painel-acoes-finais">
+      <button type="button" id="btn-cancelar-pos" class="btn-secundario btn-secundario--alerta">
+        ✕ Marcar como cancelado
+      </button>
+      <button type="button" id="btn-finalizar" class="btn-primary">
+        ✓ Marcar como finalizado
+      </button>
+    </div>`;
+}
+
+function bannerFinal(ef, ts, motivo) {
+  const cancelado = ef === 'cancelado';
+  return `
+    <div class="lanc-banner lanc-banner--${cancelado ? 'cancelado' : 'finalizado'}">
+      <div class="lanc-banner-icone">${cancelado ? '✕' : '✓'}</div>
+      <div>
+        <p class="lanc-banner-titulo">${cancelado ? 'Cancelado' : 'Finalizado'}${ts ? ' em ' + formatarTs(ts) : ''}</p>
+        ${motivo ? `<p class="lanc-banner-motivo">${esc(motivo)}</p>` : ''}
+      </div>
+    </div>`;
+}
+
+function cardLeitura(rotulo, valorHtml) {
+  return `
+    <div class="lanc-leitura-item">
+      <p class="h-eyebrow" style="font-size:0.6rem">${esc(rotulo)}</p>
+      <div class="lanc-leitura-valor">${valorHtml}</div>
+    </div>`;
+}
+
+function dadosCategoriaLeitura(l) {
+  const cat = l.categoria;
+  const d   = l.dados_categoria || {};
+  let pares = [];
+
+  if (cat === 'cartao') pares = [
+    ['Bandeira',       d.bandeira],
+    ['Modalidade',     d.modalidade],
+    ['Parcelas',       d.parcelas ? `${d.parcelas}x` : null],
+    ['Últimos 4',      d.ultimos_4_digitos ? `**** ${d.ultimos_4_digitos}` : null],
+    ['Cód. autorização', d.codigo_autorizacao],
+  ];
+  else if (cat === 'pix') pares = [
+    ['ID comprovante', d.comprovante_id_externo],
+    ['Chave',          d.chave_recebedora],
+    ['Data/hora',      d.data_hora_pix ? formatarTs(d.data_hora_pix) : null],
+    ['Remetente',      d.nome_remetente],
+  ];
+  else if (cat === 'dinheiro') pares = [
+    ['Recebido por',   d.vendedora_nome_cache],
+    ['Valor recebido', d.valor_recebido != null ? formatBRL(d.valor_recebido) : null],
+    ['Troco',          d.troco != null && Number(d.troco) > 0 ? formatBRL(d.troco) : null],
+  ];
+  else if (cat === 'cancelado') pares = [
+    ['Motivo',         d.motivo_cancelamento],
+    ['Cancelado por',  d.cancelado_por],
+    ['Data',           d.data_cancelamento],
+    ['Estorno nº',     d.numero_estorno],
+  ];
+  else if (cat === 'cartao_link') pares = [
+    ['URL',            d.link_url],
+    ['Status',         d.status_link],
+    ['Enviado em',     d.data_envio_link ? formatarTs(d.data_envio_link) : null],
+  ];
+  else if (cat === 'obs') pares = [
+    ['Tipo',           d.tipo_obs],
+    ['Descrição',      d.descricao],
+  ];
+
+  pares = pares.filter(([, v]) => v != null && v !== '');
+  if (!pares.length) return '';
+
+  return `
+    <section class="lanc-leitura-detalhes">
+      <h3 class="h-eyebrow" style="margin-top:1.6rem;margin-bottom:0.65rem">Detalhes do pagamento</h3>
+      <dl class="lanc-leitura-dl">
+        ${pares.map(([k, v]) => `
+          <dt>${esc(k)}</dt>
+          <dd>${esc(v)}</dd>
+        `).join('')}
+      </dl>
+    </section>`;
+}
+
+function linhaObs(o) {
+  return `
+    <li class="lanc-obs-item">
+      <p class="lanc-obs-texto">${esc(o.texto)}</p>
+      <p class="lanc-obs-meta">${esc(o.autor || 'operador')} · ${formatarTs(o.criado_em)}</p>
+    </li>`;
+}
+
+function ligarGerenciar() {
+  const l = estado.lancamento;
+  const ef = l.dados_categoria?.estado_final;
+
+  // Sempre liga: textarea de adicionar observacao.
+  const tx = document.querySelector('#nova-obs');
+  const btnAdd = document.querySelector('#btn-add-obs');
+  if (tx && btnAdd) {
+    tx.addEventListener('input', () => {
+      btnAdd.disabled = tx.value.trim().length < 3;
+    });
+    btnAdd.addEventListener('click', async () => {
+      const texto = tx.value.trim();
+      if (!texto) return;
+      btnAdd.setAttribute('aria-busy', 'true');
+      btnAdd.disabled = true;
+      const ok = await persistirObservacao(texto);
+      btnAdd.removeAttribute('aria-busy');
+      if (!ok) { btnAdd.disabled = false; return; }
+      tx.value = '';
+      mostrarToast('Observação adicionada.', 'ok', 1800);
+      // Recarrega o drawer com dados frescos.
+      await reabrirComDadosFrescos();
+    });
+  }
+
+  // Modos finalizado: so botao fechar.
+  if (ef) {
+    document.querySelector('#btn-fechar-leitura')?.addEventListener('click', () => fecharModal(true));
+    return;
+  }
+
+  // Modo gerenciar: liga botoes finalizar / cancelar-pos.
+  document.querySelector('#btn-finalizar')?.addEventListener('click', async () => {
+    if (!confirm('Confirma que o cliente buscou e o lançamento está finalizado?')) return;
+    await aplicarEstadoFinal('finalizado', null);
+  });
+  document.querySelector('#btn-cancelar-pos')?.addEventListener('click', async () => {
+    const motivo = prompt('Motivo do cancelamento:');
+    if (motivo == null) return;
+    if (motivo.trim().length < 3) {
+      alert('Informe um motivo com ao menos 3 caracteres.');
+      return;
+    }
+    await aplicarEstadoFinal('cancelado', motivo.trim());
+  });
+}
+
+async function persistirObservacao(texto) {
+  // Por enquanto, append em dados_categoria.observacoes (array). O backend
+  // da proxima rodada migra isso pra tabela lancamento_observacao.
+  const l = estado.lancamento;
+  const obsAtuais = Array.isArray(l.dados_categoria?.observacoes)
+    ? l.dados_categoria.observacoes : [];
+  const obs = {
+    texto,
+    autor:     await pegarEmail(),
+    criado_em: new Date().toISOString(),
+  };
+  const novosDados = { ...l.dados_categoria, observacoes: [...obsAtuais, obs] };
+
+  const { error } = await supabase
+    .from('lancamento')
+    .update({ dados_categoria: novosDados, atualizado_em: new Date().toISOString() })
+    .eq('id', l.id);
+
+  if (error) {
+    alert('Não foi possível salvar a observação: ' + error.message);
+    return false;
+  }
+  // Atualiza o objeto em memoria.
+  estado.lancamento = { ...l, dados_categoria: novosDados };
+  return true;
+}
+
+async function aplicarEstadoFinal(tipo, motivo) {
+  const l = estado.lancamento;
+  const dados = {
+    ...l.dados_categoria,
+    estado_final:        tipo,
+    estado_final_em:     new Date().toISOString(),
+    estado_final_motivo: motivo,
+  };
+  const { error } = await supabase
+    .from('lancamento')
+    .update({ dados_categoria: dados })
+    .eq('id', l.id);
+
+  if (error) {
+    document.querySelector('#erro-form')?.classList.remove('hidden');
+    document.querySelector('#erro-form').textContent =
+      'Não foi possível atualizar: ' + error.message;
+    return;
+  }
+  estado.lancamento = { ...l, dados_categoria: dados };
+  mostrarToast(tipo === 'finalizado' ? 'Lançamento finalizado.' : 'Lançamento cancelado.', 'ok', 2000);
+  fecharModal(true);
+  estado.aoSalvar();
+}
+
+async function reabrirComDadosFrescos() {
+  const l = estado.lancamento;
+  // Re-busca o lancamento (caso outro operador tenha mexido).
+  const { data } = await supabase.from('lancamento').select('*').eq('id', l.id).maybeSingle();
+  if (data) estado.lancamento = data;
+  fecharModal(true);
+  setTimeout(() => abrirModalEditarLancamento({
+    lancamento: estado.lancamento,
+    dataCaixa:  estado.dataCaixa,
+    aoSalvar:   estado.aoSalvar,
+  }), 280);
+  estado.aoSalvar();
+}
+
+async function pegarEmail() {
+  const { data } = await supabase.auth.getSession();
+  return data?.session?.user?.email || 'operador';
+}
+
+// ─── Helpers compartilhados pelos modos read-only ────────────────────────
+function corBgCat(cat) {
+  const map = {
+    cartao: 'var(--cat-cartao-bg)',  pix: 'var(--cat-pix-bg)',
+    dinheiro: 'var(--cat-dinheiro-bg)', cancelado: 'var(--cat-cancelado-bg)',
+    cartao_link: 'var(--cat-link-bg)', obs: 'var(--cat-obs-bg)',
+  };
+  return map[cat] || 'var(--c-papel-2)';
+}
+function corTextoCat(cat) {
+  const map = {
+    cartao: 'var(--cat-cartao-text)', pix: 'var(--cat-pix-text)',
+    dinheiro: 'var(--cat-dinheiro-text)', cancelado: 'var(--cat-cancelado-text)',
+    cartao_link: 'var(--cat-link-text)', obs: 'var(--cat-obs-text)',
+  };
+  return map[cat] || 'var(--c-tinta-3)';
+}
+function formatarTs(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const hh  = String(d.getHours()).padStart(2, '0');
+  const mm  = String(d.getMinutes()).padStart(2, '0');
+  return `${dia}/${mes} ${hh}:${mm}`;
 }

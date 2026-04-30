@@ -812,6 +812,42 @@
 }
 .lanc-row--flash { animation: flash-novo 1.2s ease-out; }
 
+/* Estados finais sobrepostos: finalizado / cancelado pos-pagamento.
+   O atributo data-estado-final vem do JSON dados_categoria.estado_final. */
+.lanc-row[data-estado-final="finalizado"] {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.04), transparent 60%), var(--c-papel);
+}
+.lanc-row[data-estado-final="finalizado"]::after {
+    /* Marcador de "OK" sobreposto ao texto da etiqueta */
+    background: linear-gradient(transparent, rgba(15, 76, 58, 0.08));
+}
+.lanc-row[data-estado-final="finalizado"] .lanc-categoria {
+    background: rgba(16, 185, 129, 0.16) !important;
+    color: #064e3b !important;
+}
+.lanc-row[data-estado-final="cancelado"] .lanc-cliente,
+.lanc-row[data-estado-final="cancelado"] .lanc-valor {
+    text-decoration: line-through;
+    opacity: 0.65;
+}
+.lanc-row[data-estado-final="cancelado"] .lanc-categoria {
+    background: rgba(239, 68, 68, 0.16) !important;
+    color: #7f1d1d !important;
+}
+.lanc-row[data-estado-final] .lanc-detalhes::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: var(--r-pill);
+    margin-right: 0.4rem;
+    vertical-align: middle;
+    background: var(--cat-resolvido);
+}
+.lanc-row[data-estado-final="cancelado"] .lanc-detalhes::before {
+    background: var(--cat-atrasado);
+}
+
+
 /* "Em análise" — sem categoria definida ainda. Tira tracejada cinza,
    fundo levemente atenuado, badge cinza e texto explicativo. */
 .lanc-row[data-em-analise="true"] {
@@ -1296,6 +1332,187 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .badge-status[data-estado="em_conferencia"] { color: var(--c-musgo);    background: rgba(15, 76, 58, 0.10); }
 .badge-status[data-estado="fechado"]        { color: var(--c-musgo);    background: rgba(15, 76, 58, 0.16); }
 .badge-status[data-estado="arquivado"]      { color: var(--c-tinta-3);  background: var(--c-papel-2); }
+
+
+/* ============================================================
+   Drawer read-only (modo gerenciar/finalizado): cards de leitura,
+   detalhes, banner, observacoes e acoes finais.
+   ============================================================ */
+
+.lanc-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--r-md);
+    margin-bottom: 1.25rem;
+    border: 1px solid;
+}
+.lanc-banner--finalizado {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #064e3b;
+}
+.lanc-banner--cancelado {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #7f1d1d;
+}
+.lanc-banner-icone {
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    line-height: 1;
+    width: 40px; height: 40px;
+    border-radius: var(--r-pill);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: currentColor;
+    color: var(--c-papel);
+    opacity: 0.95;
+}
+.lanc-banner-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.05rem;
+    margin: 0;
+}
+.lanc-banner-motivo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    margin: 0.2rem 0 0 0;
+    opacity: 0.85;
+}
+
+.lanc-leitura {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem 1rem;
+}
+.lanc-leitura-item {
+    background: var(--c-papel-2);
+    border-radius: var(--r-sm);
+    padding: 0.7rem 0.85rem;
+}
+.lanc-leitura-item .h-eyebrow {
+    font-size: 0.6rem;
+    margin-bottom: 0.3rem;
+    color: var(--c-tinta-3);
+}
+.lanc-leitura-valor {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.95rem;
+    color: var(--c-tinta);
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.lanc-leitura-detalhes { margin-top: 0.5rem; }
+.lanc-leitura-dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 1.2rem;
+    row-gap: 0.55rem;
+    margin: 0;
+}
+.lanc-leitura-dl dt {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--c-tinta-3);
+    align-self: baseline;
+    padding-top: 0.15rem;
+}
+.lanc-leitura-dl dd {
+    margin: 0;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    color: var(--c-tinta);
+    word-break: break-word;
+}
+
+.lanc-obs-bloco { margin-top: 0.5rem; }
+.lanc-obs-lista {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+.lanc-obs-vazio {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.88rem;
+    color: var(--c-tinta-3);
+    font-style: italic;
+    padding: 0.5rem 0;
+}
+.lanc-obs-item {
+    background: var(--c-papel-2);
+    border-left: 3px solid var(--c-musgo);
+    border-radius: var(--r-sm);
+    padding: 0.65rem 0.85rem;
+    list-style: none;
+}
+.lanc-obs-texto {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    color: var(--c-tinta);
+    line-height: 1.5;
+    margin: 0 0 0.3rem 0;
+    white-space: pre-wrap;
+}
+.lanc-obs-meta {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--c-tinta-3);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+.lanc-obs-novo {
+    margin-top: 0.5rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--c-papel-3);
+}
+
+/* Acoes finais (Finalizar / Cancelar) — botao primario + secundario alerta */
+.painel-acoes-finais {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+@media (max-width: 480px) {
+    .painel-acoes-finais { grid-template-columns: 1fr; }
+}
+
+.btn-secundario {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.85rem 1.2rem;
+    background: transparent;
+    color: var(--c-tinta-2);
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.01em;
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: background 200ms var(--ease-out), color 200ms var(--ease-out), border-color 200ms var(--ease-out);
+}
+.btn-secundario:hover { background: var(--c-papel-2); border-color: var(--c-tinta-3); color: var(--c-tinta); }
+.btn-secundario--alerta { color: var(--c-alerta); border-color: rgba(154, 42, 31, 0.3); }
+.btn-secundario--alerta:hover {
+    background: var(--c-alerta-bg);
+    border-color: var(--c-alerta);
+    color: var(--c-alerta);
+}
 
 
 /* ============================================================
