@@ -36,7 +36,7 @@ export async function renderCaixa({ params }) {
           <h1 class="h-display text-3xl sm:text-4xl" style="font-style:normal;font-weight:500"
               id="cab-data">${dataLonga(dataAlvo)}</h1>
           <div class="flex items-center gap-3">
-            <span id="cab-status" class="h-meta text-xs uppercase" style="letter-spacing:0.16em"></span>
+            <span id="cab-status" class="badge-status"></span>
             <button id="btn-novo" class="btn-primary" disabled>
               + Novo lançamento
             </button>
@@ -129,7 +129,7 @@ async function carregarCaixa(dataAlvo) {
 
   caixaIdAtual = caixa.id;
   status.textContent = ESTADO_CAIXA[caixa.estado] || caixa.estado;
-  status.style.color = caixa.estado === 'fechado' ? 'var(--c-musgo)' : 'var(--c-ambar-2)';
+  status.dataset.estado = caixa.estado;
   btnNov.disabled = caixa.estado === 'fechado' || caixa.estado === 'arquivado';
   btnNov.onclick = () =>
     abrirModalNovoLancamento({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });

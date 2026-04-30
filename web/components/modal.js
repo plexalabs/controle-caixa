@@ -1,34 +1,45 @@
-// modal.js — modal genérico com overlay, foco-trap básico, ESC + click-outside.
-// Retorna helpers { abrir(html, opcoes), fechar(forcado), elemento }.
-// Não toca DOM enquanto não chamado.
+// modal.js — modal genérico ou drawer lateral.
+// abrirModal({ ..., lateral: true }) → painel desliza da direita.
+// abrirModal({ ..., lateral: false (padrão) }) → modal centralizado.
+// Em ambos: ESC fecha, click fora fecha, onConfirmarFechar() pode bloquear.
 
 let aberto = null;
 let confirmaSaida = () => true;
 
-export function abrirModal({ titulo = '', eyebrow = '', conteudo = '', onConfirmarFechar = null } = {}) {
+export function abrirModal({
+  titulo = '',
+  eyebrow = '',
+  conteudo = '',
+  lateral = false,
+  rodape = '',
+  onConfirmarFechar = null,
+} = {}) {
   fecharModal(true);  // fecha qualquer um existente sem confirmar
   confirmaSaida = onConfirmarFechar || (() => true);
 
   const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
+  overlay.className = 'overlay-fundo' + (lateral ? ' overlay-fundo--drawer' : '');
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   if (titulo) overlay.setAttribute('aria-labelledby', 'modal-titulo');
 
+  const cardClass = lateral ? 'painel-lateral' : 'modal-card';
+
   overlay.innerHTML = `
-    <div class="modal-card">
-      <header class="modal-header">
-        <div>
-          ${eyebrow ? `<p class="modal-eyebrow">${esc(eyebrow)}</p>` : ''}
-          ${titulo  ? `<h2 id="modal-titulo" class="modal-titulo">${esc(titulo)}</h2>` : ''}
+    <div class="${cardClass}">
+      <header class="painel-header">
+        <div class="painel-header-texto">
+          ${eyebrow ? `<p class="painel-eyebrow">${esc(eyebrow)}</p>` : ''}
+          ${titulo  ? `<h2 id="modal-titulo" class="painel-titulo">${esc(titulo)}</h2>` : ''}
         </div>
-        <button class="modal-fechar" type="button" aria-label="Fechar" data-fechar>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <path d="M5 5 L15 15 M15 5 L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <button class="painel-fechar" type="button" aria-label="Fechar" data-fechar>
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 5 L15 15 M15 5 L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
         </button>
       </header>
-      <div class="modal-corpo">${conteudo}</div>
+      <div class="painel-corpo">${conteudo}</div>
+      ${rodape ? `<footer class="painel-rodape">${rodape}</footer>` : ''}
     </div>
   `;
 
@@ -36,13 +47,13 @@ export function abrirModal({ titulo = '', eyebrow = '', conteudo = '', onConfirm
   document.body.style.overflow = 'hidden';
   aberto = overlay;
 
-  // Click no botão X.
+  // Anima entrada no próximo frame para garantir transição.
+  requestAnimationFrame(() => overlay.classList.add('is-aberto'));
+
   overlay.querySelector('[data-fechar]').addEventListener('click', () => fecharModal(false));
-  // Click fora do card.
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) fecharModal(false);
   });
-  // ESC.
   document.addEventListener('keydown', onEsc);
 
   return { elemento: overlay, fechar: () => fecharModal(true) };
@@ -56,10 +67,17 @@ export function fecharModal(forcado = false) {
   if (!aberto) return;
   if (!forcado && !confirmaSaida()) return;
   document.removeEventListener('keydown', onEsc);
-  aberto.remove();
+
+  // Anima saída antes de remover do DOM.
+  const el = aberto;
+  el.classList.remove('is-aberto');
+  el.classList.add('is-fechando');
   aberto = null;
   document.body.style.overflow = '';
   confirmaSaida = () => true;
+
+  const dur = 240;
+  setTimeout(() => el.remove(), dur);
 }
 
 function esc(s) {

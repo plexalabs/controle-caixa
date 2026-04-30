@@ -24,9 +24,16 @@ export function abrirModalNovoLancamento({ dataCaixa, aoSalvar = () => {} } = {}
   };
 
   abrirModal({
+    lateral: true,
     eyebrow:  `Novo lançamento · ${formatarDataPt(dataCaixa)}`,
     titulo:   'Adicionar uma página ao caixa.',
     conteudo: corpoForm(),
+    rodape: `
+      <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
+      <div class="painel-rodape-acoes">
+        <button type="button" id="btn-cancel" class="btn-link">Cancelar</button>
+        <button type="submit" form="form-lanc" id="btn-salvar" class="btn-primary" disabled>Salvar lançamento</button>
+      </div>`,
     onConfirmarFechar: () => {
       if (!estado?.sujo) return true;
       return confirm('Os dados preenchidos serão descartados. Continuar?');
@@ -45,19 +52,16 @@ function corpoForm() {
         <div class="field" style="margin-bottom:0">
           <label class="field-label" for="numero_nf">Número da NF</label>
           <input id="numero_nf" name="numero_nf" required maxlength="15" class="field-input" />
-          <span class="field-underline" aria-hidden="true"></span>
         </div>
         <div class="field" style="margin-bottom:0">
           <label class="field-label" for="codigo_pedido">Código do pedido</label>
           <input id="codigo_pedido" name="codigo_pedido" required maxlength="20" class="field-input" />
-          <span class="field-underline" aria-hidden="true"></span>
         </div>
       </div>
 
       <div class="field mt-5">
         <label class="field-label" for="cliente_nome">Cliente</label>
         <input id="cliente_nome" name="cliente_nome" required maxlength="120" class="field-input" />
-        <span class="field-underline" aria-hidden="true"></span>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
@@ -65,16 +69,13 @@ function corpoForm() {
           <label class="field-label" for="valor_nf">Valor (R$)</label>
           <input id="valor_nf" name="valor_nf" type="number" step="0.01" min="0.01" required
                  class="field-input" inputmode="decimal" />
-          <span class="field-underline" aria-hidden="true"></span>
         </div>
         <div class="field" style="margin-bottom:0">
           <label class="field-label" for="categoria">Categoria</label>
-          <select id="categoria" name="categoria" required class="field-input"
-                  style="border-bottom:1px solid var(--c-papel-3);background:transparent;cursor:pointer">
+          <select id="categoria" name="categoria" required class="field-input">
             <option value="">— escolher —</option>
             ${CATEGORIAS.map(c => `<option value="${c.valor}">${c.rotulo}</option>`).join('')}
           </select>
-          <span class="field-underline" aria-hidden="true"></span>
         </div>
       </div>
 
@@ -86,13 +87,6 @@ function corpoForm() {
         </p>
         <div id="bloco-cat-campos"></div>
       </fieldset>
-
-      <div id="erro-form" role="alert" aria-live="polite" class="hidden alert mt-4"></div>
-
-      <div class="flex items-center justify-between gap-3 mt-7">
-        <button type="button" id="btn-cancel" class="btn-link">Cancelar</button>
-        <button type="submit" id="btn-salvar" class="btn-primary" disabled>Salvar lançamento</button>
-      </div>
     </form>
   `;
 }
@@ -102,11 +96,13 @@ function ligarComportamento() {
   const form  = document.querySelector('#form-lanc');
   if (!form) return;
 
-  const f = (id) => form.querySelector(`#${id}`);
-  const erroEl = form.querySelector('#erro-form');
+  // Helpers — formulário tem campos dentro do <form>, mas botões e erro
+  // estão no rodapé sticky do drawer (fora do <form>).
+  const f      = (id) => form.querySelector(`#${id}`) || document.querySelector(`#${id}`);
+  const erroEl = document.querySelector('#erro-form');
 
   // Auto-foco no primeiro campo após a animação de abertura.
-  setTimeout(() => f('numero_nf')?.focus(), 240);
+  setTimeout(() => f('numero_nf')?.focus(), 360);
 
   // Marca como sujo qualquer alteração — para a confirmação de ESC.
   form.addEventListener('input', () => { estado.sujo = true; revalidarSubmit(); });
@@ -291,7 +287,6 @@ function campoTexto(name, label, opts = {}) {
     <div class="field" style="margin-bottom:0">
       <label class="field-label" for="campo-${name}">${esc(label)}${opts.required ? ' *' : ''}</label>
       <input id="campo-${name}" name="${name}" type="${t}" class="field-input" ${req} ${minlen} ${maxlen} ${pat} />
-      <span class="field-underline" aria-hidden="true"></span>
     </div>`;
 }
 function campoNumero(name, label, opts = {}) {
@@ -303,7 +298,6 @@ function campoNumero(name, label, opts = {}) {
     <div class="field" style="margin-bottom:0">
       <label class="field-label" for="campo-${name}">${esc(label)}${opts.required ? ' *' : ''}</label>
       <input id="campo-${name}" name="${name}" type="number" inputmode="decimal" class="field-input" ${req} ${step} ${min} ${max} />
-      <span class="field-underline" aria-hidden="true"></span>
     </div>`;
 }
 function campoSelect(name, label, opcoes, opts = {}) {
@@ -316,12 +310,10 @@ function campoSelect(name, label, opcoes, opts = {}) {
   return `
     <div class="field" style="margin-bottom:0">
       <label class="field-label" for="campo-${name}">${esc(label)}${opts.required ? ' *' : ''}</label>
-      <select id="campo-${name}" name="${name}" class="field-input" ${req}
-              style="background:transparent;cursor:pointer">
+      <select id="campo-${name}" name="${name}" class="field-input" ${req}>
         <option value="">— selecionar —</option>
         ${itens}
       </select>
-      <span class="field-underline" aria-hidden="true"></span>
     </div>`;
 }
 function campoTextarea(name, label, opts = {}) {

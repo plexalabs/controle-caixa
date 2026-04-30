@@ -58,6 +58,14 @@
     /* Curvas e tempos */
     --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
     --ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-spring:  cubic-bezier(0.32, 0.72, 0, 1);  /* drawer slide */
+
+    /* Raios — calmos, sem pílulas exageradas */
+    --r-xs:     6px;     /* badges, chips */
+    --r-sm:     10px;    /* botões, inputs, tabs */
+    --r-md:     14px;    /* lanc-row, stat-card, alertas */
+    --r-lg:     20px;    /* drawer, modal, vazio */
+    --r-pill:   999px;   /* avatar, fechar */
 
     /* Tipografia */
     --leading-tight:   1.1;
@@ -85,5 +93,24 @@ body {
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
     outline: 2px solid var(--c-musgo);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: var(--r-sm);
 }
+
+/* ────────────────────────────────────────────────────────────
+   Scrollbar editorial — fina, em tom de musgo translúcido
+   sobre papel. Aparece tímida, ganha presença no hover.
+   ──────────────────────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: rgba(15, 76, 58, 0.28) transparent; }
+*::-webkit-scrollbar           { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track     { background: transparent; }
+*::-webkit-scrollbar-thumb     {
+    background: rgba(15, 76, 58, 0.28);
+    border-radius: var(--r-pill);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(15, 76, 58, 0.48); background-clip: padding-box; }
+*::-webkit-scrollbar-corner    { background: transparent; }
+
+/* Seleção de texto coerente com a paleta */
+::selection { background: rgba(199, 122, 63, 0.32); color: var(--c-tinta); }
