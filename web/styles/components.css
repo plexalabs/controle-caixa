@@ -848,22 +848,24 @@
 }
 
 
-/* "Em análise" — sem categoria definida ainda. Tira tracejada cinza,
-   fundo levemente atenuado, badge cinza e texto explicativo. */
+/* "Em análise" — sem categoria definida ainda. Tira tracejada em
+   musgo profundo (combina com a paleta editorial e dá contraste real
+   com o texto "EM ANÁLISE" em creme). Fundo levemente atenuado e
+   borda do card em dashed para reforçar "ainda não fechou". */
 .lanc-row[data-em-analise="true"] {
-    --tira-cor:   var(--cat-pendente-text);
+    --tira-cor:   var(--c-musgo-3);
     --tira-texto: var(--c-papel);
     background:   var(--cat-pendente-bg);
     border-style: dashed;
 }
 .lanc-row[data-em-analise="true"]::before {
-    /* Tira tracejada vertical em vez de sólida */
+    /* Tira tracejada vertical em vez de sólida — musgo escuro */
     background: repeating-linear-gradient(
         to bottom,
-        var(--cat-pendente-text) 0,
-        var(--cat-pendente-text) 6px,
-        transparent 6px,
-        transparent 11px
+        var(--c-musgo-3) 0,
+        var(--c-musgo-3) 6px,
+        rgba(10, 51, 42, 0.15) 6px,
+        rgba(10, 51, 42, 0.15) 11px
     );
 }
 .lanc-categoria--analise {
