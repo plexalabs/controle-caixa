@@ -1,12 +1,17 @@
 // confirmar.js — Tela /confirmar (CP2.2, Fase 2).
-// 6 inputs de 1 dígito com auto-foco, paste de código completo, auto-submit.
+// Inputs com auto-foco, paste de código completo, auto-submit.
 // Reenviar com cooldown de 60s.
+//
+// O comprimento do código é controlado em Supabase Auth → Providers → Email
+// → Email OTP Length. Hoje está configurado em 8. Se o admin mudar para
+// 6 no Dashboard, basta atualizar OTP_LENGTH abaixo.
 
 import { verificarCodigo, reenviarCodigo } from '../auth.js';
 import { navegar }        from '../router.js';
 import { mostrarToast }   from '../notifications.js';
 
 const COOLDOWN_INICIAL_S = 60;
+const OTP_LENGTH = 8;
 
 export function renderConfirmar() {
   const params = new URLSearchParams(location.search);
@@ -40,12 +45,12 @@ export function renderConfirmar() {
             <em style="font-style:italic;color:var(--c-musgo)">o seu acesso</em>.
           </h1>
           <p class="text-body text-base mt-6 max-w-md reveal reveal-4">
-            Enviamos um código de 6 dígitos para <strong>${esc(email)}</strong>.
-            Cole no campo ao lado para confirmar a conta.
+            Acabamos de enviar um código para <strong>${esc(email)}</strong>.
+            Use-o ao lado para confirmar a conta.
           </p>
           <p class="text-body text-sm mt-3 max-w-md reveal reveal-5"
              style="color:var(--c-tinta-3);font-style:italic">
-            Não recebeu? Verifique também a caixa de spam &mdash; ou peça
+            Não recebeu? Confira a caixa de spam &mdash; ou peça
             um novo código abaixo do formulário.
           </p>
         </div>
@@ -68,15 +73,15 @@ export function renderConfirmar() {
           <h2 class="h-display text-4xl mt-1 mb-2 reveal reveal-3">Digite o código.</h2>
           <p class="text-body text-sm reveal reveal-4">
             Enviamos para <strong>${esc(email)}</strong>.<br class="hidden sm:inline">
-            Pode colar (Ctrl+V) o código completo no primeiro campo.
+            Você pode colar o código inteiro de uma vez no primeiro campo.
           </p>
 
           <form id="form-otp" novalidate class="reveal reveal-5">
-            <div class="otp-grid" role="group" aria-label="Código de 6 dígitos">
-              ${[0,1,2,3,4,5].map(i =>
+            <div class="otp-grid" role="group" aria-label="Código de ${OTP_LENGTH} dígitos">
+              ${Array.from({ length: OTP_LENGTH }, (_, i) =>
                 `<input data-i="${i}" inputmode="numeric" pattern="\\d" maxlength="1"
                         autocomplete="one-time-code" required
-                        aria-label="Dígito ${i+1} de 6"
+                        aria-label="Dígito ${i+1} de ${OTP_LENGTH}"
                         class="otp-input" />`
               ).join('')}
             </div>
@@ -150,8 +155,8 @@ export function renderConfirmar() {
         input.classList.remove('otp-input--erro');
         limparMsg();
         if (i < inputs.length - 1) inputs[i + 1].focus();
-        // Se completou os 6, dispara verificação.
-        if (tokenAtual().length === 6) verificar();
+        // Se completou todos os dígitos, dispara verificação.
+        if (tokenAtual().length === OTP_LENGTH) verificar();
       } else {
         input.classList.remove('otp-input--preenchido');
       }
@@ -171,18 +176,18 @@ export function renderConfirmar() {
     // Paste de código completo distribui entre os inputs.
     input.addEventListener('paste', (e) => {
       const txt = (e.clipboardData?.getData('text') ?? '').replace(/\D/g, '');
-      if (txt.length >= 6) {
+      if (txt.length >= OTP_LENGTH) {
         e.preventDefault();
-        const seis = txt.slice(0, 6).split('');
+        const completo = txt.slice(0, OTP_LENGTH).split('');
         inputs.forEach((x, j) => {
-          x.value = seis[j];
+          x.value = completo[j];
           x.classList.add('otp-input--preenchido');
           x.classList.remove('otp-input--erro');
         });
         limparMsg();
-        inputs[5].focus();
+        inputs[OTP_LENGTH - 1].focus();
         verificar();
-      } else if (txt.length > 0 && txt.length < 6) {
+      } else if (txt.length > 0 && txt.length < OTP_LENGTH) {
         // Paste parcial — distribui a partir do input atual.
         e.preventDefault();
         let j = i;
@@ -193,7 +198,7 @@ export function renderConfirmar() {
           j++;
         }
         const proximoVazio = inputs.findIndex(x => !x.value);
-        inputs[proximoVazio === -1 ? 5 : proximoVazio].focus();
+        inputs[proximoVazio === -1 ? OTP_LENGTH - 1 : proximoVazio].focus();
       }
     });
   });
@@ -202,7 +207,7 @@ export function renderConfirmar() {
   async function verificar() {
     if (verificando) return;
     const token = tokenAtual();
-    if (token.length !== 6) return;
+    if (token.length !== OTP_LENGTH) return;
 
     verificando = true;
     inputs.forEach(i => i.disabled = true);

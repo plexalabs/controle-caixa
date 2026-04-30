@@ -36,8 +36,8 @@ export function renderCadastro() {
 
           <ul class="lista-edit max-w-md reveal reveal-5">
             <li>Conta única por pessoa, não compartilhada.</li>
-            <li>Email confirmado por código de 6 dígitos.</li>
-            <li>Senha conhecida só por você &mdash; ninguém da TI vê.</li>
+            <li>Confirmação do email por código que chega na sua caixa.</li>
+            <li>Senha conhecida só por você &mdash; nem nós temos acesso.</li>
           </ul>
         </div>
 
@@ -58,7 +58,7 @@ export function renderCadastro() {
           <p class="h-eyebrow reveal reveal-2">Primeiro acesso</p>
           <h2 class="h-display text-4xl mt-1 mb-2 reveal reveal-3">Criar conta.</h2>
           <p class="text-body text-sm mb-8 reveal reveal-4">
-            Você receberá um código de 6 dígitos por email.
+            Você vai receber um código por email para confirmar a conta.
           </p>
 
           <form id="form-cadastro" novalidate class="reveal reveal-5">

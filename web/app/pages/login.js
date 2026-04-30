@@ -35,9 +35,8 @@ export function renderLogin() {
             com a <em style="font-style:italic;color:var(--c-musgo)">página em branco</em>.
           </h1>
           <p class="text-body text-base mt-6 max-w-md reveal reveal-4">
-            Auditoria paralela ao mybucks. Cartão, Pix, Dinheiro,
-            Cancelamentos, Link e Observações &mdash; toda nota fiscal
-            recebe um par de olhos antes do fim do expediente.
+            Cada manhã é uma chance de fechar o que ficou aberto e
+            registrar com calma o que entra hoje. Sem pressa, sem ruído.
           </p>
         </div>
 
