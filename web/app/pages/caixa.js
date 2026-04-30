@@ -195,13 +195,17 @@ function atualizarRodape(lancamentos) {
 
   const validos    = lancamentos.filter(l => l.categoria !== 'cancelado');
   const total      = validos.reduce((s, l) => s + Number(l.valor_nf || 0), 0);
+  const emAnalise  = lancamentos.filter(l => !l.categoria);
   const pendentes  = lancamentos.filter(l => ['pendente','em_preenchimento'].includes(l.estado));
   const resolvidos = lancamentos.filter(l => l.estado === 'resolvido');
   const cancelados = lancamentos.filter(l => l.categoria === 'cancelado');
 
-  // Distribuição por categoria
+  // Distribuição por categoria — exclui pendentes "em análise" da contagem.
   const dist = {};
-  for (const l of validos) dist[l.categoria] = (dist[l.categoria] || 0) + 1;
+  for (const l of validos) {
+    if (!l.categoria) continue;
+    dist[l.categoria] = (dist[l.categoria] || 0) + 1;
+  }
 
   rod.innerHTML = `
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -223,6 +227,7 @@ function atualizarRodape(lancamentos) {
       <div>
         <p class="h-eyebrow">Status</p>
         <ul class="lista-edit" style="margin-top:0.5rem">
+          <li>Em análise: <strong style="color:${emAnalise.length > 0 ? 'var(--cat-pendente-text)' : 'var(--c-tinta-3)'}">${emAnalise.length}</strong></li>
           <li>Pendentes: <strong style="color:${pendentes.length > 0 ? 'var(--c-ambar-2)' : 'var(--c-musgo)'}">${pendentes.length}</strong></li>
           <li>Resolvidas hoje: <strong>${resolvidos.length}</strong></li>
           <li>Canceladas: <strong>${cancelados.length}</strong></li>
