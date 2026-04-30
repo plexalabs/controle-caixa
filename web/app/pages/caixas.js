@@ -4,7 +4,7 @@
 
 import { supabase } from '../supabase.js';
 import { renderHeader, ligarHeader } from '../../components/header.js';
-import { dataLonga, dataCurta, ESTADO_CAIXA } from '../dominio.js';
+import { dataLonga, dataCurta, ESTADO_CAIXA, LABEL_ESTADO_CAIXA_CURTO } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 
 export async function renderCaixas() {
@@ -95,9 +95,11 @@ function linhaCaixa(c, s, i) {
   const titulo  = dataLonga(c.data);
   const ehHoje  = ehMesmoDia(c.data, new Date());
 
+  const labelVertical = LABEL_ESTADO_CAIXA_CURTO[c.estado] || c.estado.toUpperCase();
   return `
     <a href="/caixa/${c.data}" data-link
        class="caixa-row" data-estado="${esc(c.estado)}"
+       data-estado-label="${esc(labelVertical)}"
        style="animation-delay:${i * 35}ms">
       <div class="caixa-row-data">
         <span class="caixa-row-dia">${dia}</span>

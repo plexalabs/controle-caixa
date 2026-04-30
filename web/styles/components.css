@@ -1185,56 +1185,96 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     .caixas-grid { grid-template-columns: repeat(2, 1fr); gap: 0.9rem; }
 }
 
+/* Cards de caixa — mesma metafora de etiqueta de pasta dos .lanc-row.
+   Lado esquerdo reto, tira colorida por estado, texto vertical do
+   estado revelado no hover, lado direito com radius normal. */
 .caixa-row {
+    --tira-w:       8px;
+    --tira-w-hover: 42px;
+    --tira-cor:     var(--c-musgo);
+    --tira-texto:   var(--c-papel);
+
     display: grid;
     grid-template-columns: 5rem 1fr auto;
     gap: 1.1rem;
     align-items: center;
-    padding: 1.1rem 1.2rem 1.1rem 1.2rem;
+    padding: 1.1rem 1.2rem 1.1rem calc(var(--tira-w) + 1.2rem);
     background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-md);
+    border-radius: 0 var(--r-md) var(--r-md) 0;  /* lado esquerdo reto */
     margin-bottom: 0;
     text-decoration: none;
     color: inherit;
     transition: border-color 220ms var(--ease-out),
-                transform 220ms var(--ease-out),
+                padding-left 320ms var(--ease-spring),
                 box-shadow 220ms var(--ease-out);
     animation: fade-up 420ms var(--ease-out) both;
     position: relative;
     overflow: hidden;
 }
 @media (min-width: 1280px) {
-    .caixa-row { padding: 1.2rem 1.4rem; gap: 1.3rem; }
+    .caixa-row { padding: 1.2rem 1.4rem 1.2rem calc(var(--tira-w) + 1.4rem); gap: 1.3rem; }
 }
 .caixa-row::before {
-    /* Filete âmbar discreto à esquerda — marca de página */
+    /* Tira retangular pontuda colorida pelo estado do caixa */
     content: '';
     position: absolute;
-    left: 0; top: 12%; bottom: 12%;
-    width: 2px;
-    background: var(--c-ambar);
-    opacity: 0.45;
-    transition: opacity 220ms var(--ease-out), top 220ms var(--ease-out), bottom 220ms var(--ease-out);
+    left: 0; top: 0; bottom: 0;
+    width: var(--tira-w);
+    background: var(--tira-cor);
+    transition: width 320ms var(--ease-spring), filter 220ms var(--ease-out);
+    z-index: 1;
+    pointer-events: none;
+}
+.caixa-row::after {
+    /* Texto vertical do estado, escondido ate o hover ampliar a tira */
+    content: attr(data-estado-label);
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: var(--tira-w-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    white-space: nowrap;
+    color: transparent;
+    transition: color 240ms var(--ease-out) 80ms;
+    z-index: 2;
+    pointer-events: none;
+    user-select: none;
 }
 .caixa-row:hover {
     border-color: var(--c-musgo);
-    transform: translateX(2px);
+    padding-left: calc(var(--tira-w-hover) + 1.2rem);
     box-shadow: 0 14px 26px -22px rgba(15, 76, 58, 0.4);
 }
-.caixa-row:hover::before { opacity: 1; top: 6%; bottom: 6%; }
-.caixa-row[data-estado="fechado"]   { background: rgba(15, 76, 58, 0.025); }
-.caixa-row[data-estado="arquivado"] { opacity: 0.78; }
+@media (min-width: 1280px) {
+    .caixa-row:hover { padding-left: calc(var(--tira-w-hover) + 1.4rem); }
+}
+.caixa-row:hover::before { width: var(--tira-w-hover); filter: saturate(1.15); }
+.caixa-row:hover::after  { color: var(--tira-texto); }
+
+/* Tira colorida por estado do caixa */
+.caixa-row[data-estado="aberto"]         { --tira-cor: var(--c-ambar); }
+.caixa-row[data-estado="em_conferencia"] { --tira-cor: var(--c-musgo); }
+.caixa-row[data-estado="fechado"]        { --tira-cor: var(--c-musgo-3); background: rgba(15, 76, 58, 0.025); }
+.caixa-row[data-estado="arquivado"]      { --tira-cor: var(--c-tinta-3); --tira-texto: var(--c-papel); opacity: 0.78; }
 
 .caixa-row-data {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.05rem;
-    padding-left: 0.85rem;
-    border-right: 1px solid var(--c-papel-3);
+    padding-left: 0;
     padding-right: 1rem;
     line-height: 1;
+    border-right: 1px solid var(--c-papel-3);
 }
 .caixa-row-dia {
     font-family: 'Manrope', sans-serif;

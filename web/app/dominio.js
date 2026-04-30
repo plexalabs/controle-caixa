@@ -42,6 +42,14 @@ export const ESTADO_CAIXA = {
   arquivado:      'Arquivado',
 };
 
+// Versão curta (uppercase) para etiqueta vertical da caixa-row.
+export const LABEL_ESTADO_CAIXA_CURTO = {
+  aberto:         'ABERTO',
+  em_conferencia: 'CONFERIR',
+  fechado:        'FECHADO',
+  arquivado:      'ARQUIVADO',
+};
+
 export const BANDEIRAS = ['Visa','Mastercard','Elo','Hipercard','Amex','Outros'];
 export const MODALIDADES = ['Crédito','Débito'];
 export const STATUS_LINK = ['Enviado','Pago','Expirado','Cancelado'];
