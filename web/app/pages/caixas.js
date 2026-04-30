@@ -11,13 +11,14 @@ export async function renderCaixas() {
   document.querySelector('#app').innerHTML = `
     ${await renderHeader('caixas')}
     <main class="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
-      <header class="caixas-cabec reveal reveal-1">
-        <p class="h-eyebrow">Arquivo</p>
-        <h1 class="h-display caixas-titulo">Os caixas, em ordem.</h1>
-        <p class="caixas-subtitulo text-body">
-          Cada dia útil ganha sua página. Aqui ficam todas — abertas,
-          em conferência ou já fechadas.
-        </p>
+      <header class="caixas-cabec reveal reveal-1" data-etiqueta="ARQUIVO">
+        <div class="caixas-cabec-conteudo">
+          <h1 class="h-display caixas-titulo">Os caixas, em ordem.</h1>
+          <p class="caixas-subtitulo text-body">
+            Cada dia útil ganha sua página. Aqui ficam todas — abertas,
+            em conferência ou já fechadas.
+          </p>
+        </div>
       </header>
 
       <section id="lista-caixas" class="reveal reveal-2 mt-8"></section>

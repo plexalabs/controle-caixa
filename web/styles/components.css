@@ -1160,20 +1160,71 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    Tela /caixas — arquivo editorial com lista cronológica
    ============================================================ */
 
-.caixas-cabec { margin-bottom: 0; }
+/* Cabecalho da pagina /caixas — mesma metafora de etiqueta de pasta
+   dos cards: lado esquerdo reto com tira musgo + texto vertical
+   "ARQUIVO" sempre visivel; lado direito arredondado.
+   Sem hover (cabecalho nao e clicavel) — etiqueta serve como marca. */
+.caixas-cabec {
+    --tira-w: 44px;
+    position: relative;
+    margin: 0 0 2rem 0;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-lg) var(--r-lg) 0;
+    overflow: hidden;
+    box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.025), 0 14px 32px -24px rgba(15, 76, 58, 0.22);
+}
+.caixas-cabec-conteudo {
+    padding: 1.6rem 1.6rem 1.7rem calc(var(--tira-w) + 1.6rem);
+}
+@media (min-width: 768px) {
+    .caixas-cabec { --tira-w: 52px; }
+    .caixas-cabec-conteudo { padding: 2rem 2rem 2.1rem calc(var(--tira-w) + 2rem); }
+}
+.caixas-cabec::before {
+    /* Tira lateral musgo solida */
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: var(--tira-w);
+    background:
+        linear-gradient(180deg, var(--c-musgo) 0%, var(--c-musgo-3) 100%);
+}
+.caixas-cabec::after {
+    /* Texto vertical ARQUIVO sempre visivel — funciona como capa de pasta */
+    content: attr(data-etiqueta);
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: var(--tira-w);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.32em;
+    color: var(--c-papel);
+    pointer-events: none;
+    user-select: none;
+}
+
 .caixas-titulo {
     font-style: italic;
     font-weight: 300;
-    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    font-size: clamp(2.2rem, 4.6vw, 3.2rem);
     line-height: 1.05;
-    margin-top: 0.35rem;
-    margin-bottom: 0.65rem;
+    margin: 0 0 0.65rem 0;
     color: var(--c-tinta);
+    letter-spacing: var(--tracking-display);
 }
 .caixas-subtitulo {
     max-width: 46ch;
     font-size: 0.95rem;
     color: var(--c-tinta-3);
+    margin: 0;
 }
 
 .caixas-grid {
