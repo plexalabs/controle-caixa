@@ -5,16 +5,21 @@ import { renderLogin }      from './pages/login.js';
 import { renderCadastro }   from './pages/cadastro.js';
 import { renderConfirmar }  from './pages/confirmar.js';
 import { renderRecuperar }  from './pages/recuperar.js';
+import { renderRedefinir }  from './pages/redefinir.js';
 import { renderDashboard }  from './pages/dashboard.js';
 import { pegarSessao }      from './supabase.js';
 
 // Lista de rotas, em ordem. `aberta: true` = não exige sessão.
+// /redefinir é aberta porque o usuário aterrissa via link de email com
+// fragment de token; supabase-js cria sessão automaticamente, e o handler
+// confere se há sessão antes de mostrar o form.
 const rotas = [
   { padrao: /^\/$/,                  handler: () => navegar('/dashboard'), aberta: true },
   { padrao: /^\/login$/,             handler: renderLogin,                 aberta: true },
   { padrao: /^\/cadastro$/,          handler: renderCadastro,              aberta: true },
   { padrao: /^\/confirmar$/,         handler: renderConfirmar,             aberta: true },
   { padrao: /^\/recuperar$/,         handler: renderRecuperar,             aberta: true },
+  { padrao: /^\/redefinir$/,         handler: renderRedefinir,             aberta: true },
   { padrao: /^\/dashboard$/,         handler: renderDashboard },
 ];
 
@@ -38,6 +43,8 @@ export async function despachar() {
       return navegar(destino);
     }
     // Se rota é login mas usuário já tem sessão válida → manda para dashboard.
+    // Exceção: /redefinir tem sessão "recovery" e precisa do form de senha,
+    // não pode redirecionar.
     if (rota.aberta && sessao && (url === '/login' || url === '/')) {
       return navegar('/dashboard');
     }
