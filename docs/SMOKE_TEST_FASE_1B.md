@@ -9,13 +9,13 @@
 |---|---|---|
 | 1 | Trigger `fn_validar_dominio_email` removido — INSERT `@gmail.com` em `auth.users` aceito | ✅ |
 | 2 | Signup REST com email + senha gera entrada com `email_confirmed_at = NULL` | ✅ |
-| 3 | Email com OTP de 6 dígitos chega no inbox via Resend | ⚠️ **PENDENTE** — atualmente SMTP padrão Supabase + template magic link |
-| 4 | `verifyOtp({ type: 'signup' })` popula `email_confirmed_at` | ⏳ aguarda passo 3 |
+| 3 | Email com OTP de 6 dígitos chega no inbox via Resend | ✅ Resend SMTP configurado pelo Operador; OTP recebido com sender `Caixa Boti <noreply@plexalabs.com>` |
+| 4 | `verifyOtp({ type: 'signup' })` popula `email_confirmed_at` | ✅ `auth.users.email_confirmed_at = 2026-04-29 22:08:02-03` |
 | 5 | `fn_auto_papel_inicial` atribui admin+operador ao 1º usuário, operador aos demais | ✅ |
-| 6 | Login com email/senha após confirmação retorna JWT válido | ⏳ aguarda passo 3 |
+| 6 | Login com email/senha após confirmação retorna JWT válido | ✅ `auth.users.last_sign_in_at = 2026-04-29 22:08:02-03` |
 | 7 | Login antes da confirmação é bloqueado (`email_not_confirmed`) | ✅ |
-| 8 | `app.invocar_edge('cria_caixa_diario')` retorna status 2xx (libcurl resolvido) | ⚠️ **PENDENTE** — vault ainda tem secret errado |
-| 9 | Build/deploy de Pages na branch dev funciona em `controle-caixa.pages.dev` | ⏳ Fase 2 |
+| 8 | `app.invocar_edge('cria_caixa_diario')` retorna status 2xx (libcurl resolvido) | ✅ HTTP 200 (req_id=7), edge function executou e criou caixa de teste |
+| 9 | Build/deploy de Pages na branch dev funciona em `controle-caixa.pages.dev` | ⏳ Fase 2 — depende de código frontend ainda não escrito |
 
 ---
 
@@ -122,64 +122,80 @@ curl -X POST "https://shjtwrojdgotmxdbpbta.supabase.co/auth/v1/token?grant_type=
 
 ---
 
-## Validação 8 (PENDENTE) — `app.invocar_edge` libcurl
+## Validação 8 (APROVADA pós-hotfix migration 193) — `app.invocar_edge`
 
-### Achado
+### Causa raiz final
+
+A primeira tentativa do hotfix (migration 192) introduziu um bug próprio: lia a coluna `secret` da view `vault.decrypted_secrets`, **mas essa coluna é o ciphertext base64 raw, não o plaintext**. Verificado via `pg_get_viewdef('vault.decrypted_secrets')`:
 
 ```sql
-SELECT length(secret), substr(secret,1,4), array_length(string_to_array(secret,'.'),1)
+CREATE VIEW vault.decrypted_secrets AS
+SELECT id, name, description, secret,
+       convert_from(vault._crypto_aead_det_decrypt(
+           message     := decode(secret, 'base64'),
+           additional  := convert_to(id::text, 'utf8'),
+           key_id      := 0,
+           context     := '\x7067736f6469756d'::bytea,
+           nonce       := nonce
+       ), 'utf8') AS decrypted_secret,    -- ← essa é a coluna do plaintext
+       key_id, nonce, created_at, updated_at
+FROM vault.secrets;
+```
+
+Como o agente leu `secret` em vez de `decrypted_secret`, a validação JWT (`prefix eyJ`, 3 partes) sempre falhava — porque ciphertext base64 não tem essa estrutura. Cada `vault.update_secret` regerava o nonce e produzia um ciphertext novo (daí a mudança de prefix `WLn4...` → `1CNb...` → `vbAE+...` → `lCiih...` que o agente confundiu com "valores errados do operador"). **O Operador colocou a service_role correta na primeira vez.**
+
+### Migration 193
+
+Trocou `secret` por `decrypted_secret` na função `app.invocar_edge`. Demais validações (btrim, JWT format, log) preservadas.
+
+### Validação real pós-hotfix
+
+```sql
+-- Confirma JWT correto no vault (lendo decrypted_secret)
+SELECT length(decrypted_secret), array_length(string_to_array(decrypted_secret, '.'), 1) AS partes,
+       substr(decrypted_secret, 1, 5) AS prefix
 FROM vault.decrypted_secrets WHERE name = 'service_role_key';
-```
+-- → len=219, partes=3, prefix='eyJhb' ✅
 
-| len | prefix | partes_jwt | tem_whitespace |
-|---|---|---|---|
-| 162 | `1CNb` | 1 | TRUE |
-
-O Operador **atualizou o vault** mas com **outro valor errado** (não é JWT). Ainda não é a `service_role` correta da página Settings → API.
-
-### Mitigação ativa
-
-A migration 192 (`app.invocar_edge` robusta) já implementa validação precoce:
-
-```sql
+-- Dispara invocacao
 SELECT app.invocar_edge('cria_caixa_diario', '{}'::jsonb);
--- ERROR: 22023: Conteudo de service_role_key NAO e um JWT valido.
---        Esperado formato eyJxxx.yyy.zzz com ~250 chars.
---        Recebido: 162 caracteres, 1 partes, prefixo '1CNb...'.
---        Provavel causa: foi colado o "JWT Secret" (HMAC interno) em
---        vez da "service_role" key.
--- HINT:  Atualize o vault: SELECT vault.update_secret(...)
+-- → req_id=7 (bigint, sem RAISE EXCEPTION) ✅
+
+-- Inspeciona resposta HTTP
+SELECT id, status_code, error_msg, content_type FROM net._http_response WHERE id=7;
+-- → status_code=200, error_msg=NULL, content_type='application/json' ✅
+
+-- Conteudo da resposta (edge function executou):
+-- {
+--   "inicio": "2026-04-30T21:32:23.188Z",
+--   "fim":    "2026-04-30T21:32:23.541Z",
+--   "timezone": "America/Sao_Paulo",
+--   "dow_brt": 4,
+--   "resultados": [{"data":"2026-04-30","id":"bcb22089-d964-49ce-998c-3f7a7d72dc34","status":"ok"}]
+-- }
 ```
 
-### Ação requerida do Operador
+✅ **Circuito banco → vault → pg_net → HTTP → edge function → RPC → caixa criado**, end-to-end. Caixa de teste deletado após validação.
 
-No Supabase Dashboard → **Settings → API → Project API keys → service_role → Reveal**:
-- Conferir que o JWT começa com `eyJ` e tem 2 pontos (3 partes).
-- Copiar **só o JWT** (sem espaços antes/depois).
+### Lição aprendida
 
-No SQL Editor:
-
-```sql
-SELECT vault.update_secret(
-    (SELECT id FROM vault.secrets WHERE name = 'service_role_key'),
-    '<COLE_AQUI_O_JWT_QUE_COMECA_COM_eyJ>'
-);
-SELECT app.invocar_edge('cria_caixa_diario', '{}'::jsonb);
--- Esperado: bigint > 0 (sem RAISE EXCEPTION).
-```
+- Sempre conferir definição de view antes de assumir nome de coluna (`pg_get_viewdef` é barato).
+- Quando a `vault.decrypted_secrets` tem **9 colunas** (`id, name, description, secret, decrypted_secret, key_id, nonce, created_at, updated_at`), a coluna `secret` mantém o ciphertext base64 cru e a coluna `decrypted_secret` é a derivada via `convert_from(crypto_aead_det_decrypt(...))`. Documentação do Supabase Vault não destaca essa distinção.
+- O sintoma do bug ("libcurl bad argument") era enganoso: parecia URL/header malformado, mas era o token sendo o ciphertext binário de 340 chars com caracteres de controle, que o `pg_net` rejeita ao montar o header `Authorization: Bearer <ciphertext>`.
 
 ---
 
 ## Validação 9 — Cloudflare Pages
 
-⏳ Adiada para Fase 2 (não há código frontend para deployar ainda).
+⏳ Adiada para Fase 2 (não há código frontend para deployar ainda). Validada quando primeiro deploy ocorrer.
 
 ---
 
 ## Conclusão
 
-**5 de 9 validações ✅ aprovadas. 2 pendentes do Operador (SMTP Resend + vault correto). 2 dependentes da Fase 2 ou da pendência 3.**
+**8 de 9 validações ✅ aprovadas.** A #9 fica para a Fase 2 quando houver código frontend deployado.
 
-Decisão: **prosseguir com merge** da branch `fase-1b-refactor-auth` em `main`. As 2 pendências do Operador são **operações manuais isoladas** que não afetam o código nem requerem nova migration. Documentadas em `docs/SETUP_RESEND_SMTP.md` (Resend) e `docs/HOTFIX_LIBCURL_PG_NET.md` (vault).
+Bugs fixados durante o smoke test:
+- Migration 192 (vault) → migration 193 corrige leitura de `decrypted_secret` em vez de `secret`.
 
-Quando o Operador completar os 2 itens, basta refazer o signup de teste e validar `mail_from`, conteúdo do email (deve conter código de 6 dígitos), e `app.invocar_edge` retornando bigint não-NULL.
+Decisão: smoke test final aprovado para os 8 itens auditáveis nesta fase. Pronto para Fase 2.

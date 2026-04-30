@@ -43,7 +43,7 @@
 
 ## 1. ESTADO ATUAL
 
-**Fase 1 (Backend Supabase) concluída em 2026-04-29 — aguardando autorização para Fase 2.**
+**Fase 1 + Fase 1B (refactor auth) concluídas em 2026-04-30 — smoke test 8 de 8 auditáveis aprovado (#9 fica para Fase 2). Aguardando autorização para iniciar Fase 2.**
 
 ---
 
@@ -164,18 +164,17 @@ Branch: `fase-1-backend`. Cada migration é arquivo separado em `supabase/migrat
 
 - [ ] `ALTER PUBLICATION supabase_realtime ADD TABLE lancamento, caixa, notificacao` — adiar para Fase 2 quando a Web subscrever os channels (sem cliente assinando, ativar agora gera tráfego desnecessário).
 
-### 4.10. BACK-AUTH ~~Google OAuth~~ → email + senha + OTP via Resend (revisada)
-
-> ~~Versão antiga (Google OAuth + `@vdboti.com.br`) descartada. Migration 190 dropou trigger `fn_validar_dominio_email` e config `auth.dominio_permitido`.~~
+### 4.10. BACK-AUTH — email + senha + OTP via Resend (concluído)
 
 - [x] Migration 190 — DROP trigger fn_validar_dominio_email + DELETE config auth.dominio_permitido.
 - [x] Migration 191 — fn_auto_papel_inicial sem dependência de domínio (qualquer email; 1º vira admin+operador).
-- [x] Migration 192 — app.invocar_edge robusta (valida JWT antes de pg_net; loga em app.edge_invocation_log). Resolve bug "libcurl bad argument" do hotfix Vault anterior.
-- [ ] **Resend SMTP no Supabase Auth** — passos em `docs/SETUP_RESEND_SMTP.md`. Operador executa no Dashboard (MCP não cobre). Sender `Caixa Boti <noreply@plexalabs.com>`, host `smtp.resend.com:465`, user `resend`, pass `RESEND_API_KEY` do vault.
-- [ ] **Confirm Email + OTP** — toggle ON em Auth Providers; templates "Confirm signup" e "Reset Password" reescritos em pt-BR usando `{{ .Token }}` (validado nas docs oficiais Supabase).
-- [ ] Smoke test refactor (Bloco F) aprovado (`docs/SMOKE_TEST_FASE_1B.md`).
+- [x] Migration 192 — app.invocar_edge com validação JWT robusta (mas com bug de coluna).
+- [x] Migration 193 — hotfix de 192: lê `decrypted_secret` em vez de `secret` (essa é o ciphertext base64; doc HOTFIX_LIBCURL_PG_NET.md atualizado).
+- [x] **Resend SMTP no Supabase Auth** — configurado pelo Operador (sender `Caixa Boti <noreply@plexalabs.com>`, host `smtp.resend.com:465`).
+- [x] **Confirm Email + OTP** — ON em Auth Providers; template "Confirm signup" pt-BR com `{{ .Token }}` (validado).
+- [x] Smoke test refactor — 8 de 8 itens auditáveis aprovados em `docs/SMOKE_TEST_FASE_1B.md`. #9 (Pages) fica para Fase 2.
 
-### 4.11. BACK-FINAL — Smoke test integral (arquivo 03 §11.9)
+### 4.11. BACK-FINAL — Smoke test integral (arquivo 03 §11.9 + Fase 1B)
 
 > ✅ Aprovado em 2026-04-29 ~20:38 BRT. Documento completo: `docs/SMOKE_TEST_FASE_1.md`.
 
@@ -190,7 +189,8 @@ Branch: `fase-1-backend`. Cada migration é arquivo separado em `supabase/migrat
 - [x] `audit_log` imutável: UPDATE arbitrário rejeitado pelo trigger; FK SET NULL com exceção controlada (migration 062).
 - [x] `criar_caixa_se_nao_existe` idempotente — chamadas repetidas retornam mesmo UUID.
 - [x] Cron jobs SQL puros (`gerar_notif_*`, `limpar_logs`) executam sem erro.
-- [ ] **Pendente:** invocar `app.configurar_cron(<service_role>, <url>)` uma vez para ativar 4 jobs cron de edge functions.
+- [x] **Refactor F1B** — signup/OTP/login pós-confirmação/login pré-confirmação validados (smoke test 8/8). #9 (Pages dev) fica para Fase 2.
+- [x] **app.invocar_edge** funcionando end-to-end: vault → pg_net → edge → RPC → caixa criado (HTTP 200).
 
 ---
 
