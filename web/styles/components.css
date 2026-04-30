@@ -632,7 +632,7 @@
    etiqueta cresce e revela o nome da categoria escrito na vertical. */
 .lanc-row {
     --tira-w:       8px;
-    --tira-w-hover: 36px;
+    --tira-w-hover: 42px;
     --tira-cor:     var(--c-papel-3);
     --tira-texto:   var(--c-papel);
 
@@ -640,7 +640,7 @@
     grid-template-columns: 6rem 1fr auto;
     gap: 1rem;
     align-items: stretch;
-    padding: 0.95rem 1.1rem 0.95rem calc(var(--tira-w) + 1.1rem);
+    padding: 1rem 1.1rem 1rem calc(var(--tira-w) + 1.1rem);
     background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
     margin-bottom: 0.55rem;
@@ -654,7 +654,7 @@
     font-family: 'Manrope', sans-serif;
     position: relative;
     overflow: hidden;
-    min-height: 5.4rem;
+    min-height: 6rem;
 }
 .lanc-row::before {
     /* A tira colorida — retangular, pontuda, expande no hover */
@@ -668,7 +668,8 @@
     pointer-events: none;
 }
 .lanc-row::after {
-    /* Texto vertical da categoria, escondido até o hover ampliar a tira */
+    /* Texto vertical da categoria, escondido até o hover ampliar a tira.
+       letter-spacing reduzido + nowrap garantem que cabe verticalmente. */
     content: attr(data-cat-label);
     position: absolute;
     left: 0; top: 0; bottom: 0;
@@ -679,10 +680,12 @@
     writing-mode: vertical-rl;
     transform: rotate(180deg);    /* lê de baixo pra cima */
     font-family: 'Manrope', sans-serif;
-    font-size: 0.62rem;
+    font-size: 0.58rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.16em;
+    white-space: nowrap;
+    text-overflow: clip;
     color: transparent;
     transition: color 240ms var(--ease-out) 80ms;
     z-index: 2;
@@ -809,11 +812,34 @@
 }
 .lanc-row--flash { animation: flash-novo 1.2s ease-out; }
 
-/* Pendente sem categoria — tira cinza, fundo levemente atenuado */
-.lanc-row[data-cat=""], .lanc-row:not([data-cat]) {
+/* "Em análise" — sem categoria definida ainda. Tira tracejada cinza,
+   fundo levemente atenuado, badge cinza e texto explicativo. */
+.lanc-row[data-em-analise="true"] {
     --tira-cor:   var(--cat-pendente-text);
     --tira-texto: var(--c-papel);
     background:   var(--cat-pendente-bg);
+    border-style: dashed;
+}
+.lanc-row[data-em-analise="true"]::before {
+    /* Tira tracejada vertical em vez de sólida */
+    background: repeating-linear-gradient(
+        to bottom,
+        var(--cat-pendente-text) 0,
+        var(--cat-pendente-text) 6px,
+        transparent 6px,
+        transparent 11px
+    );
+}
+.lanc-categoria--analise {
+    background: var(--c-papel-2) !important;
+    color: var(--cat-pendente-text) !important;
+    font-style: italic;
+    letter-spacing: 0.12em;
+}
+.lanc-detalhes--analise {
+    color: var(--cat-pendente-text);
+    font-style: italic;
+    opacity: 0.8;
 }
 
 

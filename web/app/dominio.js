@@ -14,6 +14,18 @@ export const LABEL_CATEGORIA = Object.fromEntries(
   CATEGORIAS.map(c => [c.valor, c.rotulo])
 );
 
+// Versão curta para etiquetas verticais (espaço limitado): "CARTÃO LINK"
+// vira "LINK", "OBSERVAÇÃO" vira "OBS". Em uppercase já que vai pra
+// .lanc-row::after via CSS letter-spacing maiúsculo.
+export const LABEL_CATEGORIA_CURTA = {
+  cartao:      'CARTÃO',
+  pix:         'PIX',
+  dinheiro:    'DINHEIRO',
+  cancelado:   'CANCELADO',
+  cartao_link: 'LINK',
+  obs:         'OBS',
+};
+
 export const ESTADOS = {
   pendente:         'Pendente',
   em_preenchimento: 'Em preenchimento',

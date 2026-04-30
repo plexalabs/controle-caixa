@@ -6,7 +6,8 @@ import { supabase } from '../supabase.js';
 import { renderHeader, ligarHeader } from '../../components/header.js';
 import { abrirModalNovoLancamento }  from '../../components/modal-novo-lancamento.js';
 import { dataLonga, dataCurta, isoData, hora,
-         LABEL_CATEGORIA, ESTADO_CAIXA, resumoDetalhes } from '../dominio.js';
+         LABEL_CATEGORIA, LABEL_CATEGORIA_CURTA, ESTADO_CAIXA,
+         resumoDetalhes } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
 
@@ -155,14 +156,17 @@ async function carregarLancamentos(caixaId) {
 }
 
 function linhaLancamento(l) {
-  const cat        = l.categoria || '';
-  const catLabel   = LABEL_CATEGORIA[cat] || cat || 'Pendente';
-  const ehAtrasado = l.estado === 'pendente' && diasUteisDesde(l.criado_em) > 3;
-  const ehResolvido = l.estado === 'resolvido';
+  const cat            = l.categoria || '';
+  const labelLongo     = cat ? (LABEL_CATEGORIA[cat] || cat) : 'Em análise';
+  const labelVertical  = cat ? (LABEL_CATEGORIA_CURTA[cat] || cat.toUpperCase()) : 'EM ANÁLISE';
+  const ehAtrasado     = l.estado === 'pendente' && diasUteisDesde(l.criado_em) > 3;
+  const ehResolvido    = l.estado === 'resolvido';
+  const emAnalise      = !cat;
 
   return `
     <button class="lanc-row" data-cat="${esc(cat)}"
-            data-cat-label="${esc(catLabel)}"
+            data-cat-label="${esc(labelVertical)}"
+            data-em-analise="${emAnalise}"
             data-resolvido="${ehResolvido}" data-atrasado="${ehAtrasado}"
             data-id="${esc(l.id)}">
       <div class="lanc-meta">
@@ -170,12 +174,14 @@ function linhaLancamento(l) {
         <span style="font-style:italic">${hora(l.criado_em)}</span>
       </div>
       <div class="lanc-corpo">
-        <span class="lanc-cliente">${esc(l.cliente_nome)}</span>
-        ${cat ? `<div class="lanc-detalhes">${esc(resumoDetalhes(cat, l.dados_categoria))}</div>` : ''}
+        <span class="lanc-cliente">${esc(l.cliente_nome || '— sem cliente —')}</span>
+        ${cat
+          ? `<div class="lanc-detalhes">${esc(resumoDetalhes(cat, l.dados_categoria))}</div>`
+          : `<div class="lanc-detalhes lanc-detalhes--analise">aguardando categorização</div>`}
       </div>
       <div class="lanc-direita">
         <span class="lanc-valor">${formatBRL(l.valor_nf)}</span>
-        ${cat ? `<span class="lanc-categoria">${esc(catLabel)}</span>` : ''}
+        <span class="lanc-categoria ${emAnalise ? 'lanc-categoria--analise' : ''}">${esc(labelLongo)}</span>
       </div>
     </button>`;
 }
