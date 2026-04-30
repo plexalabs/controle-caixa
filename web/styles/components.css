@@ -1097,16 +1097,25 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-tinta-3);
 }
 
+.caixas-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+}
+@media (min-width: 768px) {
+    .caixas-grid { grid-template-columns: repeat(2, 1fr); gap: 0.9rem; }
+}
+
 .caixa-row {
     display: grid;
-    grid-template-columns: 5.4rem 1fr auto;
-    gap: 1.5rem;
+    grid-template-columns: 5rem 1fr auto;
+    gap: 1.1rem;
     align-items: center;
-    padding: 1.25rem 1.4rem 1.25rem 1.4rem;
+    padding: 1.1rem 1.2rem 1.1rem 1.2rem;
     background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
     border-radius: var(--r-md);
-    margin-bottom: 0.6rem;
+    margin-bottom: 0;
     text-decoration: none;
     color: inherit;
     transition: border-color 220ms var(--ease-out),
@@ -1115,6 +1124,9 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     animation: fade-up 420ms var(--ease-out) both;
     position: relative;
     overflow: hidden;
+}
+@media (min-width: 1280px) {
+    .caixa-row { padding: 1.2rem 1.4rem; gap: 1.3rem; }
 }
 .caixa-row::before {
     /* Filete âmbar discreto à esquerda — marca de página */
@@ -1232,23 +1244,27 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-tinta-2);
 }
 
-@media (max-width: 640px) {
+/* Layout compacto: mobile (<640) E grid de 2 colunas em telas
+   intermediarias (768-1279) — em ambos os casos a faixa direita
+   precisa empilhar abaixo do corpo para nao espremer o titulo. */
+@media (max-width: 640px), (min-width: 768px) and (max-width: 1279px) {
     .caixa-row {
-        grid-template-columns: 4.2rem 1fr;
-        gap: 0.9rem;
-        padding: 1rem 1rem 1rem 1.1rem;
+        grid-template-columns: 4.4rem 1fr;
+        gap: 0.95rem;
+        padding: 1rem 1.05rem 1rem 1.1rem;
     }
     .caixa-row-direita {
         grid-column: 1 / -1;
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        margin-top: 0.4rem;
+        margin-top: 0.55rem;
         padding-top: 0.65rem;
         border-top: 1px solid var(--c-papel-3);
     }
     .caixa-row-data { padding-left: 0.5rem; padding-right: 0.6rem; }
-    .caixa-row-dm { font-size: 1.5rem; }
+    .caixa-row-dm { font-size: 1.55rem; }
+    .caixa-row-titulo { font-size: 1.05rem; }
 }
 
 

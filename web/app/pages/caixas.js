@@ -76,9 +76,13 @@ async function carregarCaixas() {
     return;
   }
 
-  lista.innerHTML = caixas.map((c, i) =>
-    linhaCaixa(c, stats[c.id] || { resolvidos: 0, cancelados: 0 }, i)
-  ).join('');
+  // Cards em grid de 2 colunas no desktop, 1 no mobile.
+  lista.innerHTML = `
+    <div class="caixas-grid">
+      ${caixas.map((c, i) =>
+        linhaCaixa(c, stats[c.id] || { resolvidos: 0, cancelados: 0 }, i)
+      ).join('')}
+    </div>`;
 }
 
 function linhaCaixa(c, s, i) {
