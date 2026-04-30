@@ -248,6 +248,141 @@
 .toast--info { border-left-color: var(--c-ambar); }
 
 
+/* ============================================================
+   Indicador de força da senha — 3 barras horizontais
+   ============================================================ */
+
+.senha-forca {
+    display: flex;
+    gap: 4px;
+    margin-top: 0.5rem;
+    height: 3px;
+}
+.senha-forca-barra {
+    flex: 1;
+    background: var(--c-papel-3);
+    border-radius: 1px;
+    transition: background 220ms var(--ease-out);
+}
+.senha-forca[data-nivel="1"] .senha-forca-barra:nth-child(1) { background: var(--c-alerta); }
+.senha-forca[data-nivel="2"] .senha-forca-barra:nth-child(-n+2) { background: var(--c-ambar); }
+.senha-forca[data-nivel="3"] .senha-forca-barra { background: var(--c-musgo); }
+
+.senha-forca-rotulo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-top: 0.4rem;
+    color: var(--c-tinta-3);
+}
+.senha-forca-rotulo[data-nivel="1"] { color: var(--c-alerta); }
+.senha-forca-rotulo[data-nivel="2"] { color: var(--c-ambar-2); }
+.senha-forca-rotulo[data-nivel="3"] { color: var(--c-musgo); }
+
+
+/* ============================================================
+   Match de senha — checkmark/cross inline
+   ============================================================ */
+
+.match {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 0.4rem;
+}
+.match--ok    { color: var(--c-musgo); }
+.match--erro  { color: var(--c-alerta); }
+
+
+/* ============================================================
+   OTP — 6 inputs grandes, monoespaçados
+   ============================================================ */
+
+.otp-grid {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 1.5rem 0;
+}
+@media (min-width: 480px) {
+    .otp-grid { gap: 0.75rem; }
+}
+
+.otp-input {
+    width: 2.75rem;
+    height: 3.5rem;
+    text-align: center;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid var(--c-papel-3);
+    font-family: 'Fraunces', serif;
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+    font-size: 1.85rem;
+    font-weight: 500;
+    color: var(--c-tinta);
+    transition: border-color 200ms var(--ease-out), background 200ms var(--ease-out);
+    caret-color: var(--c-musgo);
+}
+@media (min-width: 480px) {
+    .otp-input { width: 3.25rem; height: 4rem; font-size: 2.1rem; }
+}
+.otp-input:focus {
+    outline: 0;
+    border-bottom-color: var(--c-musgo);
+    background: rgba(15, 76, 58, 0.04);
+}
+.otp-input--preenchido { border-bottom-color: var(--c-musgo); }
+.otp-input--erro { border-bottom-color: var(--c-alerta); }
+
+
+/* ============================================================
+   Cooldown link reenviar — countdown discreto
+   ============================================================ */
+
+.cooldown {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--c-tinta-3);
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* ============================================================
+   Lista decorativa com bullets âmbar — usada no editorial
+   ============================================================ */
+
+.lista-edit {
+    list-style: none;
+    padding: 0;
+    margin: 1.25rem 0 0;
+    counter-reset: item;
+}
+.lista-edit li {
+    position: relative;
+    padding-left: 1.5rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--c-tinta-2);
+}
+.lista-edit li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.7rem;
+    width: 8px;
+    height: 1px;
+    background: var(--c-ambar);
+}
+
+
 /* Respeito a usuários que preferem reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .reveal, .toast { animation: none; opacity: 1; transform: none; }
