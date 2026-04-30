@@ -37,28 +37,31 @@ export async function renderCaixa({ params }) {
       </nav>
 
       <!-- Cabeçalho do dia -->
-      <header class="mb-7 reveal reveal-2">
+      <header class="mb-6 reveal reveal-2">
         <p class="h-eyebrow">Caixa de</p>
         <div class="flex flex-wrap items-baseline justify-between gap-4 mt-1">
           <h1 class="h-display text-3xl sm:text-4xl" style="font-style:normal;font-weight:500"
               id="cab-data">${dataLonga(dataAlvo)}</h1>
           <div class="flex items-center gap-3">
             <span id="cab-status" class="badge-status"></span>
-            <button id="btn-novo" class="btn-primary" disabled>
-              + Novo lançamento
-            </button>
           </div>
         </div>
       </header>
 
-      <!-- Conteúdo principal -->
-      <section id="bloco-conteudo" class="reveal reveal-3">
+      <!-- Resumo do dia: contexto antes da leitura linha-a-linha -->
+      <aside id="rodape" class="resumo-dia hidden reveal reveal-3" aria-label="Resumo do dia"></aside>
+
+      <!-- Botão de ação principal — entre o resumo e a lista -->
+      <div class="resumo-acao reveal reveal-3">
+        <button id="btn-novo" class="btn-primary" disabled>
+          + Novo lançamento
+        </button>
+      </div>
+
+      <!-- Conteúdo principal: lista de lançamentos -->
+      <section id="bloco-conteudo" class="reveal reveal-4">
         ${blocoSkel()}
       </section>
-
-      <!-- Resumo do rodapé -->
-      <footer id="rodape" class="hidden mt-10 pt-6 border-t reveal reveal-4"
-              style="border-color:var(--c-papel-3)"></footer>
     </main>
   `;
 

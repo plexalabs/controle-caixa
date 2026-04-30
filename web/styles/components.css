@@ -1116,6 +1116,47 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 
 
 /* ============================================================
+   Resumo do dia (acima da lista de lançamentos)
+   ============================================================ */
+
+.resumo-dia {
+    margin: 0 0 1.5rem 0;
+    padding: 1.25rem 1.4rem;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-md);
+    box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.025), 0 8px 24px -20px rgba(15, 76, 58, 0.18);
+    position: relative;
+    overflow: hidden;
+}
+.resumo-dia::before {
+    /* Filete âmbar discreto à esquerda — assinatura editorial */
+    content: '';
+    position: absolute;
+    left: 0; top: 18%; bottom: 18%;
+    width: 2px;
+    background: var(--c-ambar);
+    opacity: 0.5;
+    border-radius: 0 var(--r-pill) var(--r-pill) 0;
+}
+.resumo-dia .h-eyebrow {
+    font-size: 0.62rem;
+    color: var(--c-tinta-3);
+}
+.resumo-dia .lista-edit { font-size: 0.92rem; line-height: 1.6; }
+
+.resumo-acao {
+    margin: 0 0 1.6rem 0;
+    display: flex;
+    justify-content: flex-end;
+}
+@media (max-width: 480px) {
+    .resumo-acao { justify-content: stretch; }
+    .resumo-acao .btn-primary { width: 100%; }
+}
+
+
+/* ============================================================
    Tela /caixas — arquivo editorial com lista cronológica
    ============================================================ */
 
