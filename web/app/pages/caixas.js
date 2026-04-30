@@ -110,15 +110,17 @@ function linhaCaixa(c, s, i) {
 
       <div class="caixa-row-corpo">
         <h3 class="caixa-row-titulo">${esc(titulo)}</h3>
-        <div class="caixa-row-meta">
-          <span><strong>${total}</strong> ${total === 1 ? 'lançamento' : 'lançamentos'}</span>
+        <p class="caixa-row-meta">
+          <strong>${total}</strong> ${total === 1 ? 'lançamento' : 'lançamentos'}
           <span class="caixa-row-sep">·</span>
-          <span>Pendentes: <strong class="${pend > 0 ? 'is-warn' : ''}">${pend}</strong></span>
+          <strong class="${pend > 0 ? 'is-warn' : ''}">${pend}</strong>
+          ${pend === 1 ? 'pendente' : 'pendentes'}
+        </p>
+        <p class="caixa-row-meta-sec">
+          ${s.resolvidos} ${s.resolvidos === 1 ? 'resolvida' : 'resolvidas'}
           <span class="caixa-row-sep">·</span>
-          <span>Resolvidas: <strong>${s.resolvidos}</strong></span>
-          <span class="caixa-row-sep">·</span>
-          <span>Canceladas: <strong>${s.cancelados}</strong></span>
-        </div>
+          ${s.cancelados} ${s.cancelados === 1 ? 'cancelada' : 'canceladas'}
+        </p>
       </div>
 
       <div class="caixa-row-direita">

@@ -1320,33 +1320,42 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     font-family: 'Fraunces', serif;
     font-style: italic;
     font-weight: 400;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     color: var(--c-tinta);
-    line-height: 1.15;
-    margin: 0 0 0.45rem 0;
+    line-height: 1.2;
+    margin: 0 0 0.5rem 0;
     letter-spacing: var(--tracking-display);
+    /* permite quebrar em 2 linhas em cards estreitos sem ellipsis */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 .caixa-row-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem;
+    margin: 0;
     font-family: 'Manrope', sans-serif;
-    font-size: 0.85rem;
-    color: var(--c-tinta-3);
+    font-size: 0.88rem;
+    color: var(--c-tinta-2);
     font-variant-numeric: tabular-nums;
+    line-height: 1.4;
 }
 .caixa-row-meta strong {
-    color: var(--c-tinta-2);
+    color: var(--c-tinta);
     font-weight: 600;
 }
 .caixa-row-meta strong.is-warn { color: var(--c-ambar-2); }
+.caixa-row-meta-sec {
+    margin: 0.2rem 0 0 0;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    color: var(--c-tinta-3);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+}
 .caixa-row-sep {
     color: var(--c-papel-3);
     user-select: none;
+    margin: 0 0.25rem;
 }
 
 .caixa-row-direita {
@@ -1365,24 +1374,33 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 
 /* Layout compacto: mobile (<640) E grid de 2 colunas em telas
    intermediarias (768-1279) — em ambos os casos a faixa direita
-   precisa empilhar abaixo do corpo para nao espremer o titulo. */
+   precisa empilhar abaixo do corpo para nao espremer o titulo.
+   Importante: padding-left RESPEITA a tira (calc com --tira-w),
+   para nao colidir com a tira lateral colorida. */
 @media (max-width: 640px), (min-width: 768px) and (max-width: 1279px) {
     .caixa-row {
-        grid-template-columns: 4.4rem 1fr;
+        grid-template-columns: 4.2rem 1fr;
         gap: 0.95rem;
-        padding: 1rem 1.05rem 1rem 1.1rem;
+        padding: 1rem 1.05rem 1rem calc(var(--tira-w) + 1rem);
+    }
+    .caixa-row:hover {
+        padding-left: calc(var(--tira-w-hover) + 1rem);
     }
     .caixa-row-direita {
         grid-column: 1 / -1;
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        margin-top: 0.55rem;
-        padding-top: 0.65rem;
+        margin-top: 0.7rem;
+        padding-top: 0.7rem;
         border-top: 1px solid var(--c-papel-3);
+        gap: 0.6rem;
     }
-    .caixa-row-data { padding-left: 0.5rem; padding-right: 0.6rem; }
-    .caixa-row-dm { font-size: 1.55rem; }
+    .caixa-row-data {
+        padding-left: 0;
+        padding-right: 0.85rem;
+    }
+    .caixa-row-dm     { font-size: 1.55rem; }
     .caixa-row-titulo { font-size: 1.05rem; }
 }
 
