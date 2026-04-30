@@ -1,0 +1,6 @@
+# SPA routing — redireciona qualquer rota não-arquivo para o index.html.
+# Cloudflare Pages aplica isso automaticamente; servidores locais simples
+# (npx serve, http.server) não — testar deep-links direto no navegador
+# pode falhar até a Fase 4.
+
+/*    /index.html   200

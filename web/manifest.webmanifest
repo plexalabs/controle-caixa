@@ -1,0 +1,20 @@
+{
+    "name": "Caixa Boti",
+    "short_name": "Caixa",
+    "description": "Caderno de auditoria diária da central — Caixa Boti.",
+    "lang": "pt-BR",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#F5EFE6",
+    "theme_color": "#0F4C3A",
+    "icons": [
+        {
+            "src": "/assets/img/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}
