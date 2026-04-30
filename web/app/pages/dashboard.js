@@ -1,54 +1,318 @@
-// dashboard.js — placeholder da Fase 2 / CP3.
-// Aqui só confirma que o login funcionou. CP3 substitui inteiro.
+// dashboard.js — Tela /dashboard (CP3.1, Fase 2).
+// Saudação por hora, 4 cards de resumo, notificações realtime, pendências
+// críticas, botão grande para o caixa do dia.
 
-import { sair } from '../auth.js';
+import { supabase, pegarSessao } from '../supabase.js';
+import { renderHeader, ligarHeader } from '../../components/header.js';
+import { saudacaoPorHora, dataLonga, isoData } from '../dominio.js';
+import { formatBRL } from '../utils.js';
+import { mostrarToast } from '../notifications.js';
 import { navegar } from '../router.js';
-import { pegarSessao } from '../supabase.js';
+
+let canalNotif = null;
 
 export async function renderDashboard() {
+  // Limpa subscriptions de visualizações anteriores (se houver).
+  desmontar();
+
   const sessao = await pegarSessao();
-  const email  = sessao?.user?.email ?? '—';
+  const meta   = sessao?.user?.user_metadata ?? {};
+  const nome   = (meta.nome || sessao?.user?.email?.split('@')[0] || 'Operador').trim();
+  const hoje   = new Date();
+  const hojeISO = isoData(hoje);
 
   document.querySelector('#app').innerHTML = `
-    <main id="main" class="min-h-screen p-8 lg:p-16">
-      <header class="flex items-center justify-between max-w-5xl mx-auto reveal reveal-1">
-        <div>
-          <p class="h-eyebrow">Caixa Boti</p>
-          <h1 class="h-display text-3xl mt-1">Painel</h1>
-        </div>
-        <button id="btn-sair" class="btn-link">Sair</button>
-      </header>
+    ${await renderHeader('dashboard')}
+    <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
+      <!-- Saudação editorial -->
+      <div class="reveal reveal-1">
+        <p class="saudacao-data">${dataLonga(hoje)}</p>
+        <h1 class="saudacao-titulo">${saudacaoPorHora(hoje)}, <strong>${esc(nome)}</strong>.</h1>
+      </div>
 
-      <section class="max-w-5xl mx-auto mt-16">
-        <div class="alert alert--info reveal reveal-2">
-          <strong>Login funcionando.</strong>
-          Sessão ativa para <code>${email}</code>.
-          O painel completo (caixa do dia, pendências, dashboard) será entregue no
-          Checkpoint 3 da Fase 2.
-        </div>
+      <!-- Cards de resumo (skeleton até carregar) -->
+      <section class="stat-grid mt-10 reveal reveal-2" aria-label="Resumo do dia">
+        ${cardSkel()}${cardSkel()}${cardSkel()}${cardSkel()}
+      </section>
+      <div id="stat-cards" class="hidden"></div>
 
-        <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 reveal reveal-3">
-          ${cardPlaceholder('Caixa do dia',  'CP3')}
-          ${cardPlaceholder('Pendências',    'CP4')}
-          ${cardPlaceholder('Configurações', 'CP4')}
+      <!-- Linha de ação: botão principal + atalhos -->
+      <section class="mt-8 flex flex-wrap items-center gap-4 reveal reveal-3">
+        <a href="/caixa/hoje" data-link class="btn-primary" style="padding:1rem 1.75rem;font-size:1rem">
+          Abrir caixa de hoje
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M3 9 H15 M11 5 L15 9 L11 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+        <a href="/pendencias" data-link class="btn-link">Ver pendências</a>
+      </section>
+
+      <!-- Notificações ativas -->
+      <section class="mt-12 reveal reveal-4" aria-labelledby="h-notif">
+        <header class="flex items-baseline justify-between mb-4">
+          <h2 id="h-notif" class="h-display text-2xl" style="font-style:normal;font-weight:500">
+            Avisos
+          </h2>
+          <span id="contagem-notif" class="h-meta text-sm" style="font-style:italic"></span>
+        </header>
+        <div id="lista-notif" class="space-y-2">
+          ${blocoSkel()}
         </div>
+      </section>
+
+      <!-- Pendências críticas (>3 dias úteis) — só renderiza se houver -->
+      <section id="bloco-criticas" class="mt-10 hidden reveal reveal-5" aria-labelledby="h-crit">
+        <header class="flex items-baseline justify-between mb-4">
+          <h2 id="h-crit" class="h-display text-2xl" style="font-style:normal;font-weight:500">
+            Pendências críticas
+          </h2>
+          <a href="/pendencias" data-link class="btn-link">Ver todas</a>
+        </header>
+        <div id="lista-criticas" class="space-y-2"></div>
       </section>
     </main>
   `;
 
-  document.querySelector('#btn-sair').addEventListener('click', async () => {
-    await sair();
-    navegar('/login');
+  ligarHeader();
+  await carregarResumo(hojeISO);
+  await carregarNotificacoes();
+  await carregarCriticas();
+  ligarRealtime();
+}
+
+// ─── Cards de resumo via dashboard_resumo + queries auxiliares ────────────
+async function carregarResumo(hojeISO) {
+  // RPC dashboard_resumo já cobre os 30 últimos dias por padrão.
+  // Para os cards de hoje + ontem, fazemos queries adicionais leves.
+  const ontem = new Date();
+  ontem.setDate(ontem.getDate() - 1);
+  const ontemISO = isoData(ontem);
+
+  // Hoje: total de lançamentos válidos + valor.
+  const { data: caixaHoje } = await supabase
+    .from('caixa')
+    .select('id, total_lancamentos, total_valor, total_pendentes, estado')
+    .eq('data', hojeISO)
+    .maybeSingle();
+
+  // Ontem: status do caixa.
+  const { data: caixaOntem } = await supabase
+    .from('caixa')
+    .select('id, estado, data')
+    .eq('data', ontemISO)
+    .maybeSingle();
+
+  // Resolvidas hoje — count de lançamentos com resolvido_em entre hoje 00h e agora.
+  const { count: resolvidasHoje } = await supabase
+    .from('lancamento')
+    .select('id', { count: 'exact', head: true })
+    .gte('resolvido_em', hojeISO + 'T00:00:00')
+    .lt('resolvido_em',  hojeISO + 'T23:59:59');
+
+  const cards = [
+    cardEstat({
+      eyebrow: 'Lançamentos hoje',
+      numero:  caixaHoje?.total_lancamentos ?? 0,
+      sub:     formatBRL(caixaHoje?.total_valor ?? 0),
+      href:    '/caixa/hoje',
+    }),
+    cardEstat({
+      eyebrow: 'Pendentes',
+      numero:  caixaHoje?.total_pendentes ?? 0,
+      sub:     (caixaHoje?.total_pendentes ?? 0) > 0 ? 'aguardando ação' : 'tudo resolvido',
+      href:    '/pendencias',
+      tom:     (caixaHoje?.total_pendentes ?? 0) > 0 ? 'is-warn' : 'is-good',
+    }),
+    cardEstat({
+      eyebrow: 'Caixa de ontem',
+      numero:  caixaOntem?.estado === 'fechado' ? '✓' : '○',
+      sub:     caixaOntem
+        ? (caixaOntem.estado === 'fechado' ? 'fechado' : 'em aberto')
+        : 'sem registro',
+      href:    caixaOntem ? `/caixa/${caixaOntem.data}` : '/caixa/hoje',
+      tom:     caixaOntem?.estado === 'fechado' ? 'is-good' : 'is-warn',
+    }),
+    cardEstat({
+      eyebrow: 'Resolvidas hoje',
+      numero:  resolvidasHoje ?? 0,
+      sub:     'pendências fechadas',
+      href:    '/pendencias',
+      tom:     'is-good',
+    }),
+  ].join('');
+
+  // Substitui skeleton pelos cards reais.
+  const grid = document.querySelector('section.stat-grid');
+  if (grid) grid.innerHTML = cards;
+}
+
+function cardEstat({ eyebrow, numero, sub, href, tom = '' }) {
+  return `
+    <a href="${href}" data-link class="stat-card" aria-label="${esc(eyebrow)}: ${esc(String(numero))} — ${esc(sub)}">
+      <span class="stat-card-eyebrow">${esc(eyebrow)}</span>
+      <span class="stat-card-num ${tom}">${esc(String(numero))}</span>
+      <span class="stat-card-sub">${esc(sub)}</span>
+    </a>`;
+}
+
+function cardSkel() {
+  return `
+    <div class="stat-card" aria-hidden="true" style="cursor:default;pointer-events:none">
+      <span class="skel" style="display:block;height:0.7rem;width:7rem"></span>
+      <span class="skel" style="display:block;height:2.4rem;width:5rem;margin-top:0.7rem"></span>
+      <span class="skel" style="display:block;height:0.85rem;width:9rem;margin-top:0.5rem"></span>
+    </div>`;
+}
+function blocoSkel() {
+  return `
+    <div class="skel" style="height:3.2rem;border-radius:2px"></div>
+    <div class="skel" style="height:3.2rem;border-radius:2px"></div>
+    <div class="skel" style="height:3.2rem;border-radius:2px"></div>`;
+}
+
+// ─── Notificações ativas (não-lidas) ──────────────────────────────────────
+async function carregarNotificacoes() {
+  const sessao = await pegarSessao();
+  const uid = sessao?.user?.id;
+
+  const { data, error } = await supabase
+    .from('notificacao')
+    .select('id, tipo, severidade, titulo, mensagem, lancamento_id, caixa_id, criada_em, lida_em')
+    .or(`usuario_destino.eq.${uid},usuario_destino.is.null`)
+    .is('lida_em', null)
+    .is('descartada_em', null)
+    .order('criada_em', { ascending: false })
+    .limit(20);
+
+  const lista = document.querySelector('#lista-notif');
+  const cont  = document.querySelector('#contagem-notif');
+  if (!lista) return;
+
+  if (error) {
+    lista.innerHTML = `<p class="text-sm" style="color:var(--c-tinta-3)">
+      Não conseguimos carregar os avisos agora.</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    lista.innerHTML = `
+      <div class="vazio" style="padding:1.5rem">
+        <p class="vazio-titulo" style="font-size:1.05rem">Sem avisos no momento.</p>
+        <p class="vazio-desc">Quando algo precisar de atenção, aparece aqui.</p>
+      </div>`;
+    cont.textContent = '';
+    return;
+  }
+
+  cont.textContent = `${data.length} aviso${data.length > 1 ? 's' : ''}`;
+  lista.innerHTML = data.map(n => itemNotif(n)).join('');
+
+  // Click → marca como lida + navega.
+  lista.querySelectorAll('[data-notif-id]').forEach(el => {
+    el.addEventListener('click', () => marcarENavegar(el.dataset.notifId, el.dataset.alvo));
   });
 }
 
-function cardPlaceholder(titulo, etapa) {
+function itemNotif(n) {
+  const cor = n.severidade === 'urgente' ? 'var(--c-alerta)'
+           : n.severidade === 'aviso'   ? 'var(--c-ambar-2)'
+           : 'var(--c-musgo)';
+
+  let alvo = '/dashboard';
+  if (n.caixa_id)      alvo = `/caixa/${n.caixa_id}`;       // caixa_id pode ser uuid; resolvemos no caixa.js se vier UUID.
+  // Para casos de lancamento_id sozinho, mandamos o operador para pendências (CP4 melhora isso).
   return `
-    <div class="border border-papel-3 p-6" style="border-color:var(--c-papel-3)">
-      <p class="h-eyebrow" style="color:var(--c-ambar)">${etapa}</p>
-      <h3 class="h-display text-xl mt-1" style="font-style:normal;font-weight:500">
-        ${titulo}
-      </h3>
-      <p class="text-body text-sm mt-2">Em construção.</p>
-    </div>`;
+    <button data-notif-id="${esc(n.id)}" data-alvo="${esc(alvo)}"
+            style="text-align:left;display:block;width:100%;background:var(--c-papel);
+                   border:1px solid var(--c-papel-3);border-left:3px solid ${cor};
+                   padding:0.85rem 1rem;cursor:pointer;font-family:'Manrope',sans-serif;
+                   transition:border-color 180ms">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem">
+        <strong style="color:var(--c-tinta);font-size:0.95rem;font-weight:600">${esc(n.titulo)}</strong>
+        <time class="h-meta text-xs" style="color:var(--c-tinta-3)">${tempoRelativo(n.criada_em)}</time>
+      </div>
+      <p style="color:var(--c-tinta-2);font-size:0.875rem;margin-top:0.2rem;line-height:1.4">${esc(n.mensagem)}</p>
+    </button>`;
+}
+
+async function marcarENavegar(id, alvo) {
+  // Marca lida em background, sem aguardar — UX prioriza navegação.
+  supabase.from('notificacao').update({ lida_em: new Date().toISOString() }).eq('id', id);
+  navegar(alvo || '/dashboard');
+}
+
+function tempoRelativo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - new Date(ts).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1)   return 'agora há pouco';
+  if (min < 60)  return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24)    return `há ${h} h`;
+  const d = Math.floor(h / 24);
+  return `há ${d} dia${d > 1 ? 's' : ''}`;
+}
+
+// ─── Pendências críticas (>3 dias úteis) ──────────────────────────────────
+async function carregarCriticas() {
+  const { data, error } = await supabase
+    .from('pendencia')
+    .select('id, numero_nf, cliente_nome, valor_nf, data_caixa, idade_dias_uteis, severidade')
+    .eq('severidade', 'urgente')
+    .order('idade_dias_uteis', { ascending: false })
+    .limit(5);
+
+  if (error || !data || data.length === 0) return;
+
+  const bloco = document.querySelector('#bloco-criticas');
+  const lista = document.querySelector('#lista-criticas');
+  if (!bloco || !lista) return;
+
+  bloco.classList.remove('hidden');
+  lista.innerHTML = data.map(p => `
+    <a href="/caixa/${p.data_caixa}" data-link
+       style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+              background:var(--c-papel);border:1px solid var(--c-papel-3);
+              border-left:3px solid var(--c-alerta);padding:0.85rem 1rem;
+              text-decoration:none;color:inherit;font-family:'Manrope',sans-serif;
+              transition:border-color 180ms">
+      <div>
+        <strong style="color:var(--c-tinta);font-size:0.95rem">NF ${esc(p.numero_nf)}</strong>
+        <span style="color:var(--c-tinta-3);margin:0 0.5rem">·</span>
+        <span style="color:var(--c-tinta-2)">${esc(p.cliente_nome)}</span>
+      </div>
+      <div style="text-align:right">
+        <span class="h-meta" style="color:var(--c-alerta);font-size:0.85rem">
+          ${p.idade_dias_uteis} dias úteis
+        </span>
+        <div style="font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;
+                    color:var(--c-tinta);font-size:1.05rem">${formatBRL(p.valor_nf)}</div>
+      </div>
+    </a>
+  `).join('');
+}
+
+// ─── Realtime: atualiza lista de notif ao chegar nova ─────────────────────
+function ligarRealtime() {
+  canalNotif = supabase.channel('dash-notif')
+    .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notificacao' },
+        () => { carregarNotificacoes(); })
+    .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notificacao' },
+        () => { carregarNotificacoes(); })
+    .subscribe();
+}
+
+function desmontar() {
+  if (canalNotif) {
+    supabase.removeChannel(canalNotif).catch(() => {});
+    canalNotif = null;
+  }
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
 }

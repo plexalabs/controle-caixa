@@ -392,6 +392,221 @@
 }
 
 
+/* ============================================================
+   Header global — barra fina editorial com logo + nav + avatar
+   ============================================================ */
+
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(245, 239, 230, 0.92);
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--c-papel-3);
+}
+.app-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 0.85rem 1.25rem;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+@media (min-width: 768px) {
+    .app-header-inner { padding: 0.85rem 2rem; }
+}
+
+.app-nav {
+    display: none;
+}
+@media (min-width: 768px) {
+    .app-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.875rem;
+    }
+}
+.app-nav-link {
+    padding: 0.4rem 0.9rem;
+    color: var(--c-tinta-2);
+    text-decoration: none;
+    border-radius: 2px;
+    transition: background 180ms var(--ease-out), color 180ms var(--ease-out);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+.app-nav-link:hover {
+    background: var(--c-papel-2);
+    color: var(--c-tinta);
+}
+.app-nav-link[aria-current="page"] {
+    background: var(--c-musgo);
+    color: var(--c-papel);
+}
+
+.app-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.875rem;
+    color: var(--c-tinta-2);
+}
+.app-user-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--c-musgo);
+    color: var(--c-papel);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 0.95rem;
+    font-style: italic;
+}
+
+
+/* ============================================================
+   Saudação editorial gigante — usada no Dashboard
+   ============================================================ */
+
+.saudacao-data {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--c-musgo);
+    margin-bottom: 0.5rem;
+}
+.saudacao-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    line-height: 1.05;
+    letter-spacing: var(--tracking-display);
+    color: var(--c-tinta);
+}
+.saudacao-titulo strong { color: var(--c-musgo); font-weight: 500; font-style: normal; }
+
+
+/* ============================================================
+   Cards de resumo — densidade respirada, números enormes
+   ============================================================ */
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+}
+@media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.stat-card {
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    padding: 1.25rem 1.4rem 1.4rem;
+    cursor: pointer;
+    transition: border-color 200ms var(--ease-out), transform 200ms var(--ease-out);
+    text-align: left;
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card:hover {
+    border-color: var(--c-musgo);
+    transform: translateY(-2px);
+}
+.stat-card-eyebrow {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--c-tinta-3);
+    display: block;
+}
+.stat-card-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-variation-settings: "SOFT" 60;
+    font-size: 2.6rem;
+    line-height: 1.05;
+    margin-top: 0.5rem;
+    color: var(--c-tinta);
+    font-variant-numeric: tabular-nums;
+}
+.stat-card-num.is-warn { color: var(--c-ambar-2); }
+.stat-card-num.is-bad  { color: var(--c-alerta); }
+.stat-card-num.is-good { color: var(--c-musgo); }
+.stat-card-sub {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+    margin-top: 0.4rem;
+}
+
+
+/* ============================================================
+   Skeleton loaders — papel arrastando
+   ============================================================ */
+
+@keyframes skel-pulse {
+    0%, 100% { background-color: var(--c-papel-2); }
+    50%      { background-color: var(--c-papel-3); }
+}
+.skel { animation: skel-pulse 1.4s ease-in-out infinite; border-radius: 2px; }
+
+
+
+/* ============================================================
+   Estado vazio editorial
+   ============================================================ */
+
+.vazio {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    border: 1px dashed var(--c-papel-3);
+    background: rgba(245, 239, 230, 0.5);
+    margin: 1rem 0;
+}
+.vazio-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-variation-settings: "SOFT" 100;
+    font-size: 4rem;
+    line-height: 1;
+    color: var(--c-papel-3);
+    user-select: none;
+}
+.vazio-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.4rem;
+    margin-top: 0.5rem;
+    color: var(--c-tinta-2);
+}
+.vazio-desc {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.9rem;
+    color: var(--c-tinta-3);
+    margin-top: 0.4rem;
+    max-width: 28rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
 /* Respeito a usuários que preferem reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .reveal, .toast { animation: none; opacity: 1; transform: none; }
