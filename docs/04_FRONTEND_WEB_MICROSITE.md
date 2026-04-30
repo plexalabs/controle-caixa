@@ -14,7 +14,7 @@
 2. Stack técnica
 3. Estrutura de arquivos
 4. Roteamento (sem framework)
-5. Tela de login (Google OAuth)
+5. Telas de autenticação (email + senha + OTP)
 6. Tela Dashboard
 7. Tela Caixa do dia (visão única)
 8. Modal "Novo lançamento"
@@ -90,7 +90,7 @@ frontend/
 │   ├── router.js              # Roteamento mínimo
 │   ├── store.js               # State management
 │   ├── supabase.js            # Cliente Supabase configurado
-│   ├── auth.js                # Helpers Google OAuth
+│   ├── auth.js                # Helpers de Auth (signUp, signInWithPassword, verifyOtp)
 │   ├── i18n.js                # Strings pt-BR
 │   ├── utils.js               # Utilities (formatadores, etc.)
 │   ├── notifications.js       # Sistema de toasts e bell
@@ -130,7 +130,10 @@ frontend/
 | URL | Tela |
 |-----|------|
 | `/` | redireciona para `/dashboard` se autenticado, senão `/login` |
-| `/login` | Tela Google OAuth |
+| `/login` | Tela de login (email + senha) |
+| `/cadastro` | Tela de cadastro com OTP |
+| `/confirmar` | Verificação OTP |
+| `/recuperar` | Recuperação de senha |
 | `/dashboard` | Visão consolidada |
 | `/caixa/:data` | Caixa específico (data ISO `YYYY-MM-DD` ou alias `hoje`) |
 | `/pendencias` | Lista centralizada |
@@ -212,108 +215,269 @@ init();
 
 ---
 
-## 5. TELA DE LOGIN (Google OAuth)
+## 5. TELAS DE AUTENTICAÇÃO (email + senha + OTP)
 
-### 5.1. Layout
+> **Decisão revisada (2026-04-29 fim do dia):** Auth via Supabase Auth nativo com email + senha + confirmação OTP de 6 dígitos por email (Resend SMTP). Cadastro aberto a qualquer email. Veja `03 §11` para o backend e `docs/SETUP_RESEND_SMTP.md` para configurar SMTP no Dashboard.
+
+### 5.1. Quatro telas (rotas)
+
+| URL | Tela | Componente |
+|---|---|---|
+| `/login` | Login | `pages/login.js` |
+| `/cadastro` | Cadastro | `pages/cadastro.js` |
+| `/confirmar` | Verificação OTP | `pages/confirmar.js` |
+| `/recuperar` | Recuperação de senha | `pages/recuperar.js` |
+
+Layout do login:
 
 ```
-╔══════════════════════════════════════╗
-║                                      ║
-║         [Logo da empresa]            ║
-║                                      ║
-║      Controle de Caixa               ║
-║   Sistema de auditoria interno       ║
-║                                      ║
-║                                      ║
-║   [ G  Entrar com Google ]           ║
-║                                      ║
-║   Acesso restrito a @vdboti.com.br   ║
-║                                      ║
-║   Versão 1.0 — Suporte: TI           ║
-╚══════════════════════════════════════╝
+╔══════════════════════════════════════════╗
+║         [Logo Caixa Boti]                ║
+║                                          ║
+║      Bem-vindo de volta                  ║
+║   Entre com seu email e senha            ║
+║                                          ║
+║   Email                                  ║
+║   [______________________________]       ║
+║   Senha                                  ║
+║   [______________________________] [👁]   ║
+║                                          ║
+║   [        Entrar          ]             ║
+║                                          ║
+║   Não tem conta? Criar conta             ║
+║   Esqueceu a senha?                      ║
+╚══════════════════════════════════════════╝
 ```
 
 ### 5.2. `pages/login.js`
 
-> **Importante de segurança:** o parâmetro `hd=vdboti.com.br` na URL OAuth é apenas uma dica visual ao Google (mostra a tela de seleção de conta filtrada por domínio). **Não é uma camada de segurança.** A validação real do domínio acontece no backend, em trigger Postgres `BEFORE INSERT` em `auth.users` (ver `03 §11`). Quem manipular a URL e logar com qualquer conta Google será rejeitado pelo trigger antes do registro persistir.
-
 ```javascript
 import { supabase } from '../supabase.js';
+import { navegar } from '../router.js';
 
 export function renderLogin() {
   document.querySelector('#app').innerHTML = `
-    <div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-10 max-w-md w-full">
-        <div class="text-center mb-8">
-          <img src="/assets/img/logo.png" alt="Logo" class="h-16 mx-auto mb-4" />
-          <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">Controle de Caixa</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Sistema de auditoria interno</p>
+    <div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 max-w-md w-full">
+        <div class="text-center mb-6">
+          <img src="/assets/img/logo.png" alt="Caixa Boti" class="h-12 mx-auto mb-3" />
+          <h1 class="text-xl font-semibold dark:text-slate-100">Bem-vindo de volta</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Entre com seu email e senha</p>
         </div>
-        
-        <button id="btn-google" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-medium py-3 rounded-lg transition flex items-center justify-center gap-3">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-          Entrar com Google
-        </button>
-        
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-4 text-center">
-          Acesso restrito ao domínio <strong>@vdboti.com.br</strong>.
-        </p>
-        
-        <p class="text-xs text-slate-500 mt-6 text-center">
-          Versão 1.0 — Suporte: TI
-        </p>
+
+        <form id="form-login" class="space-y-4">
+          <label class="block">
+            <span class="text-sm text-slate-600 dark:text-slate-300">Email</span>
+            <input name="email" type="email" autocomplete="email" required class="input mt-1" />
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-600 dark:text-slate-300">Senha</span>
+            <input name="password" type="password" autocomplete="current-password" required minlength="8" class="input mt-1" />
+          </label>
+          <button type="submit" class="btn-primary w-full">Entrar</button>
+        </form>
+
+        <div id="erro" role="alert" aria-live="polite" class="hidden mt-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-200 p-3 rounded-lg text-sm"></div>
+
+        <div class="flex justify-between text-sm mt-6 pt-6 border-t dark:border-slate-700">
+          <a href="/cadastro" data-link class="text-blue-600 hover:underline">Criar conta</a>
+          <a href="/recuperar" data-link class="text-slate-600 dark:text-slate-400 hover:underline">Esqueci minha senha</a>
+        </div>
       </div>
     </div>
   `;
-  
-  document.querySelector('#btn-google').addEventListener('click', async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-        queryParams: {
-          // 'hd' = hosted domain. APENAS dica visual ao Google — não é segurança.
-          // A validação obrigatória acontece em trigger Postgres BEFORE INSERT.
-          hd: 'vdboti.com.br',
-          access_type: 'offline',
-          prompt: 'select_account'
-        }
-      }
+
+  document.querySelector('#form-login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: fd.get('email').trim().toLowerCase(),
+      password: fd.get('password')
     });
     if (error) {
-      alert('Erro ao iniciar login: ' + error.message);
+      const div = document.querySelector('#erro');
+      div.classList.remove('hidden');
+      if (error.message.includes('Email not confirmed')) {
+        div.innerHTML = 'Confirme seu email antes de entrar. <a href="/confirmar?email='
+          + encodeURIComponent(fd.get('email')) + '" data-link class="underline font-medium">Inserir codigo</a>.';
+      } else if (error.message.includes('Invalid login credentials')) {
+        div.textContent = 'Email ou senha incorretos.';
+      } else {
+        div.textContent = 'Erro: ' + error.message;
+      }
       return;
     }
-    if (data?.url) location.href = data.url;
+    navegar('/dashboard');
   });
 }
 ```
 
-### 5.3. Callback Google OAuth
+### 5.3. `pages/cadastro.js` — signup com validações
 
-A URL `/auth/callback` é tratada pelo Supabase automaticamente. Fluxo:
+```javascript
+import { supabase } from '../supabase.js';
+import { navegar } from '../router.js';
 
-1. Usuário clica "Entrar com Google" → redireciona ao Google.
-2. Google autentica e devolve para `https://<projeto>.supabase.co/auth/v1/callback`.
-3. Supabase tenta criar registro em `auth.users`.
-4. **Trigger `BEFORE INSERT` em `auth.users` valida `email LIKE '%@vdboti.com.br'`.** Se não bater, lança `RAISE EXCEPTION` e o login falha — usuário recebe mensagem `Acesso restrito ao domínio vdboti.com.br`.
-5. Se OK, Supabase devolve sessão para `${origin}/auth/callback`, que recarrega `/` e o `despachar()` envia para `/dashboard`.
+const REGEX_SENHA = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/; // mín. 8, ≥1 letra, ≥1 número
 
-### 5.4. Tratamento de erro de domínio na UI
+export function renderCadastro() {
+  document.querySelector('#app').innerHTML = `
+    <div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 max-w-md w-full">
+        <h1 class="text-xl font-semibold mb-6 dark:text-slate-100">Criar conta</h1>
 
-Quando o callback retornar erro `auth/identity-not-found` ou similar (trigger rejeitou), a tela de login mostra:
+        <form id="form-cadastro" class="space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <label><span class="text-sm">Nome</span>
+              <input name="nome" required class="input mt-1" />
+            </label>
+            <label><span class="text-sm">Sobrenome</span>
+              <input name="sobrenome" required class="input mt-1" />
+            </label>
+          </div>
+          <label class="block"><span class="text-sm">Email</span>
+            <input name="email" type="email" autocomplete="email" required class="input mt-1" />
+          </label>
+          <label class="block"><span class="text-sm">Senha</span>
+            <input name="password" type="password" autocomplete="new-password" required minlength="8" class="input mt-1" />
+            <small class="text-xs text-slate-500">Minimo 8 caracteres, ao menos 1 letra e 1 numero.</small>
+          </label>
+          <label class="block"><span class="text-sm">Confirmar senha</span>
+            <input name="password2" type="password" required class="input mt-1" />
+          </label>
+          <button type="submit" class="btn-primary w-full">Criar conta</button>
+        </form>
 
-```html
-<div role="alert" class="mt-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-200 p-3 rounded-lg text-sm">
-  Esta conta Google não pertence ao domínio <strong>@vdboti.com.br</strong>.
-  Use uma conta corporativa autorizada ou peça ao TI.
-</div>
+        <div id="erro" role="alert" aria-live="polite" class="hidden mt-4 bg-red-50 text-red-800 p-3 rounded-lg text-sm"></div>
+
+        <p class="text-sm text-center mt-6 pt-6 border-t dark:border-slate-700">
+          Ja tem conta? <a href="/login" data-link class="text-blue-600 hover:underline">Entrar</a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  document.querySelector('#form-cadastro').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const email = fd.get('email').trim().toLowerCase();
+    const password = fd.get('password');
+    const div = document.querySelector('#erro');
+
+    if (password !== fd.get('password2')) {
+      div.classList.remove('hidden');
+      div.textContent = 'As senhas nao coincidem.';
+      return;
+    }
+    if (!REGEX_SENHA.test(password)) {
+      div.classList.remove('hidden');
+      div.textContent = 'Senha precisa ter no minimo 8 caracteres, ao menos 1 letra e 1 numero.';
+      return;
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email, password,
+      options: { data: { nome: fd.get('nome'), sobrenome: fd.get('sobrenome') } }
+    });
+    if (error) {
+      div.classList.remove('hidden');
+      div.textContent = 'Erro: ' + error.message;
+      return;
+    }
+    navegar('/confirmar?email=' + encodeURIComponent(email));
+  });
+}
 ```
+
+### 5.4. Validações de senha
+
+Cliente (HTML5 `pattern` + JS): `^(?=.*[a-zA-Z])(?=.*\d).{8,}$` — mínimo 8, ao menos 1 letra e 1 número. Servidor (Supabase Auth): mesma regra, configurável em **Dashboard → Auth → Password requirements**. O servidor é a fonte da verdade — o `pattern` no HTML é só UX.
+
+### 5.5. `pages/confirmar.js` — OTP de 6 dígitos com auto-foco
+
+Tela com 6 inputs de 1 dígito que avançam foco automaticamente. Suporta colar código completo.
+
+```javascript
+import { supabase } from '../supabase.js';
+import { navegar } from '../router.js';
+
+export function renderConfirmar() {
+  const email = new URLSearchParams(location.search).get('email') ?? '';
+
+  document.querySelector('#app').innerHTML = `
+    <div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+        <h1 class="text-xl font-semibold mb-2 dark:text-slate-100">Confirme seu email</h1>
+        <p class="text-sm text-slate-600 dark:text-slate-400 mb-6">
+          Enviamos um codigo de 6 digitos para <strong>${email}</strong>.
+        </p>
+
+        <form id="form-otp">
+          <div class="flex gap-2 justify-center mb-6" id="otp-inputs">
+            ${Array.from({length:6}, (_,i) =>
+              '<input data-i="'+i+'" inputmode="numeric" pattern="\\d" maxlength="1" required class="w-12 h-14 text-center text-2xl font-mono border border-slate-300 rounded-lg" />'
+            ).join('')}
+          </div>
+          <button type="submit" class="btn-primary w-full">Verificar</button>
+        </form>
+
+        <button id="btn-reenviar" class="text-sm text-blue-600 hover:underline mt-4">Reenviar codigo</button>
+
+        <div id="msg" role="alert" aria-live="polite" class="hidden mt-4 p-3 rounded-lg text-sm"></div>
+      </div>
+    </div>
+  `;
+
+  const inputs = document.querySelectorAll('#otp-inputs input');
+  inputs.forEach((inp, i) => {
+    inp.addEventListener('input', () => {
+      if (inp.value && i < inputs.length - 1) inputs[i+1].focus();
+    });
+    inp.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Backspace' && !inp.value && i > 0) inputs[i-1].focus();
+    });
+    inp.addEventListener('paste', (ev) => {
+      const txt = ev.clipboardData.getData('text').replace(/\D/g,'').slice(0, 6);
+      if (txt.length === 6) {
+        ev.preventDefault();
+        inputs.forEach((x, j) => x.value = txt[j] ?? '');
+        inputs[5].focus();
+      }
+    });
+  });
+
+  document.querySelector('#form-otp').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = Array.from(inputs).map(i => i.value).join('');
+    const msg = document.querySelector('#msg');
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
+    if (error) {
+      msg.className = 'mt-4 p-3 rounded-lg text-sm bg-red-50 text-red-800';
+      msg.classList.remove('hidden');
+      msg.textContent = 'Codigo invalido ou expirado. Tente novamente ou clique em "Reenviar codigo".';
+      return;
+    }
+    navegar('/dashboard');
+  });
+
+  document.querySelector('#btn-reenviar').addEventListener('click', async () => {
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    const msg = document.querySelector('#msg');
+    msg.classList.remove('hidden');
+    if (error) {
+      msg.className = 'mt-4 p-3 rounded-lg text-sm bg-red-50 text-red-800';
+      msg.textContent = 'Erro ao reenviar: ' + error.message;
+    } else {
+      msg.className = 'mt-4 p-3 rounded-lg text-sm bg-emerald-50 text-emerald-800';
+      msg.textContent = 'Novo codigo enviado.';
+    }
+  });
+}
+```
+
+### 5.6. `pages/recuperar.js` — recuperação de senha
+
+Solicitação inicial → email com OTP → tela igual à `/confirmar` mas com `type: 'recovery'` no `verifyOtp`, e segundo passo pedindo nova senha via `supabase.auth.updateUser({ password })`.
 
 ---
 
@@ -1517,7 +1681,10 @@ import { test, expect } from '@playwright/test';
 
 test('fluxo: criar lançamento Cartão', async ({ page }) => {
   await page.goto('http://localhost:3000');
-  await page.click('#btn-google'); // mock Google OAuth em ambiente de teste
+  // Login email + senha (assume usuario ja confirmado em ambiente de teste).
+  await page.fill('input[name="email"]', 'teste@plexalabs.com');
+  await page.fill('input[name="password"]', 'Senha123');
+  await page.click('button[type="submit"]');
   
   await page.click('a[href="/caixa/hoje"]');
   await page.click('#btn-novo');

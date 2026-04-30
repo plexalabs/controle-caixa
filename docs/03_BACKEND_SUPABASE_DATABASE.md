@@ -22,7 +22,7 @@
 10. Edge Functions (Deno)
 11. Storage — buckets e políticas
 12. Realtime — channels
-13. Autenticação — Google OAuth (restrito a `@vdboti.com.br`)
+13. Autenticação — Email + senha + OTP via Resend SMTP
 14. pg_cron — agendamentos
 15. Backup e disaster recovery
 16. Migrations
@@ -87,9 +87,8 @@ Configuradas em **Project Settings → API** e em **Edge Functions → Secrets**
 | `SUPABASE_ANON_KEY` | cliente Excel/Web | Chave anônima JWT pública. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Edge Functions | Chave service role (bypass RLS). |
 | `SUPABASE_DB_PASSWORD` | Gerenciador de senhas | Senha do Postgres. |
-| `GOOGLE_CLIENT_ID` | Supabase Auth (Provider Google) | OAuth 2.0 Client ID criado em `console.cloud.google.com`. Tipo "Web application". |
-| `GOOGLE_CLIENT_SECRET` | Supabase Auth (Provider Google) — vault | Client Secret correspondente. |
-| `AUTH_DOMINIO_PERMITIDO` | Postgres (`public.config`) | Domínio aceito no login. Valor inicial: `vdboti.com.br`. |
+| `RESEND_API_KEY` | Supabase Dashboard → Auth → Providers → SMTP Settings → Password | API key do Resend (formato `re_...`) usada como senha SMTP. Cadastrada no Dashboard. |
+| `EMAIL_FROM` | Supabase Dashboard → Auth → Providers → SMTP Settings → Sender | `Caixa Boti <noreply@plexalabs.com>` |
 | `MASTER_ENCRYPTION_KEY` | Edge Functions | Chave usada para encrypt/decrypt PII (AES-256-GCM). |
 | `SMTP_HOST`/`USER`/`PASSWORD` | Edge Functions | Para envio de e-mails de notificação. |
 
@@ -1330,102 +1329,78 @@ supabase
 
 ---
 
-## 11. AUTENTICAÇÃO — GOOGLE OAUTH (restrito a `@vdboti.com.br`)
+## 11. AUTENTICAÇÃO — Email + senha + OTP via Resend SMTP
 
-> Decisão consolidada pelo Operador (2026-04-29): autenticação via Google OAuth, **não** SAML. Provider nativo do Supabase. Restrição de domínio em **duas camadas**:
-> 1. **Camada UI/UX** — parâmetro `hd=vdboti.com.br` na URL OAuth (apenas dica visual ao Google).
-> 2. **Camada de segurança real** — trigger `BEFORE INSERT` em `auth.users` que rejeita emails fora de `@vdboti.com.br`.
+> **Decisão revisada (2026-04-29 fim do dia):** abandonado Google OAuth/SSO. Auth passa a ser **email + senha gerenciado pelo Supabase Auth nativo**, com **confirmação obrigatória via OTP de 6 dígitos** enviado por **Resend SMTP**. Cadastro aberto a qualquer email — defesa de acesso vem da confirmação obrigatória + RLS por papel.
 >
-> O parâmetro `hd` sozinho **não é segurança** — qualquer um pode editar a URL. A validação obrigatória é no banco.
+> Migrations relacionadas: `190` (drop trigger de domínio), `191` (papel inicial sem domínio), `192` (`app.invocar_edge` robusta com validação JWT).
 
-### 11.1. Pré-requisitos no Google Cloud Console
+### 11.1. Resend SMTP — configurado pelo admin no Dashboard
 
-1. Acessar `console.cloud.google.com` autenticado com conta admin do Workspace `vdboti.com.br`.
-2. Criar (ou reutilizar) projeto. Convenção sugerida: `controle-caixa-auth`.
-3. **APIs & Services → OAuth consent screen** → tipo **Internal** (restringe automaticamente ao Workspace `vdboti.com.br`). Preencher: nome do app `Controle de Caixa`, domínio autorizado `caixaboti.plexalabs.com`, email de suporte (`joaopedro@plexalabs.com` ou equivalente).
-4. **APIs & Services → Credentials → Create credentials → OAuth 2.0 Client ID** → tipo **Web application**.
-   - Nome: `Controle de Caixa — Supabase`.
-   - **Authorized redirect URIs:** `https://<projeto>.supabase.co/auth/v1/callback` (substituir `<projeto>` pelo project ref real).
-5. Anotar `Client ID` e `Client Secret`.
+O MCP do Supabase **não cobre** Auth/SMTP/Templates. Configuração é manual via Dashboard, **uma vez**, seguindo o roteiro em `docs/SETUP_RESEND_SMTP.md`. Resumo:
 
-### 11.2. Configuração no Supabase
+| Campo (Auth → Providers → SMTP Settings) | Valor |
+|---|---|
+| Sender email | `noreply@plexalabs.com` |
+| Sender name | `Caixa Boti` |
+| Host | `smtp.resend.com` |
+| Port | `465` (SSL implícito) |
+| Username | `resend` |
+| Password | `RESEND_API_KEY` do vault corporativo (formato `re_...`) |
+| Minimum interval between emails | `60` |
 
-No painel Supabase: **Authentication → Providers → Google** → toggle **Enable**.
+Pré-requisitos no Resend:
+- Conta criada.
+- Domínio `plexalabs.com` verificado (DKIM + SPF).
+- API key gerada com escopo "Sending access" apenas.
 
-- `Client ID (for OAuth)`: o `GOOGLE_CLIENT_ID` do passo 5 anterior.
-- `Client Secret (for OAuth)`: o `GOOGLE_CLIENT_SECRET`.
-- `Authorized Client IDs`: deixar vazio (não é login com ID Token nativo do Google Sign-In; é fluxo OAuth Web normal).
-- `Skip nonce check`: desativado.
+### 11.2. Confirm Email + OTP
 
-Salvar.
+Em **Auth → Providers → Email**:
 
-### 11.3. Atributos retornados pelo Google e mapeamento Supabase
+| Toggle | Valor |
+|---|---|
+| Enabled | ON (padrão) |
+| Confirm email | **ON** (obrigatório — sem isso, signup não dispara email) |
+| Secure email change | ON |
+| Secure password change | ON |
+| Allow signups | ON (cadastro aberto) |
+| Email OTP Length | 6 |
+| Email OTP Expiration | 3600 (1h, mínimo configurável via Dashboard) |
 
-O Supabase popula automaticamente:
+### 11.3. Templates de email em pt-BR
 
-| Claim Google (OIDC) | Campo Supabase |
-|---------------------|----------------|
-| `email` | `auth.users.email` |
-| `email_verified` | `auth.users.email_confirmed_at` (preenchido se `true`) |
-| `name` | `auth.users.raw_user_meta_data.full_name` |
-| `given_name` | `auth.users.raw_user_meta_data.given_name` |
-| `family_name` | `auth.users.raw_user_meta_data.family_name` |
-| `picture` | `auth.users.raw_user_meta_data.avatar_url` |
-| `hd` | `auth.users.raw_user_meta_data.hd` (hosted domain — útil para diagnóstico) |
+Em **Auth → Email Templates**, reescrever o "Confirm signup" com `{{ .Token }}` (variável validada na [doc oficial](https://supabase.com/docs/guides/auth/auth-email-passwordless#with-otp)). A presença dessa variável no template muda o comportamento do Supabase: em vez de enviar magic link (`{{ .ConfirmationURL }}`), envia o OTP de 6 dígitos.
 
-### 11.4. Restrição de domínio — camada de segurança real (trigger Postgres)
-
-```sql
--- Função que valida o domínio do email no momento do INSERT em auth.users.
-CREATE OR REPLACE FUNCTION public.fn_validar_dominio_email()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE
-    v_dominio_permitido text;
-BEGIN
-    SELECT (valor #>> '{}') INTO v_dominio_permitido
-    FROM public.config WHERE chave = 'auth.dominio_permitido';
-
-    IF v_dominio_permitido IS NULL THEN
-        v_dominio_permitido := 'vdboti.com.br'; -- fallback seguro
-    END IF;
-
-    IF NEW.email IS NULL OR lower(split_part(NEW.email, '@', 2)) <> lower(v_dominio_permitido) THEN
-        RAISE EXCEPTION 'Acesso restrito ao domínio %', v_dominio_permitido
-            USING ERRCODE = '42501', HINT = 'Use uma conta corporativa autorizada.';
-    END IF;
-    RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER trg_auth_users_validar_dominio
-BEFORE INSERT ON auth.users
-FOR EACH ROW EXECUTE FUNCTION public.fn_validar_dominio_email();
+```html
+<!-- Template "Confirm signup" -->
+<h2>Bem-vindo ao Caixa Boti</h2>
+<p>Seu código de verificação é:</p>
+<h1 style="font-size:32px;letter-spacing:8px;font-family:monospace">{{ .Token }}</h1>
+<p>Esse código expira em 1 hora.</p>
+<p>Se você não solicitou esse código, ignore este email.</p>
 ```
 
-E seed correspondente em `public.config`:
+Templates equivalentes em pt-BR para "Reset Password", "Magic Link" e "Change Email" estão em `docs/SETUP_RESEND_SMTP.md` Passo 4.
 
-```sql
-INSERT INTO public.config (chave, valor, descricao, editavel) VALUES
-    ('auth.dominio_permitido', '"vdboti.com.br"'::jsonb, 'Domínio único aceito no login Google OAuth', false)
-ON CONFLICT (chave) DO NOTHING;
-```
+### 11.4. Trigger de papel automático (sem dependência de domínio)
 
-> **Observação:** o trigger é `BEFORE INSERT` em `auth.users` que é schema gerenciado pelo Supabase. Funciona porque `auth.users` aceita triggers `BEFORE`/`AFTER` definidos por `service_role`. Conferir após cada upgrade da plataforma — se o Supabase remover essa capacidade, mover validação para edge function `auth-hook` (`Authentication → Hooks`).
-
-### 11.5. Auto-provisioning de papel
-
-Trigger Postgres atribui papel padrão `operador`+`admin` ao primeiro usuário criado e apenas `operador` aos demais (que precisarão ter `admin` concedido manualmente):
+Migration 191 reescreveu `fn_auto_papel_inicial`:
 
 ```sql
 CREATE OR REPLACE FUNCTION public.fn_auto_papel_inicial()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.usuario_papel) THEN
-        -- Primeiro usuário: vira admin + operador automaticamente.
-        INSERT INTO public.usuario_papel (usuario_id, papel) VALUES (NEW.id, 'operador'), (NEW.id, 'admin');
+        -- Primeiro usuário do sistema: anchor admin (admin + operador).
+        INSERT INTO public.usuario_papel (usuario_id, papel, concedido_por)
+        VALUES (NEW.id, 'operador', NEW.id),
+               (NEW.id, 'admin',    NEW.id)
+        ON CONFLICT DO NOTHING;
     ELSE
-        -- Demais usuários: só operador. Admin é concedido manualmente.
-        INSERT INTO public.usuario_papel (usuario_id, papel) VALUES (NEW.id, 'operador');
+        -- Demais: apenas operador. Admin promove via SQL.
+        INSERT INTO public.usuario_papel (usuario_id, papel)
+        VALUES (NEW.id, 'operador') ON CONFLICT DO NOTHING;
     END IF;
     RETURN NEW;
 END;
@@ -1435,20 +1410,51 @@ CREATE TRIGGER trg_auth_users_papel_inicial
 AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.fn_auto_papel_inicial();
 ```
 
-> A ordem importa: trigger `BEFORE` (validar domínio) executa primeiro; se passar, trigger `AFTER` (atribuir papel) é disparado.
+Promoção manual de operador a admin (pelo admin existente):
 
-### 11.6. Side-channel — também checar via dica visual ao Google
+```sql
+INSERT INTO public.usuario_papel (usuario_id, papel, concedido_por)
+VALUES ('<uid_a_promover>', 'admin', auth.uid())
+ON CONFLICT DO NOTHING;
+```
 
-A Web envia `?hd=vdboti.com.br` na URL OAuth. Isso faz o Google **filtrar** as contas mostradas ao usuário para apenas as do domínio. Não é segurança — é UX.
+### 11.5. Fluxo no cliente (supabase-js)
 
-Detalhes em `04 §5.2`.
+```js
+// Signup
+const { data, error } = await supabase.auth.signUp({
+  email: 'usuario@exemplo.com',
+  password: 'senha-forte-com-numero-1'
+});
+// data.user.email_confirmed_at === null → email enviado com OTP
 
-### 11.7. Validação de URL de callback
+// Verify OTP (após usuário inserir código de 6 dígitos)
+const { data, error } = await supabase.auth.verifyOtp({
+  email: 'usuario@exemplo.com',
+  token: '123456',
+  type: 'signup'  // 'signup' para confirmar conta nova
+});
+// data.session !== null → confirmado e logado
 
-No Supabase, **Authentication → URL Configuration**:
+// Login subsequente
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: 'usuario@exemplo.com',
+  password: 'senha-forte-com-numero-1'
+});
+// Se email_confirmed_at NULL → erro 'email_not_confirmed'
 
-- `Site URL`: `https://caixaboti.plexalabs.com` (produção). Para dev, `https://controle-caixa.pages.dev`.
-- `Redirect URLs (Additional)`: incluir ambos para que dev e produção funcionem; incluir também `http://localhost:3000` se houver desenvolvimento local com servidor estático.
+// Reset de senha
+await supabase.auth.resetPasswordForEmail('usuario@exemplo.com');
+// Email com OTP chega; usuário entra OTP + nova senha
+await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
+await supabase.auth.updateUser({ password: 'nova-senha-123' });
+```
+
+### 11.6. URL Configuration (Auth → URL Configuration)
+
+- **Site URL** (dev): `https://controle-caixa.pages.dev`
+- **Site URL** (prod, após UAT): `https://caixa-boti.plexalabs.com`
+- **Redirect URLs (Additional)**: incluir ambos com sufixo `/**`, mais `http://localhost:8080/**` para dev local.
 
 ---
 

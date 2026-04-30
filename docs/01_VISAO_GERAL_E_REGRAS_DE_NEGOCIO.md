@@ -96,7 +96,7 @@ Este glossário é normativo. Todo código, mensagem e documento deve usar exata
 | **Ciclo** | Período comercial da empresa (geralmente 21 ou 28 dias). Ao fim do ciclo, o mybucks força o fechamento. |
 | **Faturamento forçado** | Ato do mybucks de marcar todos os pedidos abertos como faturados ao fim do ciclo. |
 | **Caixinha** | Termo coloquial do Operador para a aba do caixa daquele dia. Sinônimo de Caixa. |
-| **SSO da empresa** | Sistema único de login corporativo. Provedor a ser confirmado (Microsoft Entra ID / Google Workspace / Okta). |
+| **OTP** | Código de 6 dígitos enviado por email para confirmar cadastro ou redefinir senha. Implementado via Supabase Auth + Resend SMTP, expira em 1 hora. |
 | **Auditoria** | Registro imutável de quem fez o quê, quando e o quê mudou. Tabela `audit_log`. |
 | **Comprovante** | Arquivo (imagem ou PDF) anexado a um lançamento. Vai para o Storage do Supabase com criptografia em repouso. |
 | **Dashboard** | Aba/página de visão consolidada com indicadores agregados. |
@@ -137,7 +137,7 @@ Este glossário é normativo. Todo código, mensagem e documento deve usar exata
 - Dashboard com indicadores: totais por categoria, pendências em aberto, série temporal.
 - Notificações inteligentes a cada 4 horas em horário comercial.
 - Sincronização bidirecional Excel ↔ Supabase ↔ Web.
-- SSO corporativo no acesso web.
+- Login email + senha + OTP de 6 dígitos via Resend (cadastro aberto, confirmação obrigatória).
 - Anexo de comprovantes (imagem/PDF) no Storage criptografado.
 - Auditoria imutável de toda alteração.
 
@@ -482,7 +482,10 @@ Chave-valor para parâmetros do sistema.
 
 ### 8.8. Permissões e autenticação
 
-- **RN-070:** Todo acesso à web exige autenticação via SSO da empresa.
+- **RN-070:** Todo acesso à web exige autenticação via Supabase Auth — email + senha. **Cadastro é aberto a qualquer email**; defesa de acesso passa pelo papel atribuído (RLS) e pela confirmação obrigatória de email.
+- **RN-070a:** Toda nova conta recebe email com OTP de 6 dígitos (template pt-BR via Resend SMTP). `email_confirmed_at` só é populado após confirmação. Login antes da confirmação retorna `email_not_confirmed` e é bloqueado pela UI.
+- **RN-070b:** Primeiro usuário cadastrado no sistema vira **admin + operador** automaticamente (anchor admin). Demais usuários viram apenas **operador**; promoção a admin é manual via SQL pelo admin existente.
+- **RN-070c:** Senha mínima: 8 caracteres, ao menos 1 letra e 1 número (padrão Supabase configurável em Auth → Password requirements).
 - **RN-071:** O Operador é o único usuário com permissão de escrita no MVP.
 - **RN-072:** Toda mutação dispara linha em `audit_log` (trigger no Postgres).
 - **RN-073:** Tentativa de excluir um lançamento é negada — apenas soft-delete via mudança de estado.
@@ -709,8 +712,8 @@ A web possui aba dedicada **"Pendências"** que agrega todas as pendências em a
 ### 12.14. EC-014 — Operador apaga acidentalmente uma linha no Excel
 **Solução:** Macro VBA intercepta evento `BeforeRightClick` e `BeforeDelete` (custom), pede confirmação, registra audit. Sync para Supabase trata como soft-delete (estado=`excluido`), nunca DELETE.
 
-### 12.15. EC-015 — Senha do SSO da empresa expirou
-**Solução:** Web detecta erro 401, redireciona para fluxo SSO. Antes do redirect, tenta salvar trabalho em curso em `localStorage` com flag `unsaved_work`.
+### 12.15. EC-015 — Sessão Supabase expirada (JWT venceu)
+**Solução:** Web detecta erro 401 (`PGRST301` ou `invalid_grant`). Antes de redirecionar para `/login`, tenta salvar trabalho em curso em `localStorage` com flag `unsaved_work`. Refresh token automático do `supabase-js` resolve a maioria dos casos sem reautenticação manual.
 
 ### 12.16. EC-016 — Múltiplas abas abertas no navegador
 **Solução:** Detectar via `BroadcastChannel API`. Última aba ativa ganha foco em alterações. Outras mostram banner "Edição em outra aba — recarregue".
@@ -748,7 +751,7 @@ A web possui aba dedicada **"Pendências"** que agrega todas as pendências em a
 - TLS 1.2+ obrigatório.
 - RLS no Supabase em todas as tabelas.
 - Storage com políticas de acesso autenticado.
-- Senhas: zero senhas armazenadas — SSO only.
+- Senhas: armazenadas hash bcrypt pelo Supabase Auth (nunca em texto). Política configurável em Auth → Password requirements.
 - Tokens JWT com expiração ≤ 1h, refresh seguro.
 - Backup diário automático do Postgres (Supabase nativo).
 - Backup semanal manual exportado para arquivo Excel.
@@ -797,7 +800,7 @@ A web possui aba dedicada **"Pendências"** que agrega todas as pendências em a
 - **CA-08:** Aba MODELO está protegida por senha e exibe marca d'água visível.
 - **CA-09:** Geração automática de aba acontece todos os dias úteis às 06:00 sem intervenção manual.
 - **CA-10:** Dashboard exibe corretamente: total por categoria, série diária, top vendedoras, % pendências.
-- **CA-11:** SSO da empresa autentica corretamente e nega acesso a usuários não autorizados.
+- **CA-11:** Signup com email + senha gera OTP de 6 dígitos via Resend; confirmação popula `email_confirmed_at`; login pré-confirmação é bloqueado com mensagem clara; primeiro usuário recebe admin+operador automaticamente.
 - **CA-12:** Comprovante de Pix anexado é recuperável e renderizável em < 2s.
 - **CA-13:** Cancelar lançamento exige todos os campos de cancelamento e move o lançamento para a cor vermelha.
 - **CA-14:** Sistema sobrevive a perda de internet por 30 minutos sem perda de dados (modo offline + retry).
@@ -855,7 +858,7 @@ A web possui aba dedicada **"Pendências"** que agrega todas as pendências em a
 
 ### Fase 0 — Preparação (1 semana)
 - Criar projeto Supabase.
-- Configurar SSO.
+- Configurar Resend SMTP no Supabase Auth (templates pt-BR + Confirm Email + OTP).
 - Criar repositórios Git.
 - Configurar variáveis de ambiente.
 
