@@ -24,13 +24,20 @@
 
 ---
 
-## Decisões consolidadas pelo Operador (2026-04-29)
+## Decisões revisadas pelo Operador (2026-04-29 fim do dia) — sobrescreve abaixo
+
+- **Auth**: ~~Google OAuth + restrição `@vdboti.com.br`~~ → **email + senha + OTP de 6 dígitos via Resend SMTP**, cadastro aberto a qualquer email. Confirmação de email obrigatória antes do primeiro login.
+- **Email transacional**: Resend (conta existente, domínio `plexalabs.com` verificado). Sender `Caixa Boti <noreply@plexalabs.com>`. Procedimento manual em `docs/SETUP_RESEND_SMTP.md` (MCP Supabase não cobre Auth/SMTP config).
+- **Hospedagem web**: alias com hífen — **`caixa-boti.plexalabs.com`** (não `caixaboti`). DNS gerenciado pela GoDaddy via CNAME para `controle-caixa.pages.dev`. Cloudflare Pages atende mesmo com DNS externo (basta CNAME apontar para `*.pages.dev`).
+- **Defesa de acesso pós-refactor**: (a) confirmação obrigatória de email via OTP; (b) RLS por papel — admin promove operadores manualmente; primeiro usuário do sistema é "anchor admin" automático.
+
+## Decisões consolidadas pelo Operador (2026-04-29 — base, ainda válidas)
 
 - **Supabase**: plano Pro aprovado. Criar projeto NOVO `controle-caixa-prod`, região `sa-east-1`. NÃO mexer em projetos existentes da conta.
-- **Hospedagem web**: Cloudflare Pages → alias `caixaboti.plexalabs.com` (CNAME). Domínio `.pages.dev` durante dev; alias apontado só quando UAT aprovado.
-- **Auth**: Google OAuth (provider nativo Supabase, NÃO SAML). Restringir a hosted domain `vdboti.com.br` via parâmetro `hd` na URL OAuth E validação server-side em trigger Postgres ou edge function.
-- **Operação via MCP**: agente usa MCP do Supabase (criação de projeto, migrations, edge functions, secrets) e MCP do Cloudflare (Pages, DNS do alias) para executar tudo sem intervenção manual.
-- **Vault de credenciais**: SUPABASE_SERVICE_ROLE_KEY, DB_PASSWORD e tokens de MCP NUNCA commitados. Operador armazena em vault próprio. Agente recebe via MCP, não via .env do repositório.
+- **Hospedagem web**: Cloudflare Pages → alias `caixa-boti.plexalabs.com` (CNAME). Domínio `.pages.dev` durante dev; alias apontado só quando UAT aprovado.
+- ~~**Auth**: Google OAuth (provider nativo Supabase, NÃO SAML). Restringir a hosted domain `vdboti.com.br` via parâmetro `hd` na URL OAuth E validação server-side em trigger Postgres ou edge function.~~ — **substituída** pela decisão revisada acima.
+- **Operação via MCP**: agente usa MCP do Supabase (criação de projeto, migrations, edge functions, secrets) e MCP do Cloudflare (Pages, DNS do alias) para executar tudo sem intervenção manual. **Exceção**: Auth/SMTP/Templates não cobertos pelo MCP — operação manual via Dashboard.
+- **Vault de credenciais**: SUPABASE_SERVICE_ROLE_KEY, DB_PASSWORD, RESEND_API_KEY e tokens de MCP NUNCA commitados. Operador armazena em vault próprio. Agente recebe via MCP, não via .env do repositório.
 
 ---
 
@@ -157,14 +164,16 @@ Branch: `fase-1-backend`. Cada migration é arquivo separado em `supabase/migrat
 
 - [ ] `ALTER PUBLICATION supabase_realtime ADD TABLE lancamento, caixa, notificacao` — adiar para Fase 2 quando a Web subscrever os channels (sem cliente assinando, ativar agora gera tráfego desnecessário).
 
-### 4.10. BACK-AUTH — Google OAuth com restrição de domínio
+### 4.10. BACK-AUTH ~~Google OAuth~~ → email + senha + OTP via Resend (revisada)
 
-- [ ] **Google Cloud Console** — pendente do Operador (instruções em `docs/SETUP_GOOGLE_OAUTH.md`). Esperando `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`.
-- [ ] No Supabase: **Authentication → Providers → Google** habilitado — pendente das credenciais acima.
-- [x] Migration 023 fn_validar_dominio_email — trigger `BEFORE INSERT` em `auth.users` rejeita emails fora de `@vdboti.com.br` com `RAISE EXCEPTION` (errcode 42501). **Camada de segurança real validada no smoke test #6.**
-- [x] Migration 024 fn_auto_papel_inicial — primeiro usuário vira admin+operador automaticamente (validado no smoke test).
-- [x] `auth.dominio_permitido` em `public.config` com `editavel=false` — só admin com superuser direto pode mudar.
-- [x] Documentado: parâmetro `hd` é apenas dica visual ao Google; defesa real é o trigger Postgres.
+> ~~Versão antiga (Google OAuth + `@vdboti.com.br`) descartada. Migration 190 dropou trigger `fn_validar_dominio_email` e config `auth.dominio_permitido`.~~
+
+- [x] Migration 190 — DROP trigger fn_validar_dominio_email + DELETE config auth.dominio_permitido.
+- [x] Migration 191 — fn_auto_papel_inicial sem dependência de domínio (qualquer email; 1º vira admin+operador).
+- [x] Migration 192 — app.invocar_edge robusta (valida JWT antes de pg_net; loga em app.edge_invocation_log). Resolve bug "libcurl bad argument" do hotfix Vault anterior.
+- [ ] **Resend SMTP no Supabase Auth** — passos em `docs/SETUP_RESEND_SMTP.md`. Operador executa no Dashboard (MCP não cobre). Sender `Caixa Boti <noreply@plexalabs.com>`, host `smtp.resend.com:465`, user `resend`, pass `RESEND_API_KEY` do vault.
+- [ ] **Confirm Email + OTP** — toggle ON em Auth Providers; templates "Confirm signup" e "Reset Password" reescritos em pt-BR usando `{{ .Token }}` (validado nas docs oficiais Supabase).
+- [ ] Smoke test refactor (Bloco F) aprovado (`docs/SMOKE_TEST_FASE_1B.md`).
 
 ### 4.11. BACK-FINAL — Smoke test integral (arquivo 03 §11.9)
 
@@ -250,7 +259,7 @@ Branch: `fase-2-frontend`. HTML + JS vanilla + Tailwind CDN. Sem build, sem bund
 
 ### 5.7. Deploy Cloudflare Pages — ambiente de dev
 
-> O alias `caixaboti.plexalabs.com` é apontado **apenas** depois do UAT aprovado (item OPS-DEPLOY-WEB na Fase 4). Aqui o site responde em `controle-caixa.pages.dev`.
+> O alias `caixa-boti.plexalabs.com` é apontado **apenas** depois do UAT aprovado (item OPS-DEPLOY-WEB na Fase 4). Aqui o site responde em `controle-caixa.pages.dev`.
 
 - [ ] Cloudflare Pages project `controle-caixa` criado **via MCP do Cloudflare**, production branch `main`.
 - [ ] Repositório `plexalabs/controle-caixa` conectado.
@@ -377,9 +386,9 @@ Branch: `fase-4-integracao`. Merge final em `main` após todos os critérios ate
 > Executado **somente** após UAT aprovado (Apêndice L, todos os 30 itens ✅).
 
 - [ ] **Deploy Cloudflare Pages via MCP**. Project name `controle-caixa`. Production branch `main`. Domínio dev: `controle-caixa.pages.dev`.
-- [ ] Adicionar custom domain `caixaboti.plexalabs.com` via MCP (cria CNAME automaticamente na zona `plexalabs.com`).
+- [ ] Adicionar custom domain `caixa-boti.plexalabs.com` via MCP (cria CNAME automaticamente na zona `plexalabs.com`).
 - [ ] HTTPS automático (Cloudflare emite certificado).
-- [ ] Validar headers de segurança em produção (`curl -I https://caixaboti.plexalabs.com`).
+- [ ] Validar headers de segurança em produção (`curl -I https://caixa-boti.plexalabs.com`).
 - [ ] Validar redirect `/* /index.html 200` em produção.
 - [ ] Smoke test E2E pelo alias: login Google → dashboard → caixa → novo lançamento.
 
@@ -413,7 +422,7 @@ Para o MVP ser considerado entregue, **todos** devem passar.
 - [ ] **CA-08** — Aba MODELO está protegida por senha e exibe marca d'água visível.
 - [ ] **CA-09** — Geração automática de aba acontece todos os dias úteis às 06:00 sem intervenção manual.
 - [ ] **CA-10** — Dashboard exibe corretamente: total por categoria, série diária, top vendedoras, % pendências.
-- [ ] **CA-11** — Google OAuth autentica corretamente, restringe ao domínio `@vdboti.com.br` e nega acesso a outros domínios.
+- [ ] **CA-11** — Signup com email + senha gera OTP de 6 dígitos via Resend; confirmação popula `email_confirmed_at`; login pré-confirmação é bloqueado.
 - [ ] **CA-12** — Comprovante de Pix anexado é recuperável e renderizável em < 2s.
 - [ ] **CA-13** — Cancelar lançamento exige todos os campos de cancelamento e move o lançamento para a cor vermelha.
 - [ ] **CA-14** — Sistema sobrevive a perda de internet por 30 minutos sem perda de dados (modo offline + retry).
@@ -425,7 +434,7 @@ Para o MVP ser considerado entregue, **todos** devem passar.
 
 30 cenários a serem validados pelo Operador antes do go-live. Cada item: passos, resultado esperado, status (✅/❌), observações.
 
-- [ ] **UAT-001** Login Web Google OAuth — abrir `caixaboti.plexalabs.com`, clicar "Entrar com Google", autenticar com conta `@vdboti.com.br`, voltar logado. Conta de outro domínio é rejeitada.
+- [ ] **UAT-001** Login Web email + senha + OTP — abrir `caixa-boti.plexalabs.com`, clicar "Criar conta", preencher nome/email/senha, receber OTP de 6 dígitos por email (Resend), confirmar conta, login com email/senha retorna JWT. Login antes da confirmação é bloqueado com mensagem clara.
 - [ ] **UAT-002** Lançamento Cartão completo — linha pinta azul; reflete no Excel ≤ 5 min.
 - [ ] **UAT-003** Lançamento Pix com comprovante — comprovante salvo em Storage, link na linha.
 - [ ] **UAT-004** Lançamento Dinheiro — linha pinta verde claro; vendedora válida.
@@ -467,7 +476,9 @@ Para o MVP ser considerado entregue, **todos** devem passar.
 - [ ] Edge functions deployadas.
 - [ ] pg_cron schedules ativos.
 - [ ] Storage bucket `comprovantes` criado e privado.
-- [ ] Google OAuth provider conectado, restrição `@vdboti.com.br` ativa (UI `hd` + trigger Postgres).
+- [ ] Resend SMTP configurado em Supabase Auth (sender `Caixa Boti <noreply@plexalabs.com>`).
+- [ ] Templates de email pt-BR aplicados (`{{ .Token }}` em Confirm signup, Reset Password, Magic Link, Change Email).
+- [ ] "Confirm email" toggle ON em Auth → Providers → Email.
 - [ ] Backup diário automatizado.
 - [ ] Service Role Key armazenado em vault.
 
@@ -527,7 +538,7 @@ Para o MVP ser considerado entregue, **todos** devem passar.
 - `PROGRESSO.md` (este arquivo) criado com o checklist mestre completo: Fases 0-4, CA-01..CA-15, UAT-001..UAT-030, Blocos A-F e regras invioláveis.
 
 **Pendente:**
-- Decisões consolidadas pelo Operador (ver seção "Decisões consolidadas pelo Operador" no topo): projeto Supabase NOVO `controle-caixa-prod`, Cloudflare Pages com alias `caixaboti.plexalabs.com`, Google OAuth restrito a `@vdboti.com.br`, operação via MCPs. Aplicado neste commit `[F0] ajustes pos-validacao`.
+- Decisões consolidadas pelo Operador (ver seção "Decisões consolidadas pelo Operador" no topo): projeto Supabase NOVO `controle-caixa-prod`, Cloudflare Pages com alias `caixa-boti.plexalabs.com`, Google OAuth restrito a `@vdboti.com.br`, operação via MCPs. Aplicado neste commit `[F0] ajustes pos-validacao`.
 
 ### Fase 1 — concluída em 2026-04-29
 
