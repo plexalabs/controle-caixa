@@ -1454,40 +1454,115 @@ No Supabase, **Authentication → URL Configuration**:
 
 ## 12. PG_CRON — AGENDAMENTOS
 
-```sql
--- Habilitar
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+> **Importante (cloud-compatible):** o método `current_setting('app.service_key')` proposto em versões anteriores deste documento **não funciona em Supabase Cloud** porque depende de `ALTER DATABASE postgres SET ...`, que exige privilégio `superuser` indisponível em managed Postgres.
+>
+> A solução adotada é usar a extensão **`supabase_vault`** (já habilitada por padrão) para armazenar a `service_role_key` cifrada, e ler em runtime via `vault.decrypted_secrets` dentro de uma função wrapper `app.invocar_edge`. Os jobs de `pg_cron` chamam essa função em vez de embutir a chave inline.
 
--- Cria caixa diariamente às 06:00 (BRT = UTC-3 → 09:00 UTC)
+### 12.1. Função wrapper que lê o Vault
+
+```sql
+-- Aplicado pela migration 187 (refatorar_invocar_edge).
+CREATE OR REPLACE FUNCTION app.invocar_edge(p_nome text, p_payload jsonb DEFAULT '{}'::jsonb)
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = app, pg_temp
+AS $$
+DECLARE
+    v_url   constant text := 'https://<project-ref>.supabase.co'; -- hardcoded, não é segredo
+    v_token text;
+    v_request_id bigint;
+BEGIN
+    SELECT secret INTO v_token
+    FROM vault.decrypted_secrets
+    WHERE name = 'service_role_key'
+    LIMIT 1;
+
+    IF v_token IS NULL THEN
+        RAISE WARNING 'service_role_key não cadastrada no Vault';
+        RETURN NULL;
+    END IF;
+
+    SELECT net.http_post(
+        url     := v_url || '/functions/v1/' || p_nome,
+        body    := p_payload,
+        headers := jsonb_build_object(
+            'Authorization', 'Bearer ' || v_token,
+            'Content-Type',  'application/json'
+        )
+    ) INTO v_request_id;
+
+    RETURN v_request_id;
+END;
+$$;
+```
+
+### 12.2. Cadastro do segredo (executado UMA VEZ pelo admin no SQL Editor)
+
+```sql
+SELECT vault.create_secret(
+    '<COLE_SERVICE_ROLE_DO_VAULT_CORPORATIVO>',
+    'service_role_key',
+    'Chave service_role para invocação de edge functions via pg_cron'
+);
+```
+
+> **Nunca** comitar a chave em arquivo. Pegar do vault corporativo, colar diretamente no SQL Editor do Supabase, executar e fechar a aba. A chave fica cifrada na tabela `vault.secrets` (acesso restrito) e é descifrada apenas pela view `vault.decrypted_secrets` quando consultada por roles autorizados.
+
+Para **rotação** (substituir a chave existente):
+
+```sql
+SELECT vault.update_secret(
+    (SELECT id FROM vault.secrets WHERE name = 'service_role_key'),
+    '<NOVA_SERVICE_ROLE>'
+);
+```
+
+### 12.3. Jobs do pg_cron
+
+```sql
+-- Habilitar pg_cron e pg_net (idempotente).
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+-- Cria caixa diariamente às 06:00 BRT (09:00 UTC).
 SELECT cron.schedule(
     'cria_caixa_diario',
-    '0 9 * * *', -- 06:00 BRT
-    $$ SELECT net.http_post(
-        url := 'https://<projeto>.supabase.co/functions/v1/cria_caixa_diario',
-        headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.service_key'))
-    ); $$
+    '0 9 * * *',
+    $$ SELECT app.invocar_edge('cria_caixa_diario'); $$
 );
 
--- Notificações a cada 4h em horário comercial (08, 12, 16 BRT = 11, 15, 19 UTC)
+-- Notificações a cada 4h em horário comercial seg-sáb.
 SELECT cron.schedule(
-    'notif_4h',
+    'disparar_notificacoes_4h',
     '0 11,15,19 * * 1-6',
-    $$ SELECT net.http_post(
-        url := 'https://<projeto>.supabase.co/functions/v1/disparar_notificacoes',
-        headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.service_key'))
-    ); $$
+    $$ SELECT app.invocar_edge('disparar_notificacoes'); $$
 );
 
--- Arquivar ano: 1 de janeiro 00:30 BRT
+-- Arquivar ano: 01/01 00:30 BRT (03:30 UTC).
 SELECT cron.schedule(
     'arquivar_ano',
     '30 3 1 1 *',
-    $$ SELECT net.http_post(
-        url := 'https://<projeto>.supabase.co/functions/v1/arquivar_ano',
-        headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.service_key'))
-    ); $$
+    $$ SELECT app.invocar_edge('arquivar_ano'); $$
+);
+
+-- Backup semanal: domingo 04:00 BRT (07:00 UTC).
+SELECT cron.schedule(
+    'backup_semanal',
+    '0 7 * * 0',
+    $$ SELECT app.invocar_edge('backup_semanal'); $$
 );
 ```
+
+Notificações simples (atrasada, caixa não fechado) e limpeza de logs são SQL puro em funções `app.gerar_notificacoes_*` e `app.limpar_logs_antigos` — não precisam de edge function nem de service_role.
+
+### 12.4. Validação pós-cadastro
+
+```sql
+SELECT app.invocar_edge('cria_caixa_diario', '{}'::jsonb);
+```
+
+Resultado esperado: um `bigint` (request id do `net.http_post`). Qualquer status HTTP retornado pela edge (200, 401, 500) prova que o circuito **banco → vault → HTTP → edge** está vivo. Retorno `NULL` + `WARNING` significa que a secret ainda não foi cadastrada.
 
 > Para a função `net.http_post` funcionar, habilitar a extensão `pg_net` no painel.
 
