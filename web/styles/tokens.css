@@ -22,6 +22,39 @@
     --shadow-edit:  0 1px 0 0 rgba(26,26,26,0.06), 0 12px 40px -16px rgba(15,76,58,0.18);
     --shadow-deep:  0 8px 24px -12px rgba(26,26,26,0.18);
 
+    /* ────────────────────────────────────────────────────────────
+       Cores canônicas das 6 categorias — docs/01 §6.
+       Não alterar sem aprovação explícita (regra inviolável).
+       ──────────────────────────────────────────────────────────── */
+    --cat-cartao-bg:      #DBEAFE;
+    --cat-cartao-border:  #1E40AF;
+    --cat-cartao-text:    #1E3A8A;
+
+    --cat-pix-bg:         #CCFBF1;
+    --cat-pix-border:     #0F766E;
+    --cat-pix-text:       #134E4A;
+
+    --cat-dinheiro-bg:    #DCFCE7;
+    --cat-dinheiro-border:#166534;
+    --cat-dinheiro-text:  #14532D;
+
+    --cat-cancelado-bg:   #FECACA;
+    --cat-cancelado-border:#991B1B;
+    --cat-cancelado-text: #7F1D1D;
+
+    --cat-link-bg:        #EDE9FE;
+    --cat-link-border:    #5B21B6;
+    --cat-link-text:      #4C1D95;
+
+    --cat-obs-bg:         #FEF3C7;
+    --cat-obs-border:     #92400E;
+    --cat-obs-text:       #78350F;
+
+    --cat-resolvido:      #10B981;
+    --cat-atrasado:       #EF4444;
+    --cat-pendente-bg:    #F3F4F6;
+    --cat-pendente-text:  #6B7280;
+
     /* Curvas e tempos */
     --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
     --ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);

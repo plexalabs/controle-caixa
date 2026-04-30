@@ -684,6 +684,52 @@
     font-size: 0.8rem;
 }
 
+/* Categorias — borda esquerda colorida + badge tonalidade da categoria */
+.lanc-row[data-cat="cartao"]      { border-left-color: var(--cat-cartao-border); }
+.lanc-row[data-cat="cartao"]      .lanc-categoria { background: var(--cat-cartao-bg);    color: var(--cat-cartao-text); }
+.lanc-row[data-cat="pix"]         { border-left-color: var(--cat-pix-border); }
+.lanc-row[data-cat="pix"]         .lanc-categoria { background: var(--cat-pix-bg);       color: var(--cat-pix-text); }
+.lanc-row[data-cat="dinheiro"]    { border-left-color: var(--cat-dinheiro-border); }
+.lanc-row[data-cat="dinheiro"]    .lanc-categoria { background: var(--cat-dinheiro-bg);  color: var(--cat-dinheiro-text); }
+.lanc-row[data-cat="cancelado"]   { border-left-color: var(--cat-cancelado-border); }
+.lanc-row[data-cat="cancelado"]   .lanc-categoria { background: var(--cat-cancelado-bg); color: var(--cat-cancelado-text); }
+.lanc-row[data-cat="cancelado"]   .lanc-cliente, .lanc-row[data-cat="cancelado"] .lanc-valor { text-decoration: line-through; opacity: 0.7; }
+.lanc-row[data-cat="cartao_link"] { border-left-color: var(--cat-link-border); }
+.lanc-row[data-cat="cartao_link"] .lanc-categoria { background: var(--cat-link-bg);      color: var(--cat-link-text); }
+.lanc-row[data-cat="obs"]         { border-left-color: var(--cat-obs-border); }
+.lanc-row[data-cat="obs"]         .lanc-categoria { background: var(--cat-obs-bg);       color: var(--cat-obs-text); }
+
+/* Estados sobrepostos */
+.lanc-row[data-resolvido="true"]::before {
+    content: '';
+    position: absolute;
+    left: -4px; top: -1px; bottom: -1px;
+    width: 4px;
+    background: var(--cat-resolvido);
+}
+.lanc-row[data-resolvido="true"] { position: relative; }
+
+@keyframes pulsar-atraso {
+    0%, 100% { box-shadow: inset -4px 0 0 var(--cat-atrasado); }
+    50%      { box-shadow: inset -4px 0 0 var(--cat-atrasado), 0 0 0 1px var(--cat-atrasado); }
+}
+.lanc-row[data-atrasado="true"] {
+    animation: pulsar-atraso 2s ease-in-out infinite;
+}
+
+@keyframes flash-novo {
+    0%   { background: var(--cat-obs-bg); }
+    100% { background: var(--c-papel); }
+}
+.lanc-row--flash { animation: flash-novo 1.2s ease-out; }
+
+/* Pendente sem categoria */
+.lanc-row[data-cat=""], .lanc-row:not([data-cat]) {
+    border-left-style: dashed;
+    border-left-color: var(--cat-pendente-text);
+    background: var(--cat-pendente-bg);
+}
+
 /* ============================================================
    Estado vazio editorial
    ============================================================ */
@@ -725,5 +771,6 @@
 
 /* Respeito a usuários que preferem reduced motion */
 @media (prefers-reduced-motion: reduce) {
-    .reveal, .toast { animation: none; opacity: 1; transform: none; }
+    .reveal, .toast, .lanc-row--flash { animation: none; opacity: 1; transform: none; }
+    .lanc-row[data-atrasado="true"] { animation: none; box-shadow: inset -4px 0 0 var(--cat-atrasado); }
 }
