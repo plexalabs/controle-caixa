@@ -166,7 +166,7 @@
     font-family: 'Manrope', sans-serif;
     line-height: 1.45;
     margin: 1rem 0;
-    border-radius: var(--r-md);
+    border-radius: 0 var(--r-md) var(--r-md) 0;  /* identidade do sistema */
 }
 .alert a { color: var(--c-alerta); text-decoration: underline; font-weight: 600; }
 .alert--info { border-left-color: var(--c-musgo); background: rgba(15, 76, 58, 0.06); color: var(--c-musgo-3); }
@@ -242,6 +242,7 @@
     font-family: 'Manrope', sans-serif;
     font-size: 0.9rem;
     border-left: 3px solid var(--c-musgo);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;  /* identidade do sistema */
     box-shadow: var(--shadow-deep);
     animation: fade-up 320ms var(--ease-out);
     max-width: 380px;
@@ -2196,7 +2197,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .lanc-obs-item {
     background: var(--c-papel-2);
     border-left: 3px solid var(--c-musgo);
-    border-radius: var(--r-sm);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;  /* identidade do sistema */
     padding: 0.65rem 0.85rem;
     list-style: none;
 }
@@ -2304,37 +2305,45 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    ============================================================ */
 
 .config-cabec {
+    --tira-w: 44px;
     position: relative;
-    padding: 2rem 1.5rem 2rem 4.5rem;
+    padding: 2rem 1.5rem 2rem calc(var(--tira-w) + 1.5rem);
     border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-md);
+    border-radius: 0 var(--r-md) var(--r-md) 0;  /* identidade: esquerda reta, direita redonda */
     background: var(--c-papel);
     overflow: hidden;
 }
+@media (min-width: 768px) {
+    .config-cabec { --tira-w: 52px; padding: 2.4rem 2rem 2.5rem calc(var(--tira-w) + 2rem); }
+}
 .config-cabec::before {
+    /* Tira lateral musgo solida, mesma metáfora de capa de pasta */
     content: '';
     position: absolute;
-    inset: 0 auto 0 0;
-    width: 3.25rem;
-    background: var(--c-musgo);
-    background-image: linear-gradient(180deg, var(--c-musgo) 0%, var(--c-musgo-3) 100%);
+    left: 0; top: 0; bottom: 0;
+    width: var(--tira-w);
+    background: linear-gradient(180deg, var(--c-musgo) 0%, var(--c-musgo-3) 100%);
 }
 .config-cabec::after {
+    /* Texto vertical AJUSTES — usa writing-mode para alinhamento correto
+       (corrige bug do `transform: translate + rotate` que jogava o texto fora). */
     content: attr(data-etiqueta);
     position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translate(-50%, -50%) rotate(-90deg);
-    transform-origin: center;
-    width: 3.25rem;
-    text-align: center;
-    color: var(--c-papel);
+    left: 0; top: 0; bottom: 0;
+    width: var(--tira-w);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
     font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
     font-weight: 700;
-    font-size: 0.66rem;
-    letter-spacing: 0.32em;
     text-transform: uppercase;
+    letter-spacing: 0.32em;
+    color: var(--c-papel);
     pointer-events: none;
+    user-select: none;
 }
 .config-titulo {
     font-style: italic;
@@ -2532,7 +2541,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     position: relative;
     background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-md);
+    border-radius: 0 var(--r-md) var(--r-md) 0;  /* identidade do sistema */
     padding: 1.1rem 1.25rem 1.1rem 1.6rem;
     overflow: hidden;
     transition: border-color 220ms var(--ease-out), transform 220ms var(--ease-out);
@@ -2955,7 +2964,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
     border-left: 3px solid var(--c-musgo);
-    border-radius: var(--r-sm);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;  /* identidade: esquerda reta */
     padding: 0.75rem 0.9rem;
     cursor: pointer;
     font-family: 'Manrope', sans-serif;
