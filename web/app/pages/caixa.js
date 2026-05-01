@@ -55,11 +55,24 @@ export async function renderCaixa({ params }) {
       <!-- Resumo do dia: contexto antes da leitura linha-a-linha -->
       <aside id="rodape" class="resumo-dia hidden reveal reveal-3" aria-label="Resumo do dia"></aside>
 
-      <!-- Botão de ação principal — entre o resumo e a lista -->
+      <!-- Banner read-only quando caixa fechado (CP6.2) -->
+      <div id="banner-fechado" class="banner-fechado hidden reveal reveal-3" role="status">
+        <span class="banner-fechado-icone" aria-hidden="true">🔒</span>
+        <div>
+          <p class="banner-fechado-titulo">Este caixa está fechado.</p>
+          <p class="banner-fechado-sub">Apenas leitura — não aceita novos lançamentos.</p>
+        </div>
+      </div>
+
+      <!-- Botões de ação principal — entre o resumo e a lista -->
       <div class="resumo-acao reveal reveal-3">
         <button id="btn-novo" class="btn-primary" disabled>
           + Novo lançamento
         </button>
+        <a id="btn-fechar-dia" class="btn-link hidden" href="#" data-link
+           style="font-size:0.92rem;font-weight:600">
+          Fechar caixa do dia →
+        </a>
       </div>
 
       <!-- Filter-bar (CP5.5) — só aparece quando há lançamentos -->
@@ -124,6 +137,17 @@ async function carregarCaixa(dataAlvo) {
   btnNov.disabled = caixa.estado === 'fechado' || caixa.estado === 'arquivado';
   btnNov.onclick = () =>
     abrirModalAdicionarNF({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });
+
+  // CP6.2: Banner fechado + botão "Fechar caixa do dia"
+  const banner = document.querySelector('#banner-fechado');
+  const btnFechar = document.querySelector('#btn-fechar-dia');
+  const ehHoje = dataAlvo === isoData(new Date());
+  if (caixa.estado === 'fechado' || caixa.estado === 'arquivado') {
+    banner?.classList.remove('hidden');
+  } else if (caixa.estado === 'aberto' && ehHoje) {
+    btnFechar?.classList.remove('hidden');
+    btnFechar?.setAttribute('href', `/caixa/${dataAlvo}/fechar`);
+  }
 
   await carregarLancamentos(caixa.id);
   ligarRealtime(caixa.id);
