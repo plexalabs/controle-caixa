@@ -57,7 +57,14 @@ export async function renderCaixa({ params }) {
 
       <!-- Banner read-only quando caixa fechado (CP6.2) -->
       <div id="banner-fechado" class="banner-fechado hidden reveal reveal-3" role="status">
-        <span class="banner-fechado-icone" aria-hidden="true">🔒</span>
+        <span class="banner-fechado-icone" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="11" width="16" height="10" rx="2" ry="2"/>
+            <path d="M8 11 V8 a4 4 0 0 1 8 0 v3"/>
+          </svg>
+        </span>
         <div>
           <p class="banner-fechado-titulo">Este caixa está fechado.</p>
           <p class="banner-fechado-sub">Apenas leitura — não aceita novos lançamentos.</p>
@@ -71,7 +78,7 @@ export async function renderCaixa({ params }) {
         </button>
         <a id="btn-fechar-dia" class="btn-link hidden" href="#" data-link
            style="font-size:0.92rem;font-weight:600">
-          Fechar caixa do dia →
+          Fechar este caixa →
         </a>
       </div>
 
@@ -138,13 +145,12 @@ async function carregarCaixa(dataAlvo) {
   btnNov.onclick = () =>
     abrirModalAdicionarNF({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });
 
-  // CP6.2: Banner fechado + botão "Fechar caixa do dia"
+  // CP6.2 + FIX: Banner fechado + botão "Fechar este caixa" (qualquer data)
   const banner = document.querySelector('#banner-fechado');
   const btnFechar = document.querySelector('#btn-fechar-dia');
-  const ehHoje = dataAlvo === isoData(new Date());
   if (caixa.estado === 'fechado' || caixa.estado === 'arquivado') {
     banner?.classList.remove('hidden');
-  } else if (caixa.estado === 'aberto' && ehHoje) {
+  } else if (['aberto', 'em_conferencia'].includes(caixa.estado)) {
     btnFechar?.classList.remove('hidden');
     btnFechar?.setAttribute('href', `/caixa/${dataAlvo}/fechar`);
   }

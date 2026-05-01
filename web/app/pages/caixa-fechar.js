@@ -89,14 +89,32 @@ export async function renderCaixaFechar({ params }) {
         })}
       </section>
 
-      ${pendentesAtual.length > 0 ? `
-        <aside class="fechar-aviso reveal reveal-3" role="alert">
-          <p class="h-eyebrow">Atenção</p>
-          <p class="fechar-aviso-texto">
-            <strong>${pendentesAtual.length} ${pendentesAtual.length === 1 ? 'lançamento' : 'lançamentos'} ainda em aberto.</strong>
-            Se prosseguir sem resolver, será preciso justificar com pelo menos 20 caracteres.
-          </p>
-        </aside>` : ''}
+      ${(() => {
+        const ehHoje = dataAlvo === isoData(new Date());
+        const avisos = [];
+        if (!ehHoje) {
+          avisos.push(`
+            <aside class="fechar-aviso reveal reveal-3" data-tom="retroativo" role="alert">
+              <p class="h-eyebrow">Fechamento retroativo</p>
+              <p class="fechar-aviso-texto">
+                Você está fechando o caixa de <strong>${esc(dataLonga(dataAlvo))}</strong>,
+                que não é o dia atual. A justificativa abaixo é obrigatória
+                (mínimo 10 caracteres) para registrar o motivo.
+              </p>
+            </aside>`);
+        }
+        if (pendentesAtual.length > 0) {
+          avisos.push(`
+            <aside class="fechar-aviso reveal reveal-3" data-tom="pendencias" role="alert">
+              <p class="h-eyebrow">Atenção</p>
+              <p class="fechar-aviso-texto">
+                <strong>${pendentesAtual.length} ${pendentesAtual.length === 1 ? 'lançamento' : 'lançamentos'} ainda em aberto.</strong>
+                Se prosseguir sem resolver, será preciso justificar com pelo menos 20 caracteres.
+              </p>
+            </aside>`);
+        }
+        return avisos.join('');
+      })()}
 
       <section class="fechar-checklist reveal reveal-4" aria-label="Checklist de fechamento">
         <h2 class="h-eyebrow">Checklist</h2>
@@ -109,17 +127,29 @@ export async function renderCaixaFechar({ params }) {
         </ol>
 
         <div class="fechar-divergencia">
-          <label class="field-label" for="obs-fechamento">
-            ${pendentesAtual.length > 0
-              ? 'Justificativa obrigatória (mín. 20 caracteres) *'
-              : 'Observação sobre divergências (opcional)'}
-          </label>
-          <textarea id="obs-fechamento" rows="4" maxlength="800"
-                    class="field-input"
-                    placeholder="${pendentesAtual.length > 0
-                      ? 'Por que está fechando com pendências em aberto?'
-                      : 'Anote aqui qualquer divergência encontrada com o mybucks ou ajuste manual feito.'}"
-                    style="resize:vertical;min-height:5rem"></textarea>
+          ${(() => {
+            const ehHoje = dataAlvo === isoData(new Date());
+            const minChars = pendentesAtual.length > 0 ? 20
+                           : !ehHoje                   ? 10
+                           : 0;
+            const labelTxt = pendentesAtual.length > 0
+              ? `Justificativa obrigatória (mín. 20 caracteres) *`
+              : !ehHoje
+                ? `Justificativa obrigatória (mín. 10 caracteres) *`
+                : `Observação sobre divergências (opcional)`;
+            const placeholder = pendentesAtual.length > 0
+              ? 'Por que está fechando com pendências em aberto?'
+              : !ehHoje
+                ? 'Por que este caixa não foi fechado no dia?'
+                : 'Anote aqui qualquer divergência encontrada com o mybucks ou ajuste manual feito.';
+            return `
+              <label class="field-label" for="obs-fechamento">${esc(labelTxt)}</label>
+              <textarea id="obs-fechamento" rows="4" maxlength="800"
+                        class="field-input"
+                        data-min-chars="${minChars}"
+                        placeholder="${esc(placeholder)}"
+                        style="resize:vertical;min-height:5rem"></textarea>`;
+          })()}
         </div>
       </section>
 
@@ -162,6 +192,8 @@ function ligarComportamento(dataAlvo) {
 
     const justificativa = (obs.value || '').trim() || null;
     const temPendencias = pendentesAtual.length > 0;
+    const minChars = parseInt(obs.dataset.minChars || '0', 10);
+    const ehHoje = dataAlvo === isoData(new Date());
 
     // Validação client-side antes de chamar RPC
     if (temPendencias && (!justificativa || justificativa.length < 20)) {
@@ -169,6 +201,14 @@ function ligarComportamento(dataAlvo) {
       btn.disabled = false;
       erroEl.classList.remove('hidden');
       erroEl.textContent = 'Há pendências em aberto. Justifique com pelo menos 20 caracteres no campo abaixo.';
+      obs.focus();
+      return;
+    }
+    if (!temPendencias && !ehHoje && (!justificativa || justificativa.length < 10)) {
+      btn.removeAttribute('aria-busy');
+      btn.disabled = false;
+      erroEl.classList.remove('hidden');
+      erroEl.textContent = 'Fechamento retroativo exige justificativa de pelo menos 10 caracteres.';
       obs.focus();
       return;
     }
@@ -195,14 +235,18 @@ function ligarComportamento(dataAlvo) {
 
 function traduzirErro(err) {
   const m = err.message || '';
-  if (m.toLowerCase().includes('justificativa')) {
+  const ml = m.toLowerCase();
+  if (ml.includes('retroativo')) {
+    return 'Fechamento retroativo exige justificativa de pelo menos 10 caracteres.';
+  }
+  if (ml.includes('justificativa')) {
     return 'Justificativa obrigatória (mínimo 20 caracteres) ao forçar fechamento com pendências.';
   }
-  if (m.toLowerCase().includes('ja esta fechado') || m.toLowerCase().includes('já está fechado')) {
+  if (ml.includes('ja esta fechado') || ml.includes('já está fechado')) {
     return 'Este caixa já foi fechado por outra sessão. Recarregue a página.';
   }
-  if (m.toLowerCase().includes('pendencias') || m.toLowerCase().includes('pendências')) {
-    return m;  // já vem em pt-BR
+  if (ml.includes('pendencias') || ml.includes('pendências')) {
+    return m;
   }
   return 'Não foi possível fechar o caixa: ' + m;
 }

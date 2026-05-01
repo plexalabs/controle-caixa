@@ -3844,7 +3844,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     line-height: 1.3;
 }
 
-/* Aviso de pendências */
+/* Aviso de pendências (default âmbar) e retroativo (musgo) */
 .fechar-aviso {
     display: flex;
     flex-direction: column;
@@ -3854,7 +3854,12 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     border-left: 3px solid var(--c-ambar);
     border-radius: 0 var(--r-md) var(--r-md) 0;
     padding: 1rem 1.2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+}
+.fechar-aviso[data-tom="retroativo"] {
+    background: rgba(15, 76, 58, 0.06);
+    border-color: rgba(15, 76, 58, 0.22);
+    border-left-color: var(--c-musgo);
 }
 .fechar-aviso-texto {
     font-family: 'Manrope', sans-serif;
@@ -3863,6 +3868,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     line-height: 1.5;
 }
 .fechar-aviso-texto strong { color: var(--c-ambar-2); }
+.fechar-aviso[data-tom="retroativo"] .fechar-aviso-texto strong { color: var(--c-musgo); }
 
 /* Checklist editorial numerada */
 .fechar-checklist {
