@@ -21,6 +21,12 @@ export default defineConfig({
   // com "/" (ex.: <link href="/styles/tokens.css">) resolvem para web/.
   root: 'web',
 
+  // public/ contem statics que sao copiados 1:1 para o build sem
+  // processamento (manifest.webmanifest, sw.js, _headers, _redirects,
+  // assets/ com logo.svg e favicon). URLs absolutas como /manifest.json
+  // ou /assets/logo.svg continuam funcionando em dev e em build.
+  publicDir: 'public',
+
   // Modo SPA: qualquer rota desconhecida cai no index.html.
   appType: 'spa',
 
