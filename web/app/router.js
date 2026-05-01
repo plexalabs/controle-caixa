@@ -6,10 +6,15 @@ import { renderCadastro }   from './pages/cadastro.js';
 import { renderConfirmar }  from './pages/confirmar.js';
 import { renderRecuperar }  from './pages/recuperar.js';
 import { renderRedefinir }  from './pages/redefinir.js';
-import { renderDashboard }  from './pages/dashboard.js';
-import { renderCaixa }      from './pages/caixa.js';
-import { renderCaixas }     from './pages/caixas.js';
-import { pegarSessao }      from './supabase.js';
+import { renderDashboard }     from './pages/dashboard.js';
+import { renderCaixa }         from './pages/caixa.js';
+import { renderCaixas }        from './pages/caixas.js';
+import { renderConfiguracoes } from './pages/configuracoes.js';
+import { renderVendedoras }    from './pages/configuracoes-vendedoras.js';
+import { renderPendencias }    from './pages/pendencias.js';
+import { renderNotificacoes }  from './pages/notificacoes.js';
+import { renderPerfil }        from './pages/perfil.js';
+import { pegarSessao }         from './supabase.js';
 
 // Lista de rotas, em ordem. `aberta: true` = não exige sessão.
 // /redefinir é aberta porque o usuário aterrissa via link de email com
@@ -22,9 +27,14 @@ const rotas = [
   { padrao: /^\/confirmar$/,         handler: renderConfirmar,             aberta: true },
   { padrao: /^\/recuperar$/,         handler: renderRecuperar,             aberta: true },
   { padrao: /^\/redefinir$/,         handler: renderRedefinir,             aberta: true },
-  { padrao: /^\/dashboard$/,         handler: renderDashboard },
-  { padrao: /^\/caixas$/,            handler: renderCaixas },
-  { padrao: /^\/caixa\/([\w-]+)$/,   handler: renderCaixa },
+  { padrao: /^\/dashboard$/,                  handler: renderDashboard },
+  { padrao: /^\/caixas$/,                     handler: renderCaixas },
+  { padrao: /^\/caixa\/([\w-]+)$/,            handler: renderCaixa },
+  { padrao: /^\/configuracoes$/,              handler: renderConfiguracoes },
+  { padrao: /^\/configuracoes\/vendedoras$/,  handler: renderVendedoras },
+  { padrao: /^\/pendencias$/,                 handler: renderPendencias },
+  { padrao: /^\/notificacoes$/,               handler: renderNotificacoes },
+  { padrao: /^\/perfil$/,                     handler: renderPerfil },
 ];
 
 export async function navegar(url) {
@@ -36,6 +46,11 @@ export async function navegar(url) {
 export async function despachar() {
   const url = location.pathname;
   const sessao = await pegarSessao();
+
+  // Limpa shell entre rotas — páginas autenticadas (com sidebar) chamam
+  // `ligarShell()` que reativa o data-shell. Páginas auth (login etc.)
+  // ficam em layout cheio.
+  document.querySelector('#app')?.removeAttribute('data-shell');
 
   for (const rota of rotas) {
     const m = url.match(rota.padrao);

@@ -3,7 +3,7 @@
 // críticas, botão grande para o caixa do dia.
 
 import { supabase, pegarSessao } from '../supabase.js';
-import { renderHeader, ligarHeader } from '../../components/header.js';
+import { renderShell, ligarShell } from '../shell.js';
 import { saudacaoPorHora, dataLonga, isoData } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
@@ -21,8 +21,9 @@ export async function renderDashboard() {
   const hoje   = new Date();
   const hojeISO = isoData(hoje);
 
-  document.querySelector('#app').innerHTML = `
-    ${await renderHeader('dashboard')}
+  document.querySelector('#app').innerHTML = await renderShell({
+    rotaAtiva: 'dashboard',
+    conteudo: `
     <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
       <!-- Saudação editorial -->
       <div class="reveal reveal-1">
@@ -71,9 +72,10 @@ export async function renderDashboard() {
         <div id="lista-criticas" class="space-y-2"></div>
       </section>
     </main>
-  `;
+  `,
+  });
 
-  ligarHeader();
+  ligarShell();
   await carregarResumo(hojeISO);
   await carregarNotificacoes();
   await carregarCriticas();

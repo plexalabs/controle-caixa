@@ -3,18 +3,21 @@
 // com cores canônicas, realtime, estado vazio, criar caixa se não existe.
 
 import { supabase } from '../supabase.js';
-import { renderHeader, ligarHeader } from '../../components/header.js';
+import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalAdicionarNF }    from '../../components/modal-adicionar-nf.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
+import { instalarFilterBar } from '../../components/filter-bar.js';
 import { dataLonga, dataCurta, isoData, hora,
          LABEL_CATEGORIA, LABEL_CATEGORIA_CURTA, ESTADO_CAIXA,
-         resumoDetalhes } from '../dominio.js';
+         CATEGORIAS, resumoDetalhes } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
 
 let canalLanc = null;
 let caixaIdAtual = null;
 let dataAlvoAtual = null;
+let lancCache = [];      // CP5.5: cache para filtros client-side
+let fbCtrl = null;
 
 export async function renderCaixa({ params }) {
   desmontar();
@@ -28,8 +31,9 @@ export async function renderCaixa({ params }) {
     return mostrarErroEFim('Data inválida.');
   }
 
-  document.querySelector('#app').innerHTML = `
-    ${await renderHeader('caixas')}
+  document.querySelector('#app').innerHTML = await renderShell({
+    rotaAtiva: 'caixas',
+    conteudo: `
     <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
       <!-- Voltar para a lista -->
       <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
@@ -58,14 +62,18 @@ export async function renderCaixa({ params }) {
         </button>
       </div>
 
+      <!-- Filter-bar (CP5.5) — só aparece quando há lançamentos -->
+      <div id="cx-filtros" class="reveal reveal-4 hidden" style="margin-top:1.5rem"></div>
+
       <!-- Conteúdo principal: lista de lançamentos -->
       <section id="bloco-conteudo" class="reveal reveal-4">
         ${blocoSkel()}
       </section>
     </main>
-  `;
+  `,
+  });
 
-  ligarHeader();
+  ligarShell();
 
   // Carrega caixa do dia. Se não existe, oferece criar.
   await carregarCaixa(dataAlvo);
@@ -137,7 +145,10 @@ async function carregarLancamentos(caixaId) {
     return;
   }
 
-  if (!data || data.length === 0) {
+  lancCache = data || [];
+
+  if (lancCache.length === 0) {
+    document.querySelector('#cx-filtros')?.classList.add('hidden');
     bloco.innerHTML = `
       <div class="vazio">
         <div class="vazio-num">∅</div>
@@ -148,11 +159,58 @@ async function carregarLancamentos(caixaId) {
     return;
   }
 
-  bloco.innerHTML = data.map(linhaLancamento).join('');
+  // CP5.5: instala filter-bar na primeira carga (ou reaplica estado da URL)
+  garantirFilterBar();
+  renderListaFiltrada();
+  atualizarRodape(lancCache);
+}
 
-  // Mapa rapido id → lançamento, para abrir o drawer com o objeto certo.
-  const porId = Object.fromEntries(data.map(l => [l.id, l]));
+// ─── CP5.5: filter-bar do caixa do dia ────────────────────────────────
+function garantirFilterBar() {
+  const cont = document.querySelector('#cx-filtros');
+  if (!cont) return;
+  cont.classList.remove('hidden');
+  if (fbCtrl) return;   // já instalado nesta visita
 
+  fbCtrl = instalarFilterBar(cont, {
+    filtros: [
+      { id: 'categoria', label: 'Categoria', tipo: 'select', opcoes: [
+        { valor: '',           rotulo: 'Todas' },
+        { valor: 'em_analise', rotulo: 'Em análise (sem categoria)' },
+        ...CATEGORIAS.map(c => ({ valor: c.valor, rotulo: c.rotulo })),
+      ]},
+      { id: 'estado', label: 'Estado', tipo: 'select', opcoes: [
+        { valor: '',              rotulo: 'Todos' },
+        { valor: 'pendente',      rotulo: 'Em análise' },
+        { valor: 'completo',      rotulo: 'Categorizado' },
+        { valor: 'finalizado',    rotulo: 'Finalizado' },
+        { valor: 'cancelado_pos', rotulo: 'Cancelado pós-pagamento' },
+      ]},
+      { id: 'busca', label: 'Buscar', tipo: 'texto', placeholder: 'NF ou cliente' },
+      { id: 'ocultar_resolvidos', label: 'Ocultar resolvidos', tipo: 'toggle' },
+    ],
+    onChange: () => renderListaFiltrada(),
+  });
+}
+
+function renderListaFiltrada() {
+  const bloco = document.querySelector('#bloco-conteudo');
+  if (!bloco) return;
+  const f = fbCtrl?.estado() || {};
+  const filtrados = aplicarFiltrosCaixa(lancCache, f);
+
+  if (filtrados.length === 0) {
+    bloco.innerHTML = `
+      <div class="vazio" style="padding:2rem 1.5rem">
+        <p class="vazio-titulo" style="font-size:1.1rem">Nenhum lançamento com esses filtros.</p>
+        <p class="vazio-desc">Ajuste os filtros acima ou clique em <em>Limpar filtros</em>.</p>
+      </div>`;
+    return;
+  }
+
+  bloco.innerHTML = filtrados.map(linhaLancamento).join('');
+
+  const porId = Object.fromEntries(filtrados.map(l => [l.id, l]));
   bloco.querySelectorAll('.lanc-row').forEach(el => {
     el.addEventListener('click', () => {
       const lanc = porId[el.dataset.id];
@@ -160,12 +218,36 @@ async function carregarLancamentos(caixaId) {
       abrirModalEditarLancamento({
         lancamento: lanc,
         dataCaixa:  dataAlvoAtual,
-        aoSalvar:   () => carregarLancamentos(caixaId),
+        aoSalvar:   () => carregarLancamentos(caixaIdAtual),
       });
     });
   });
+}
 
-  atualizarRodape(data);
+function aplicarFiltrosCaixa(itens, f) {
+  return itens.filter(l => {
+    // Ocultar resolvidos = remove finalizados, cancelado_pos, cancelado, resolvido.
+    if (f.ocultar_resolvidos &&
+        ['finalizado','cancelado_pos','cancelado','resolvido'].includes(l.estado)) {
+      return false;
+    }
+    if (f.categoria) {
+      if (f.categoria === 'em_analise') {
+        if (l.categoria != null) return false;
+      } else {
+        if (l.categoria !== f.categoria) return false;
+      }
+    }
+    if (f.estado && l.estado !== f.estado) return false;
+    if (f.busca) {
+      const q = f.busca.toLowerCase();
+      const nf = (l.numero_nf || '').toLowerCase();
+      const cli = (l.cliente_nome || '').toLowerCase();
+      const ped = (l.codigo_pedido || '').toLowerCase();
+      if (!nf.includes(q) && !cli.includes(q) && !ped.includes(q)) return false;
+    }
+    return true;
+  });
 }
 
 function linhaLancamento(l) {
@@ -346,6 +428,11 @@ function desmontar() {
     supabase.removeChannel(canalLanc).catch(() => {});
     canalLanc = null;
   }
+  if (fbCtrl) {
+    fbCtrl.destruir();
+    fbCtrl = null;
+  }
+  lancCache = [];
 }
 
 function blocoSkel() {
