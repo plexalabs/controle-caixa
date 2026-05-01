@@ -3087,7 +3087,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    ============================================================ */
 
 :root {
-    --sidebar-w-expandida: 240px;
+    --sidebar-w-expandida: 260px;
     --sidebar-w-colapsada: 68px;
     --z-sidebar:    20;
     --z-drawer:     40;
@@ -3137,28 +3137,33 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     min-width: 0;  /* evita expansão horizontal forçada */
 }
 
-/* Topo da sidebar: logo centralizado, sem texto. Altura mínima 64px. */
+/* Topo da sidebar: logo (símbolo + wordmark expandido / só símbolo colapsado).
+   Altura mínima 64px. */
 .sidebar-topo {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 20px 16px;
     min-height: 64px;
     flex-shrink: 0;
-    border-bottom: 1px solid var(--c-papel-3);  /* separador 1: logo / nav */
+    border-bottom: 1px solid var(--c-papel-3);
+}
+.app-sidebar[data-estado="colapsada"] .sidebar-topo {
+    justify-content: center;
+    padding: 20px 0;
 }
 
 .sidebar-logo {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 10px;
     text-decoration: none;
     color: var(--c-tinta);
-    transition: opacity 200ms var(--ease-out);
+    transition: opacity 180ms ease;
     border-radius: var(--r-sm);
     padding: 4px;
 }
-.sidebar-logo:hover { opacity: 0.7; }
+.sidebar-logo:hover { opacity: 0.85; }
 .sidebar-logo:focus-visible { outline-offset: 4px; }
 
 .sidebar-logo-marca {
@@ -3166,12 +3171,37 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     height: 32px;
     background: var(--c-musgo);
     flex-shrink: 0;
-    transition: background 200ms var(--ease-out), transform 280ms var(--ease-spring);
+    transition: background 180ms ease, transform 280ms var(--ease-spring);
     display: inline-block;
 }
 .sidebar-logo:hover .sidebar-logo-marca {
     background: var(--c-musgo-2);
     transform: scale(1.04);
+}
+
+/* Wordmark "Caixa Boti" em Fraunces italic — só aparece no expandido.
+   Aparece com fade + slide leve da esquerda quando a sidebar abre,
+   após delay para esperar a animação de largura terminar. */
+.sidebar-logo-wordmark {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    font-size: 1.35rem;     /* ~22px */
+    line-height: 1;
+    letter-spacing: -0.005em;
+    color: var(--c-tinta);
+    white-space: nowrap;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 150ms ease 100ms, transform 220ms var(--ease-spring) 100ms;
+}
+.app-sidebar[data-estado="colapsada"] .sidebar-logo-wordmark {
+    display: none;  /* fora do fluxo, não vaza durante anim */
+}
+.app-sidebar[data-estado="colapsada"] .sidebar-logo {
+    gap: 0;
+    padding: 4px;
 }
 
 /* Toggle FORA do topo, ancorado na borda direita da sidebar a meia-altura
@@ -3325,27 +3355,53 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-musgo);
 }
 
-/* Rodapé só com avatar circular centralizado, altura 64px */
+/* Rodapé: expandido = avatar + nome + email; colapsado = só avatar. */
 .sidebar-rodape {
     flex-shrink: 0;
-    height: 64px;
-    padding: 16px;
+    padding: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 64px;
+    position: relative;
 }
+.app-sidebar[data-estado="expandida"] .sidebar-rodape { padding: 8px; }
+.app-sidebar[data-estado="colapsada"] .sidebar-rodape { padding: 16px; }
 
 .sidebar-user {
     appearance: none;
     background: transparent;
     border: 0;
-    padding: 0;
-    border-radius: 50%;
+    padding: 8px;
+    border-radius: var(--r-sm);
     cursor: pointer;
-    transition: transform 200ms var(--ease-spring);
-    line-height: 0;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    transition: background 180ms ease, transform 200ms var(--ease-spring);
+    position: relative;
+    color: inherit;
+    font-family: 'Manrope', sans-serif;
+    width: 100%;
+    min-width: 0;
 }
-.sidebar-user:hover { transform: scale(1.06); }
+.app-sidebar[data-estado="expandida"] .sidebar-user:hover {
+    background: var(--c-papel-2);
+}
+.app-sidebar[data-estado="expandida"] .sidebar-user[aria-expanded="true"] {
+    background: var(--c-papel-2);
+}
+.app-sidebar[data-estado="colapsada"] .sidebar-user {
+    width: auto;
+    padding: 0;
+    background: transparent !important;
+    border-radius: 50%;
+    gap: 0;
+    justify-content: center;
+}
+.app-sidebar[data-estado="colapsada"] .sidebar-user:hover { transform: scale(1.06); }
 .sidebar-user:focus-visible { outline-offset: 4px; }
 
 .sidebar-user-avatar {
@@ -3361,7 +3417,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     font-style: italic;
     font-weight: 500;
     font-size: 1.05rem;
-    transition: background 180ms ease, box-shadow 180ms ease;
+    flex-shrink: 0;
+    transition: background 180ms ease, box-shadow 180ms ease, width 180ms ease, height 180ms ease;
+}
+.app-sidebar[data-estado="colapsada"] .sidebar-user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.95rem;
 }
 .sidebar-user:hover .sidebar-user-avatar {
     background: var(--c-musgo-2);
@@ -3370,6 +3432,41 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .sidebar-user[aria-expanded="true"] .sidebar-user-avatar {
     background: var(--c-musgo-3);
     box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.15);
+}
+
+/* Bloco nome+email — só aparece no expandido */
+.sidebar-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow: hidden;
+    flex: 1;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 180ms ease 80ms, transform 220ms var(--ease-spring) 80ms;
+}
+.app-sidebar[data-estado="colapsada"] .sidebar-user-info { display: none; }
+
+.sidebar-user-nome {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.875rem;   /* 14px */
+    font-weight: 600;
+    color: var(--c-tinta);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sidebar-user-email {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.75rem;    /* 12px */
+    font-weight: 400;
+    color: var(--c-tinta-3);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Tooltip da sidebar (CP5-FIX 9) — div com seta, fade-in 400ms delay
