@@ -1454,7 +1454,7 @@ await supabase.auth.updateUser({ password: 'nova-senha-123' });
 
 - **Site URL** (dev): `https://controle-caixa.pages.dev`
 - **Site URL** (prod, após UAT): `https://caixa-boti.plexalabs.com`
-- **Redirect URLs (Additional)**: incluir ambos com sufixo `/**`, mais `http://localhost:8080/**` para dev local.
+- **Redirect URLs (Additional)**: incluir ambos com sufixo `/**`, mais `http://localhost:5173/**` para dev local (porta padrão do Vite).
 
 ---
 
