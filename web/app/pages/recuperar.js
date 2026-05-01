@@ -4,6 +4,7 @@
 
 import { pedirRecuperacao } from '../auth.js';
 import { validarEmail }     from '../utils.js';
+import { renderLogo }       from '../../components/logo.js';
 
 export function renderRecuperar() {
   const emailInicio = new URLSearchParams(location.search).get('email') || '';
@@ -13,7 +14,7 @@ export function renderRecuperar() {
       <aside class="hidden lg:flex lg:col-span-7 relative bg-papel2 guilhoche overflow-hidden">
         <div class="absolute top-10 left-10 right-10 flex items-start justify-between">
           <div class="flex items-center gap-3 reveal reveal-1">
-            ${logoSvg()}
+            ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
             <span class="h-eyebrow" style="color:var(--c-tinta-3)">Caixa Boti</span>
           </div>
           <div class="text-right reveal reveal-1">
@@ -43,7 +44,7 @@ export function renderRecuperar() {
       <section class="lg:col-span-5 flex items-center justify-center p-6 sm:p-12 bg-papel">
         <div class="w-full max-w-sm">
           <div class="lg:hidden flex items-center gap-3 mb-8 reveal reveal-1">
-            ${logoSvg()}
+            ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
             <span class="h-eyebrow" style="color:var(--c-tinta-3)">Caixa Boti</span>
           </div>
 
@@ -140,17 +141,6 @@ export function renderRecuperar() {
   });
 }
 
-function logoSvg() {
-  return `
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="1.5"
-              style="color:var(--c-musgo)" />
-      <path d="M8 22 L24 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-            style="color:var(--c-musgo)" />
-      <circle cx="11" cy="13" r="1.5" fill="currentColor" style="color:var(--c-ambar)" />
-      <circle cx="21" cy="19" r="1.5" fill="currentColor" style="color:var(--c-ambar)" />
-    </svg>`;
-}
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({

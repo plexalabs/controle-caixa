@@ -4,6 +4,7 @@
 import { sair } from '../app/auth.js';
 import { navegar } from '../app/router.js';
 import { pegarSessao } from '../app/supabase.js';
+import { renderLogo } from './logo.js';
 
 export async function renderHeader(rotaAtiva) {
   const sessao = await pegarSessao();
@@ -18,7 +19,7 @@ export async function renderHeader(rotaAtiva) {
     <header class="app-header">
       <div class="app-header-inner">
         <a href="/dashboard" data-link class="flex items-center gap-2 no-underline" aria-label="Caixa Boti — início">
-          ${logoSvg()}
+          ${renderLogo({ size: 28, cor: 'var(--c-musgo)' })}
           <span class="h-display text-lg" style="font-style:normal;font-weight:500;color:var(--c-tinta)">Caixa Boti</span>
         </a>
 
@@ -46,16 +47,6 @@ export function ligarHeader() {
     await sair();
     navegar('/login');
   });
-}
-
-function logoSvg() {
-  return `
-    <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="1.5" style="color:var(--c-musgo)"/>
-      <path d="M8 22 L24 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--c-musgo)"/>
-      <circle cx="11" cy="13" r="1.5" fill="currentColor" style="color:var(--c-ambar)"/>
-      <circle cx="21" cy="19" r="1.5" fill="currentColor" style="color:var(--c-ambar)"/>
-    </svg>`;
 }
 
 function esc(s) {

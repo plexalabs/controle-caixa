@@ -9,6 +9,7 @@ import { navegar }              from '../router.js';
 import { mostrarToast }         from '../notifications.js';
 import { pegarSessao }          from '../supabase.js';
 import { validarSenha }         from '../utils.js';
+import { renderLogo }           from '../../components/logo.js';
 
 export async function renderRedefinir() {
   // Confere se há sessão recovery — sem ela, manda para /recuperar.
@@ -38,7 +39,7 @@ export async function renderRedefinir() {
     <main id="main" class="min-h-screen flex items-center justify-center p-6 sm:p-12 bg-papel">
       <div class="w-full max-w-sm">
         <div class="flex items-center gap-3 mb-8 reveal reveal-1">
-          ${logoSvg()}
+          ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
           <span class="h-eyebrow" style="color:var(--c-tinta-3)">Caixa Boti</span>
         </div>
 
@@ -163,14 +164,3 @@ export async function renderRedefinir() {
   setTimeout(() => form.senha.focus(), 480);
 }
 
-function logoSvg() {
-  return `
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="1.5"
-              style="color:var(--c-musgo)" />
-      <path d="M8 22 L24 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-            style="color:var(--c-musgo)" />
-      <circle cx="11" cy="13" r="1.5" fill="currentColor" style="color:var(--c-ambar)" />
-      <circle cx="21" cy="19" r="1.5" fill="currentColor" style="color:var(--c-ambar)" />
-    </svg>`;
-}

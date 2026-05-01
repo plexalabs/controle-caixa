@@ -5,6 +5,7 @@
 import { entrarComSenha } from '../auth.js';
 import { navegar }        from '../router.js';
 import { validarEmail }   from '../utils.js';
+import { renderLogo }     from '../../components/logo.js';
 
 export function renderLogin() {
   const params      = new URLSearchParams(location.search);
@@ -18,7 +19,7 @@ export function renderLogin() {
         <!-- Marca e numeração editorial -->
         <div class="absolute top-10 left-10 right-10 flex items-start justify-between">
           <div class="flex items-center gap-3 reveal reveal-1">
-            ${logoSvg()}
+            ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
             <span class="h-eyebrow text-tinta-3" style="color:var(--c-tinta-3)">Caixa Boti</span>
           </div>
           <div class="text-right reveal reveal-1">
@@ -52,7 +53,7 @@ export function renderLogin() {
         <div class="w-full max-w-sm">
           <!-- Mobile: marca compacta no topo -->
           <div class="lg:hidden flex items-center gap-3 mb-10 reveal reveal-1">
-            ${logoSvg()}
+            ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
             <span class="h-eyebrow" style="color:var(--c-tinta-3)">Caixa Boti</span>
           </div>
 
@@ -152,17 +153,3 @@ export function renderLogin() {
   });
 }
 
-// ─── Logo SVG inline — semente, balança e marca da casa ──────────────────
-// Marca conceitual: um círculo geométrico fechado com talho diagonal,
-// sugerindo "fechamento de caixa". Cor usa a variável --c-musgo.
-function logoSvg() {
-  return `
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="1.5"
-              style="color:var(--c-musgo)" />
-      <path d="M8 22 L24 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-            style="color:var(--c-musgo)" />
-      <circle cx="11" cy="13" r="1.5" fill="currentColor" style="color:var(--c-ambar)" />
-      <circle cx="21" cy="19" r="1.5" fill="currentColor" style="color:var(--c-ambar)" />
-    </svg>`;
-}
