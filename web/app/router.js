@@ -33,7 +33,7 @@ const rotas = [
   { padrao: /^\/caixas$/,                     handler: renderCaixas },
   { padrao: /^\/caixa\/([\w-]+)\/fechar$/,    handler: renderCaixaFechar },
   { padrao: /^\/caixa\/([\w-]+)$/,            handler: renderCaixa },
-  { padrao: /^\/lancamento\/([0-9a-f-]+)$/i,  handler: renderLancamento },
+  { padrao: /^\/lancamento\/([\w-]+)$/,       handler: renderLancamento },
   { padrao: /^\/configuracoes$/,              handler: renderConfiguracoes },
   { padrao: /^\/configuracoes\/vendedoras$/,  handler: renderVendedoras },
   { padrao: /^\/pendencias$/,                 handler: renderPendencias },
