@@ -6,10 +6,12 @@ import { renderCadastro }   from './pages/cadastro.js';
 import { renderConfirmar }  from './pages/confirmar.js';
 import { renderRecuperar }  from './pages/recuperar.js';
 import { renderRedefinir }  from './pages/redefinir.js';
-import { renderDashboard }  from './pages/dashboard.js';
-import { renderCaixa }      from './pages/caixa.js';
-import { renderCaixas }     from './pages/caixas.js';
-import { pegarSessao }      from './supabase.js';
+import { renderDashboard }     from './pages/dashboard.js';
+import { renderCaixa }         from './pages/caixa.js';
+import { renderCaixas }        from './pages/caixas.js';
+import { renderConfiguracoes } from './pages/configuracoes.js';
+import { renderVendedoras }    from './pages/configuracoes-vendedoras.js';
+import { pegarSessao }         from './supabase.js';
 
 // Lista de rotas, em ordem. `aberta: true` = não exige sessão.
 // /redefinir é aberta porque o usuário aterrissa via link de email com
@@ -22,9 +24,11 @@ const rotas = [
   { padrao: /^\/confirmar$/,         handler: renderConfirmar,             aberta: true },
   { padrao: /^\/recuperar$/,         handler: renderRecuperar,             aberta: true },
   { padrao: /^\/redefinir$/,         handler: renderRedefinir,             aberta: true },
-  { padrao: /^\/dashboard$/,         handler: renderDashboard },
-  { padrao: /^\/caixas$/,            handler: renderCaixas },
-  { padrao: /^\/caixa\/([\w-]+)$/,   handler: renderCaixa },
+  { padrao: /^\/dashboard$/,                  handler: renderDashboard },
+  { padrao: /^\/caixas$/,                     handler: renderCaixas },
+  { padrao: /^\/caixa\/([\w-]+)$/,            handler: renderCaixa },
+  { padrao: /^\/configuracoes$/,              handler: renderConfiguracoes },
+  { padrao: /^\/configuracoes\/vendedoras$/,  handler: renderVendedoras },
 ];
 
 export async function navegar(url) {
@@ -40,6 +44,8 @@ export async function despachar() {
   for (const rota of rotas) {
     const m = url.match(rota.padrao);
     if (!m) continue;
+    // Limpa querystring bookmarks vindos por copy/paste, mas guarda
+    // p/ as páginas que dependem dele (filter-bar lê via URLSearchParams).
 
     // Se rota fechada e sem sessão → manda para login.
     if (!rota.aberta && !sessao) {
