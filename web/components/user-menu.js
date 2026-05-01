@@ -110,28 +110,43 @@ function fecharUserMenu() {
 
 function posicionar(pop, trigger) {
   const r = trigger.getBoundingClientRect();
-  const popH = 320; // estimativa, é ajustado em runtime
   const popW = 280;
   const margem = 8;
+  const aside = document.querySelector('.app-sidebar');
+  const estado = aside?.dataset.estado || 'expandida';
+  const ehMobile = window.innerWidth < 768;
 
-  // Alinhamento horizontal: à direita do trigger (sai pra fora da sidebar)
-  let left = r.right + margem;
-  // Se não couber, abre acima do trigger alinhado à esquerda
-  if (left + popW > window.innerWidth - margem) {
+  // Sidebar EXPANDIDA: popover sobe alinhado à esquerda do trigger
+  // (topo do popover toca o topo do trigger).
+  // Sidebar COLAPSADA: popover sai para a direita, alinhado pelo bottom
+  // do trigger (canto inferior coincide).
+  // Mobile: igual à expandida — popover sobe.
+  const expandida = (estado === 'expandida' || estado === 'mobile-aberto' || ehMobile);
+
+  let left;
+  let top;
+
+  if (expandida) {
+    // Sai PARA CIMA, mesmo eixo X que o trigger
     left = Math.max(margem, r.left);
-  }
-
-  // Vertical: prefere acima (sidebar-rodape fica no canto inferior).
-  // Se houver espaço, abre alinhado pelo bottom do trigger ascendendo.
-  let top = r.top - 4;
-  // Se não couber acima, abre abaixo
-  if (top - popH < margem && r.bottom + popH < window.innerHeight - margem) {
-    top = r.bottom + margem;
-    pop.classList.add('user-menu--abaixo');
-  } else {
-    // ancorada no canto inferior — translateY(-100%) via classe
-    pop.classList.add('user-menu--acima');
+    // se não couber à esquerda do viewport, joga pra direita do trigger
+    if (left + popW > window.innerWidth - margem) {
+      left = Math.max(margem, window.innerWidth - popW - margem);
+    }
     top = r.top - margem;
+    pop.classList.add('user-menu--acima');
+  } else {
+    // Sai PARA A DIREITA, alinhado pelo bottom do trigger
+    left = r.right + margem;
+    if (left + popW > window.innerWidth - margem) {
+      // Sem espaço à direita — joga acima do trigger
+      left = Math.max(margem, r.left);
+      top = r.top - margem;
+      pop.classList.add('user-menu--acima');
+    } else {
+      top = r.bottom;
+      pop.classList.add('user-menu--lateral');
+    }
   }
 
   pop.style.left = `${left}px`;
