@@ -470,7 +470,20 @@
     font-weight: 500;
     font-size: 0.95rem;
     font-style: italic;
+    transition: transform 200ms var(--ease-out), background 200ms var(--ease-out);
 }
+.app-user-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    text-decoration: none;
+    color: inherit;
+    padding: 0.2rem 0.45rem;
+    border-radius: var(--r-pill);
+    transition: background 180ms var(--ease-out);
+}
+.app-user-link:hover { background: var(--c-papel-2); }
+.app-user-link:hover .app-user-avatar { transform: scale(1.06); background: var(--c-musgo-2); }
 
 
 /* ============================================================

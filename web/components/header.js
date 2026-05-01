@@ -1,10 +1,11 @@
 // header.js — barra superior compartilhada por dashboard, caixa, etc.
-// Desenha logo + nav (Caixas, Pendências, Configurações) + avatar com nome.
+// Desenha logo + nav (Caixas, Pendências, Configurações) + sino + avatar com nome.
 
 import { sair } from '../app/auth.js';
 import { navegar } from '../app/router.js';
 import { pegarSessao } from '../app/supabase.js';
 import { renderLogo } from './logo.js';
+import { montarSino, desmontarSino } from './notification-bell.js';
 
 export async function renderHeader(rotaAtiva) {
   const sessao = await pegarSessao();
@@ -30,8 +31,13 @@ export async function renderHeader(rotaAtiva) {
         </nav>
 
         <div class="app-user">
-          <span class="hidden sm:inline">${esc(nome) || 'Operador'}</span>
-          <span class="app-user-avatar" aria-hidden="true">${esc(inicial)}</span>
+          <div id="bell-wrap" class="bell-wrap"></div>
+          <a href="/perfil" data-link class="app-user-link"
+             aria-label="Seu perfil"
+             title="Seu perfil">
+            <span class="hidden sm:inline">${esc(nome) || 'Operador'}</span>
+            <span class="app-user-avatar" aria-hidden="true">${esc(inicial)}</span>
+          </a>
           <button id="btn-sair" class="btn-link" style="font-size:0.85rem">Sair</button>
         </div>
       </div>
@@ -39,14 +45,18 @@ export async function renderHeader(rotaAtiva) {
   `;
 }
 
-// Vincula o botão "Sair" depois do innerHTML estar pronto.
+// Vincula o botão "Sair" + monta o sino depois do innerHTML estar pronto.
 export function ligarHeader() {
   const btn = document.querySelector('#btn-sair');
-  if (!btn) return;
-  btn.addEventListener('click', async () => {
-    await sair();
-    navegar('/login');
-  });
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      desmontarSino();
+      await sair();
+      navegar('/login');
+    });
+  }
+  // Monta o sino assincronamente — não bloqueia render do header.
+  montarSino().catch(e => console.warn('[header] erro ao montar sino:', e));
 }
 
 function esc(s) {
