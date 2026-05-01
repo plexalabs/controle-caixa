@@ -4,7 +4,7 @@
 
 import { supabase } from '../supabase.js';
 import { renderHeader, ligarHeader } from '../../components/header.js';
-import { dataLonga, dataCurta, ESTADO_CAIXA, LABEL_ESTADO_CAIXA_CURTO } from '../dominio.js';
+import { ESTADO_CAIXA, LABEL_ESTADO_CAIXA_CURTO } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 
 export async function renderCaixas() {
@@ -90,10 +90,10 @@ function linhaCaixa(c, s, i) {
   const total   = c.total_lancamentos ?? 0;
   const pend    = c.total_pendentes ?? 0;
   const valor   = c.total_valor ?? 0;
-  const dia     = diaSemana(c.data);
-  const dm      = dataCurta(c.data);
-  const ano     = anoDe(c.data);
-  const titulo  = dataLonga(c.data);
+  const dia     = diaSemanaCurto(c.data);          // "QUI"
+  const diaNum  = diaDoMes(c.data);                // "30"
+  const mesSlash = mesComBarra(c.data);            // "/04"
+  const titulo  = tituloCompacto(c.data);          // "Quinta, 30/04/2026"
   const ehHoje  = ehMesmoDia(c.data, new Date());
 
   const labelVertical = LABEL_ESTADO_CAIXA_CURTO[c.estado] || c.estado.toUpperCase();
@@ -104,8 +104,9 @@ function linhaCaixa(c, s, i) {
        style="animation-delay:${i * 35}ms">
       <div class="caixa-row-data">
         <span class="caixa-row-dia">${dia}</span>
-        <span class="caixa-row-dm">${dm}</span>
-        <span class="caixa-row-ano">${ano}</span>
+        <span class="caixa-row-dm">
+          <span class="caixa-row-dm-dia">${diaNum}</span><span class="caixa-row-dm-mes">${mesSlash}</span>
+        </span>
         ${ehHoje ? '<span class="caixa-row-marcador">hoje</span>' : ''}
       </div>
 
@@ -116,11 +117,6 @@ function linhaCaixa(c, s, i) {
           <span class="caixa-row-sep">·</span>
           <strong class="${pend > 0 ? 'is-warn' : ''}">${pend}</strong>
           ${pend === 1 ? 'pendente' : 'pendentes'}
-        </p>
-        <p class="caixa-row-meta-sec">
-          ${s.resolvidos} ${s.resolvidos === 1 ? 'resolvida' : 'resolvidas'}
-          <span class="caixa-row-sep">·</span>
-          ${s.cancelados} ${s.cancelados === 1 ? 'cancelada' : 'canceladas'}
         </p>
       </div>
 
@@ -133,14 +129,35 @@ function linhaCaixa(c, s, i) {
 }
 
 // ─── Helpers de data ─────────────────────────────────────────────────────
+
+// "QUI" / "SEX" / "SAB" — abreviado em uppercase, sem ponto.
 const fmtDiaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' });
-function diaSemana(iso) {
+function diaSemanaCurto(iso) {
   const d = new Date(iso + 'T00:00:00');
   return fmtDiaSemana.format(d).replace('.', '').toUpperCase();
 }
-function anoDe(iso) {
-  return iso.slice(0, 4);
+
+// "Quinta, 30/04/2026" — dia da semana sem "-feira" + data numerica.
+const fmtDiaSemanaLongo = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
+function tituloCompacto(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  // "quinta-feira" -> "quinta"; "sábado"/"domingo" ja sem hifen.
+  const longo = fmtDiaSemanaLongo.format(d).split('-')[0];
+  const dia   = longo.charAt(0).toUpperCase() + longo.slice(1);
+  const [ano, mes, diaIso] = iso.split('-');
+  return `${dia}, ${diaIso}/${mes}/${ano}`;
 }
+
+// "30" — apenas o dia do mes, em destaque visual.
+function diaDoMes(iso) {
+  return iso.split('-')[2];
+}
+
+// "/04" — barra + mes em duas casas, em tipografia reduzida.
+function mesComBarra(iso) {
+  return '/' + iso.split('-')[1];
+}
+
 function ehMesmoDia(iso, dt) {
   const a = new Date(iso + 'T00:00:00');
   return a.getFullYear() === dt.getFullYear()

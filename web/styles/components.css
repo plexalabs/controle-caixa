@@ -1335,23 +1335,33 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     letter-spacing: 0.22em;
     color: var(--c-musgo);
 }
+/* "30/04" composto: o dia em destaque (Fraunces grande) + "/04" reduzido
+   alinhado a baseline para nao competir visualmente com o numero. */
 .caixa-row-dm {
+    display: inline-flex;
+    align-items: baseline;
+    margin-top: 0.2rem;
     font-family: 'Fraunces', serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    line-height: 1;
+}
+.caixa-row-dm-dia {
     font-style: italic;
     font-weight: 300;
     font-variation-settings: "SOFT" 60;
-    font-size: 1.85rem;
+    font-size: 1.95rem;
     color: var(--c-tinta);
-    font-variant-numeric: tabular-nums;
-    margin-top: 0.15rem;
-    letter-spacing: -0.01em;
+    line-height: 1;
 }
-.caixa-row-ano {
-    font-family: 'Fraunces', serif;
+.caixa-row-dm-mes {
+    font-style: italic;
     font-weight: 400;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     color: var(--c-tinta-3);
-    margin-top: 0.15rem;
+    line-height: 1;
+    margin-left: 0.05em;
+    letter-spacing: 0.02em;
 }
 .caixa-row-marcador {
     margin-top: 0.4rem;
@@ -1376,11 +1386,11 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     line-height: 1.2;
     margin: 0 0 0.5rem 0;
     letter-spacing: var(--tracking-display);
-    /* permite quebrar em 2 linhas em cards estreitos sem ellipsis */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    font-variant-numeric: tabular-nums;
+    /* Titulo agora e curto ("Quinta, 30/04/2026") — cabe em 1 linha */
     overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .caixa-row-meta {
     margin: 0;
@@ -1395,14 +1405,6 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     font-weight: 600;
 }
 .caixa-row-meta strong.is-warn { color: var(--c-ambar-2); }
-.caixa-row-meta-sec {
-    margin: 0.2rem 0 0 0;
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.78rem;
-    color: var(--c-tinta-3);
-    font-variant-numeric: tabular-nums;
-    line-height: 1.4;
-}
 .caixa-row-sep {
     color: var(--c-papel-3);
     user-select: none;
@@ -1451,7 +1453,8 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         padding-left: 0;
         padding-right: 0.85rem;
     }
-    .caixa-row-dm     { font-size: 1.55rem; }
+    .caixa-row-dm-dia { font-size: 1.65rem; }
+    .caixa-row-dm-mes { font-size: 0.7rem; }
     .caixa-row-titulo { font-size: 1.05rem; }
 }
 
