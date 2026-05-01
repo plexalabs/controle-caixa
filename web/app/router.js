@@ -13,6 +13,7 @@ import { renderConfiguracoes } from './pages/configuracoes.js';
 import { renderVendedoras }    from './pages/configuracoes-vendedoras.js';
 import { renderPendencias }    from './pages/pendencias.js';
 import { renderNotificacoes }  from './pages/notificacoes.js';
+import { renderPerfil }        from './pages/perfil.js';
 import { pegarSessao }         from './supabase.js';
 
 // Lista de rotas, em ordem. `aberta: true` = não exige sessão.
@@ -33,6 +34,7 @@ const rotas = [
   { padrao: /^\/configuracoes\/vendedoras$/,  handler: renderVendedoras },
   { padrao: /^\/pendencias$/,                 handler: renderPendencias },
   { padrao: /^\/notificacoes$/,               handler: renderNotificacoes },
+  { padrao: /^\/perfil$/,                     handler: renderPerfil },
 ];
 
 export async function navegar(url) {
