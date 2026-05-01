@@ -33,12 +33,15 @@ export async function renderSidebar(rotaAtiva) {
     ? 'mobile-fechado'
     : (persistido || 'expandida');
 
+  const nomeCompleto = [meta.nome, meta.sobrenome].filter(Boolean).join(' ').trim() || nome;
+
   return `
     <aside class="app-sidebar" data-estado="${estado}" role="navigation" aria-label="Menu principal">
       <div class="sidebar-topo">
         <a href="/dashboard" data-link class="sidebar-logo" aria-label="Caixa Boti — início" title="Início">
           <span class="sidebar-logo-marca" aria-hidden="true"
                 style="-webkit-mask:url(${URL_LOGO}) no-repeat center / contain; mask:url(${URL_LOGO}) no-repeat center / contain"></span>
+          <span class="sidebar-logo-wordmark">Caixa Boti</span>
         </a>
       </div>
 
@@ -57,10 +60,14 @@ export async function renderSidebar(rotaAtiva) {
       <div class="sidebar-rodape">
         <button id="sidebar-user" type="button" class="sidebar-user"
                 aria-haspopup="menu" aria-expanded="false"
-                aria-label="Menu do usuário · ${esc(nome)} · ${esc(email)}"
-                data-nome="${esc(nome)}"
+                aria-label="Abrir menu de ${esc(nomeCompleto)}"
+                data-nome="${esc(nomeCompleto)}"
                 data-email="${esc(email)}">
           <span class="sidebar-user-avatar" aria-hidden="true">${esc(inicial)}</span>
+          <span class="sidebar-user-info">
+            <span class="sidebar-user-nome">${esc(nomeCompleto)}</span>
+            <span class="sidebar-user-email" title="${esc(email)}">${esc(email)}</span>
+          </span>
         </button>
       </div>
     </aside>
