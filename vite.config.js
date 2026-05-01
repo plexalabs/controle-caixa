@@ -21,6 +21,11 @@ export default defineConfig({
   // com "/" (ex.: <link href="/styles/tokens.css">) resolvem para web/.
   root: 'web',
 
+  // Onde o Vite procura .env* — por padrao seria o root (web/), mas
+  // queremos manter os arquivos .env na raiz do repositorio (junto
+  // com .env.example). Caminho relativo ao root.
+  envDir: '..',
+
   // public/ contem statics que sao copiados 1:1 para o build sem
   // processamento (manifest.webmanifest, sw.js, _headers, _redirects,
   // assets/ com logo.svg e favicon). URLs absolutas como /manifest.json
