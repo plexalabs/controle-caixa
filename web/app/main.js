@@ -2,6 +2,13 @@
 // Despacha a rota inicial e ouve mudanças de sessão do Supabase
 // para reagir a logouts vindos de outra aba ou expiração de token.
 
+// CSS — Vite resolve a ordem: Tailwind (base/components/utilities) primeiro,
+// depois nossos tokens (variáveis), depois components (classes editoriais)
+// que sobrepoem ou complementam o Tailwind.
+import '../styles/tailwind.css';
+import '../styles/tokens.css';
+import '../styles/components.css';
+
 import { despachar }         from './router.js';
 import { supabase }          from './supabase.js';
 import { mostrarToast }      from './notifications.js';

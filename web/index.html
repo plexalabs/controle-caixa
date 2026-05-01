@@ -16,35 +16,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700&display=swap">
 
-    <!-- Tailwind via Play CDN — sem build, conforme regra inviolável -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      // Configuração inline do Tailwind: cores canônicas do projeto + fontes editoriais.
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              papel:      '#F5EFE6',  // background quente, base do sistema
-              papel2:     '#EDE5D6',  // variação para divisores/cards
-              tinta:      '#1A1A1A',  // texto primário
-              tinta2:     '#3F3F3F',  // texto secundário
-              musgo:      '#0F4C3A',  // acento principal — verde-petróleo
-              musgo2:     '#1F6A55',  // hover/foco
-              ambar:      '#C77A3F',  // detalhe editorial
-              alerta:     '#9A2A1F',  // erro, sangue seco
-              // Cores canônicas das categorias (docs/01 §6) — ficam para CP3.
-            },
-            fontFamily: {
-              display: ['Fraunces', 'serif'],
-              sans:    ['Manrope', 'system-ui', 'sans-serif'],
-            },
-          }
-        }
-      }
-    </script>
-
-    <link rel="stylesheet" href="/styles/tokens.css">
-    <link rel="stylesheet" href="/styles/components.css">
+    <!-- Tailwind, tokens e components agora sao importados via main.js
+         (build pelo Vite + PostCSS). Config em tailwind.config.js. -->
 </head>
 <body class="bg-papel text-tinta antialiased font-sans">
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:bg-musgo focus:text-papel focus:px-3 focus:py-2 focus:rounded-md focus:z-50">
