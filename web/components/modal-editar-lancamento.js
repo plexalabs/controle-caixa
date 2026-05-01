@@ -16,6 +16,7 @@ import { CATEGORIAS, BANDEIRAS, MODALIDADES, STATUS_LINK, TIPOS_OBS,
          LABEL_CATEGORIA } from '../app/dominio.js';
 import { mostrarToast } from '../app/notifications.js';
 import { debounce } from '../app/utils.js';
+import { instalarPopSelectsEm } from './pop-select.js';
 
 // Estado interno do drawer (limpo a cada abertura).
 let estado = null;
@@ -133,9 +134,16 @@ function ligarCategorizar() {
   const f = (id) => form.querySelector(`#${id}`) || document.querySelector(`#${id}`);
   const erroEl = document.querySelector('#erro-form');
 
+  // Substitui os <select> nativos pelo listbox custom papel/musgo.
+  instalarPopSelectsEm(form);
+
   setTimeout(() => {
     const alvo = estado.lancamento ? f('categoria') : f('numero_nf');
-    alvo?.focus();
+    // Quando categoria foi populada e o select original está oculto,
+    // foca o trigger custom em vez do select.
+    const triggerCat = document.querySelector('.pop-select-trigger[aria-labelledby]');
+    if (estado.lancamento && triggerCat) triggerCat.focus();
+    else alvo?.focus();
   }, 360);
 
   form.addEventListener('input', () => { estado.sujo = true; revalidar(); });
@@ -299,6 +307,10 @@ async function renderCamposCategoria(cat) {
   container.querySelectorAll('input, select, textarea').forEach(el => {
     el.addEventListener('input', () => { estado.sujo = true; revalidar(); });
   });
+
+  // Re-instala pop-selects nos novos campos dinamicos (bandeira,
+  // modalidade, vendedora, status_link, tipo_obs).
+  instalarPopSelectsEm(container);
 }
 
 // ─── Helpers de geração de campos ───────────────────────────────────────
