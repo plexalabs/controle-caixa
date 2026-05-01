@@ -4227,6 +4227,184 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 
+/* ============================================================
+   CP6.4 — Charts CSS editoriais no dashboard
+   ============================================================ */
+
+/* Distribuição por categoria — barras horizontais ranqueadas */
+.chart-dist {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-left: 3px solid var(--c-musgo);
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    padding: 1.2rem 1.4rem;
+}
+.chart-dist-linha {
+    display: grid;
+    grid-template-columns: 7rem 1fr auto;
+    align-items: center;
+    gap: 0.85rem;
+    animation: fade-up 500ms var(--ease-out) backwards;
+}
+@media (max-width: 640px) {
+    .chart-dist-linha {
+        grid-template-columns: 5rem 1fr auto;
+        gap: 0.55rem;
+    }
+}
+.chart-dist-rotulo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--c-tinta);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.chart-dist-trilha {
+    background: var(--c-papel-2);
+    height: 28px;
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    overflow: hidden;
+    position: relative;
+}
+.chart-dist-barra {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--c-musgo);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    transition: width 700ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.chart-dist-barra.is-animado { width: var(--alvo, 0%); }
+
+.chart-dist-barra[data-cat="cartao"]      { background: var(--cat-cartao-border); }
+.chart-dist-barra[data-cat="pix"]         { background: var(--cat-pix-border); }
+.chart-dist-barra[data-cat="dinheiro"]    { background: var(--cat-dinheiro-border); }
+.chart-dist-barra[data-cat="cancelado"]   { background: var(--cat-cancelado-border); }
+.chart-dist-barra[data-cat="cartao_link"] { background: var(--cat-link-border); }
+.chart-dist-barra[data-cat="obs"]         { background: var(--cat-obs-border); }
+
+.chart-dist-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.05rem;
+    font-family: 'Manrope', sans-serif;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.chart-dist-pct {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--c-tinta);
+}
+.chart-dist-valor {
+    font-size: 0.74rem;
+    color: var(--c-tinta-3);
+}
+
+/* Movimento dos últimos 30 dias — barrinhas verticais editoriais */
+.chart-mov {
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-left: 3px solid var(--c-musgo);
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    padding: 1.4rem 1.4rem 1rem;
+    position: relative;
+}
+.chart-mov-barras {
+    display: grid;
+    grid-template-columns: repeat(30, 1fr);
+    gap: 4px;
+    align-items: end;
+    height: 110px;
+    margin-bottom: 0.4rem;
+}
+@media (max-width: 640px) {
+    /* Em mobile, usa scroll horizontal pra preservar a leitura.
+       Cada barrinha mantém largura mínima legível. */
+    .chart-mov-barras {
+        grid-template-columns: repeat(30, minmax(14px, 1fr));
+        overflow-x: auto;
+        padding-bottom: 0.4rem;
+    }
+}
+
+.chart-mov-coluna {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    transition: transform 180ms var(--ease-spring);
+    animation: fade-up 600ms var(--ease-out) backwards;
+}
+.chart-mov-coluna:hover { transform: translateY(-2px); }
+.chart-mov-coluna[data-hoje="true"] .chart-mov-rot {
+    color: var(--c-musgo);
+    font-weight: 700;
+}
+
+.chart-mov-barra {
+    display: block;
+    width: 100%;
+    background: var(--c-musgo);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    height: 0;
+    min-height: 1px;
+    transition: height 700ms cubic-bezier(0.32, 0.72, 0, 1),
+                background 180ms ease;
+}
+.chart-mov-barra.is-animado { height: var(--alvo, 0%); }
+.chart-mov-coluna:hover .chart-mov-barra {
+    background: var(--c-musgo-2);
+}
+.chart-mov-coluna[data-fim="true"] .chart-mov-barra {
+    background: rgba(15, 76, 58, 0.4);
+}
+.chart-mov-coluna[data-vazio="true"] .chart-mov-barra {
+    background: var(--c-papel-3);
+    min-height: 2px;
+}
+.chart-mov-coluna[data-hoje="true"] .chart-mov-barra {
+    background: var(--c-ambar);
+    box-shadow: 0 -2px 0 0 var(--c-ambar-2);
+}
+
+.chart-mov-rot {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--c-tinta-3);
+    margin-top: 0.45rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.chart-mov-base {
+    height: 1px;
+    background: rgba(15, 76, 58, 0.18);
+    margin: 0 0 0.5rem 0;
+}
+.chart-mov-eixo {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--c-tinta-3);
+    padding: 0 0.4rem;
+}
+
+
 /* Banner read-only no /caixa/:data fechado */
 .banner-fechado {
     display: flex;

@@ -4,7 +4,7 @@
 
 import { supabase, pegarSessao } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
-import { saudacaoPorHora, dataLonga, isoData } from '../dominio.js';
+import { saudacaoPorHora, dataLonga, isoData, LABEL_CATEGORIA } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
 import { navegar } from '../router.js';
@@ -71,6 +71,38 @@ export async function renderDashboard() {
         </header>
         <div id="lista-criticas" class="space-y-2"></div>
       </section>
+
+      <!-- Distribuição por categoria do mês (CP6.4) -->
+      <section id="bloco-distribuicao" class="mt-12 reveal reveal-6" aria-labelledby="h-dist">
+        <header class="flex items-baseline justify-between mb-4">
+          <div>
+            <p class="h-eyebrow">Distribuição</p>
+            <h2 id="h-dist" class="h-display text-2xl" style="font-style:normal;font-weight:500;margin-top:0.2rem">
+              Por categoria
+            </h2>
+          </div>
+          <span id="dist-mes-rotulo" class="h-meta text-sm" style="font-style:italic;color:var(--c-tinta-3)"></span>
+        </header>
+        <div id="dist-conteudo">
+          <div class="skel" style="height:8rem"></div>
+        </div>
+      </section>
+
+      <!-- Movimento dos últimos 30 dias (CP6.4) -->
+      <section id="bloco-movimento" class="mt-12 reveal reveal-6" aria-labelledby="h-mov">
+        <header class="flex items-baseline justify-between mb-4">
+          <div>
+            <p class="h-eyebrow">Movimento</p>
+            <h2 id="h-mov" class="h-display text-2xl" style="font-style:normal;font-weight:500;margin-top:0.2rem">
+              Últimos 30 dias
+            </h2>
+          </div>
+          <span id="mov-resumo" class="h-meta text-sm" style="font-style:italic;color:var(--c-tinta-3)"></span>
+        </header>
+        <div id="mov-conteudo">
+          <div class="skel" style="height:6rem"></div>
+        </div>
+      </section>
     </main>
   `,
   });
@@ -79,7 +111,164 @@ export async function renderDashboard() {
   await carregarResumo(hojeISO);
   await carregarNotificacoes();
   await carregarCriticas();
+  await carregarDistribuicaoCategoria();
+  await carregarMovimento30d();
   ligarRealtime();
+}
+
+// ─── CP6.4: Distribuição por categoria (mês corrente, fallback mês anterior) ──
+async function carregarDistribuicaoCategoria() {
+  const cont = document.querySelector('#dist-conteudo');
+  const lblMes = document.querySelector('#dist-mes-rotulo');
+  if (!cont) return;
+
+  const hoje = new Date();
+  const inicioMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const inicioMesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+
+  // Tenta mês atual; se vazio, usa mês anterior pra exibir algo.
+  let { data, error } = await supabase.rpc('distribuicao_categoria_mes', {
+    p_mes_ref: isoData(inicioMesAtual),
+  });
+  let mesUsado = inicioMesAtual;
+
+  if (!error && (!data || data.length === 0)) {
+    const r = await supabase.rpc('distribuicao_categoria_mes', {
+      p_mes_ref: isoData(inicioMesAnterior),
+    });
+    if (!r.error && r.data && r.data.length > 0) {
+      data = r.data;
+      mesUsado = inicioMesAnterior;
+    }
+  }
+
+  if (lblMes) {
+    const fmtMes = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
+    const sufixo = mesUsado.getMonth() === inicioMesAtual.getMonth() ? '' : ' (fallback)';
+    lblMes.textContent = fmtMes.format(mesUsado) + sufixo;
+  }
+
+  if (error) {
+    cont.innerHTML = `<p class="alert">Não foi possível carregar a distribuição.</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    cont.innerHTML = `
+      <div class="vazio" style="padding:2rem 1.5rem">
+        <p class="vazio-titulo" style="font-size:1.05rem">Distribuição vai aparecer quando houver lançamentos no período.</p>
+        <p class="vazio-desc">Cadastre lançamentos categorizados pra ver a divisão entre Cartão, Pix, Dinheiro etc.</p>
+      </div>`;
+    return;
+  }
+
+  const totalGeral = data.reduce((s, r) => s + Number(r.total_valor || 0), 0);
+
+  cont.innerHTML = `
+    <div class="chart-dist">
+      ${data.map((r, i) => {
+        const pct = totalGeral > 0 ? (Number(r.total_valor) / totalGeral) * 100 : 0;
+        return `
+          <div class="chart-dist-linha" style="animation-delay:${i * 70}ms">
+            <span class="chart-dist-rotulo">${esc(LABEL_CATEGORIA[r.categoria] || r.categoria)}</span>
+            <div class="chart-dist-trilha" aria-label="${pct.toFixed(1)} por cento">
+              <span class="chart-dist-barra" data-cat="${esc(r.categoria)}"
+                    style="--alvo:${pct.toFixed(2)}%"></span>
+            </div>
+            <span class="chart-dist-meta">
+              <span class="chart-dist-pct">${pct.toFixed(0)}%</span>
+              <span class="chart-dist-valor">${formatBRL(r.total_valor)}</span>
+            </span>
+          </div>`;
+      }).join('')}
+    </div>`;
+
+  // Trigger anim
+  requestAnimationFrame(() => {
+    cont.querySelectorAll('.chart-dist-barra').forEach(el => el.classList.add('is-animado'));
+  });
+}
+
+// ─── CP6.4: Movimento dos últimos 30 dias ──────────────────────────────
+async function carregarMovimento30d() {
+  const cont = document.querySelector('#mov-conteudo');
+  const resumo = document.querySelector('#mov-resumo');
+  if (!cont) return;
+
+  const { data, error } = await supabase.rpc('serie_diaria_caixa', { p_dias_atras: 30 });
+  if (error) {
+    cont.innerHTML = `<p class="alert">Não foi possível carregar o movimento.</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    cont.innerHTML = `
+      <div class="vazio" style="padding:2rem 1.5rem">
+        <p class="vazio-titulo" style="font-size:1.05rem">Sem caixas registrados nos últimos 30 dias.</p>
+      </div>`;
+    return;
+  }
+
+  // Garante range completo de 30 dias (preenche dias faltantes com null)
+  const hoje = new Date();
+  const inicio = new Date(hoje); inicio.setDate(hoje.getDate() - 29);
+  const dataIndex = Object.fromEntries(data.map(r => [r.data, r]));
+  const dias = [];
+  for (let d = new Date(inicio); d <= hoje; d.setDate(d.getDate() + 1)) {
+    const iso = isoData(new Date(d));
+    dias.push(dataIndex[iso] || { data: iso, total_valor: 0, total_lancamentos: 0, estado: null });
+  }
+
+  const valores = dias.map(d => Number(d.total_valor || 0));
+  const maxValor = Math.max(...valores, 1);
+  const totalPeriodo = valores.reduce((s, v) => s + v, 0);
+  const totalLanc = dias.reduce((s, d) => s + Number(d.total_lancamentos || 0), 0);
+
+  if (resumo) {
+    resumo.textContent = `${formatBRL(totalPeriodo)} · ${totalLanc} ${totalLanc === 1 ? 'lançamento' : 'lançamentos'}`;
+  }
+
+  cont.innerHTML = `
+    <div class="chart-mov">
+      <div class="chart-mov-barras" role="list" aria-label="Movimento diário">
+        ${dias.map((d, i) => {
+          const v = Number(d.total_valor || 0);
+          const altura = maxValor > 0 ? Math.round((v / maxValor) * 100) : 0;
+          const dt = new Date(d.data + 'T00:00:00');
+          const semana = ['DOM','SEG','TER','QUA','QUI','SEX','SAB'][dt.getDay()];
+          const ehHoje = d.data === isoData(new Date());
+          const fim = dt.getDay() === 0 || dt.getDay() === 6;
+          const titulo = `${dataLonga(d.data)} — ${formatBRL(v)} · ${d.total_lancamentos} ${d.total_lancamentos === 1 ? 'lançamento' : 'lançamentos'}${d.estado ? ' (' + d.estado + ')' : ' (sem caixa)'}`;
+          return `
+            <a class="chart-mov-coluna" data-link
+               role="listitem"
+               href="/caixa/${esc(d.data)}"
+               title="${esc(titulo)}"
+               data-fim="${fim}"
+               data-hoje="${ehHoje}"
+               data-vazio="${v === 0}"
+               style="animation-delay:${i * 18}ms">
+              <span class="chart-mov-barra" style="--alvo:${altura}%"></span>
+              <span class="chart-mov-rot">${semana[0]}</span>
+            </a>`;
+        }).join('')}
+      </div>
+      <div class="chart-mov-base" aria-hidden="true"></div>
+      <div class="chart-mov-eixo">
+        <span>${esc(formatarDataCurta(dias[0].data))}</span>
+        <span>${esc(formatarDataCurta(dias[Math.floor(dias.length/2)].data))}</span>
+        <span>${esc(formatarDataCurta(dias[dias.length-1].data))}</span>
+      </div>
+    </div>`;
+
+  requestAnimationFrame(() => {
+    cont.querySelectorAll('.chart-mov-barra').forEach(el => el.classList.add('is-animado'));
+  });
+}
+
+function formatarDataCurta(iso) {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}`;
 }
 
 // ─── Cards de resumo via dashboard_resumo + queries auxiliares ────────────
