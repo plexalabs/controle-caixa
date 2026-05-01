@@ -127,7 +127,7 @@ async function carregarLancamentos(caixaId) {
 
   const { data, error } = await supabase
     .from('lancamento')
-    .select('id, numero_nf, codigo_pedido, cliente_nome, valor_nf, categoria, estado, dados_categoria, criado_em, resolvido_em')
+    .select('id, numero_nf, codigo_pedido, cliente_nome, valor_nf, categoria, estado, dados_categoria, criado_em, resolvido_em, atualizado_em')
     .eq('caixa_id', caixaId)
     .neq('estado', 'excluido')
     .order('criado_em', { ascending: true });
@@ -173,12 +173,19 @@ function linhaLancamento(l) {
   const labelLongo     = cat ? (LABEL_CATEGORIA[cat] || cat) : 'Em análise';
   const labelVertical  = cat ? (LABEL_CATEGORIA_CURTA[cat] || cat.toUpperCase()) : 'EM ANÁLISE';
   const ehAtrasado     = l.estado === 'pendente' && diasUteisDesde(l.criado_em) > 3;
-  const ehResolvido    = l.estado === 'resolvido';
+  const ehResolvido    = ['resolvido','finalizado'].includes(l.estado);
   const emAnalise      = !cat;
-  const estadoFinal    = l.dados_categoria?.estado_final || '';
+
+  // estado_final agora vem do enum real, nao mais do JSON.
+  const estadoFinal    = l.estado === 'finalizado' ? 'finalizado'
+                       : ['cancelado_pos','cancelado'].includes(l.estado) ? 'cancelado'
+                       : '';
+
+  const dataDesfecho   = l.resolvido_em || l.atualizado_em;
+  const dataCurtaFmt   = dataDesfecho ? formatarDataBR(dataDesfecho) : '';
   const detalheBase    = cat ? resumoDetalhes(cat, l.dados_categoria) : '';
-  const detalheSuffix  = estadoFinal === 'finalizado' ? ' · finalizado'
-                       : estadoFinal === 'cancelado'  ? ' · cancelado pós-pagamento'
+  const detalheSuffix  = estadoFinal === 'finalizado' ? ` · finalizado${dataCurtaFmt ? ' em ' + dataCurtaFmt : ''}`
+                       : estadoFinal === 'cancelado'  ? ` · cancelado pós-pagamento${dataCurtaFmt ? ' em ' + dataCurtaFmt : ''}`
                        : '';
 
   return `
@@ -214,20 +221,16 @@ function atualizarRodape(lancamentos) {
   if (lancamentos.length === 0) { rod.classList.add('hidden'); return; }
   rod.classList.remove('hidden');
 
-  // Categorias filtradas por significado real (sem redundância):
-  const validos    = lancamentos.filter(l => l.categoria !== 'cancelado'
-                                          && l.estado !== 'cancelado');
+  // Categorias filtradas pelo estado real do enum (CP4):
+  const ehCancelado = (l) => l.categoria === 'cancelado'
+                          || ['cancelado','cancelado_pos'].includes(l.estado);
+  const validos    = lancamentos.filter(l => !ehCancelado(l));
   const total      = validos.reduce((s, l) => s + Number(l.valor_nf || 0), 0);
 
   const emAnalise  = lancamentos.filter(l => !l.categoria);
-  const emCurso    = lancamentos.filter(l => l.categoria
-                                          && l.estado === 'completo'
-                                          && !l.dados_categoria?.estado_final);
-  const resolvidos = lancamentos.filter(l => l.estado === 'resolvido'
-                                          || l.dados_categoria?.estado_final === 'finalizado');
-  const cancelados = lancamentos.filter(l => l.categoria === 'cancelado'
-                                          || l.estado === 'cancelado'
-                                          || l.dados_categoria?.estado_final === 'cancelado');
+  const emCurso    = lancamentos.filter(l => l.categoria && l.estado === 'completo');
+  const resolvidos = lancamentos.filter(l => ['resolvido','finalizado'].includes(l.estado));
+  const cancelados = lancamentos.filter(ehCancelado);
 
   // Distribuição por categoria (apenas categorizados, exclui em-análise).
   const dist = {};
@@ -296,6 +299,14 @@ function renderSemCaixa(dataAlvo) {
         Abrir caixa de ${dataCurta(dataAlvo)}
       </button>
     </div>`;
+}
+
+function formatarDataBR(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}`;
 }
 
 function diasUteisDesde(ts) {
