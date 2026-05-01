@@ -36,17 +36,17 @@ export async function renderSidebar(rotaAtiva) {
   return `
     <aside class="app-sidebar" data-estado="${estado}" role="navigation" aria-label="Menu principal">
       <div class="sidebar-topo">
-        <a href="/dashboard" data-link class="sidebar-logo" aria-label="Caixa Boti — início">
+        <a href="/dashboard" data-link class="sidebar-logo" aria-label="Caixa Boti — início" title="Início">
           <span class="sidebar-logo-marca" aria-hidden="true"
                 style="-webkit-mask:url(${URL_LOGO}) no-repeat center / contain; mask:url(${URL_LOGO}) no-repeat center / contain"></span>
-          <span class="sidebar-logo-texto">Caixa Boti</span>
         </a>
-        <button id="sidebar-toggle" type="button" class="sidebar-toggle"
-                aria-label="${estado === 'colapsada' ? 'Expandir menu' : 'Colapsar menu'}"
-                title="${estado === 'colapsada' ? 'Expandir' : 'Colapsar'}">
-          ${svgChevron()}
-        </button>
       </div>
+
+      <button id="sidebar-toggle" type="button" class="sidebar-toggle"
+              aria-label="${estado === 'colapsada' ? 'Expandir menu' : 'Colapsar menu'}"
+              title="${estado === 'colapsada' ? 'Expandir' : 'Colapsar'}">
+        ${svgChevron()}
+      </button>
 
       <nav class="sidebar-nav" aria-label="Seções">
         ${linkSidebar('caixas',        '/caixas',         'Caixas',       svgCaixa(), rotaAtiva)}
@@ -57,13 +57,10 @@ export async function renderSidebar(rotaAtiva) {
       <div class="sidebar-rodape">
         <button id="sidebar-user" type="button" class="sidebar-user"
                 aria-haspopup="menu" aria-expanded="false"
-                aria-label="Menu do usuário ${nome}">
+                aria-label="Menu do usuário · ${esc(nome)} · ${esc(email)}"
+                data-nome="${esc(nome)}"
+                data-email="${esc(email)}">
           <span class="sidebar-user-avatar" aria-hidden="true">${esc(inicial)}</span>
-          <span class="sidebar-user-texto">
-            <span class="sidebar-user-nome">${esc(nome)}</span>
-            <span class="sidebar-user-email">${esc(email)}</span>
-          </span>
-          <span class="sidebar-user-caret" aria-hidden="true">${svgPontos()}</span>
         </button>
       </div>
     </aside>
@@ -73,21 +70,26 @@ export async function renderSidebar(rotaAtiva) {
       ${svgHamburguer()}
     </button>
     <div id="app-mobile-overlay" class="app-mobile-overlay" hidden></div>
+
+    <div id="sidebar-tooltip" class="sidebar-tooltip" role="tooltip" aria-hidden="true"></div>
   `;
 }
 
 function linkSidebar(chave, href, label, icone, rotaAtiva, opcoes = {}) {
   const ativo = rotaAtiva === chave;
+  // Badge no item Notificações: vive DENTRO do .sidebar-link-icone para que,
+  // no estado colapsado, fique grudado no canto superior direito do ícone.
+  // No expandido, é deslocado para a borda direita do item via CSS.
+  const iconeHtml = opcoes.bellSlot
+    ? `<span class="sidebar-link-icone" aria-hidden="true">${icone}<span id="sidebar-bell-badge" class="sidebar-link-badge" data-zero="true">0</span></span>`
+    : `<span class="sidebar-link-icone" aria-hidden="true">${icone}</span>`;
   return `
     <a href="${href}" data-link class="sidebar-link"
        data-rota="${chave}"
        ${ativo ? 'aria-current="page"' : ''}
        data-tooltip="${esc(label)}">
-      <span class="sidebar-link-icone" aria-hidden="true">${icone}</span>
+      ${iconeHtml}
       <span class="sidebar-link-texto">${esc(label)}</span>
-      ${opcoes.bellSlot
-        ? '<span id="sidebar-bell-badge" class="sidebar-link-badge" data-zero="true" aria-hidden="true">0</span>'
-        : ''}
     </a>`;
 }
 
@@ -146,8 +148,57 @@ export function ligarSidebar() {
   montarSino({ slotBadge: '#sidebar-bell-badge' }).catch(e =>
     console.warn('[sidebar] bell falhou:', e));
 
+  // Tooltip dos links — só dispara no estado colapsado, com 400ms de delay
+  ligarTooltips(aside);
+
   // Resize: troca default de mobile pra desktop e vice-versa
   window.addEventListener('resize', onResize);
+}
+
+// ─── Tooltip custom (CP5-FIX 9) ─────────────────────────────────────
+let tooltipTimer = null;
+
+function ligarTooltips(aside) {
+  const tip = document.querySelector('#sidebar-tooltip');
+  if (!tip) return;
+
+  aside.querySelectorAll('.sidebar-link').forEach(el => {
+    el.addEventListener('mouseenter', () => agendarTooltip(el, el.dataset.tooltip));
+    el.addEventListener('mouseleave', esconderTooltip);
+    el.addEventListener('focus',  () => mostrarTooltip(el, el.dataset.tooltip));
+    el.addEventListener('blur',   esconderTooltip);
+  });
+  // Esconde imediatamente em qualquer click — UX limpa
+  aside.addEventListener('click', esconderTooltip, true);
+}
+
+function agendarTooltip(alvo, texto) {
+  const aside = document.querySelector('.app-sidebar');
+  if (!aside || aside.dataset.estado !== 'colapsada') return;
+  clearTimeout(tooltipTimer);
+  tooltipTimer = setTimeout(() => mostrarTooltip(alvo, texto), 400);
+}
+
+function mostrarTooltip(alvo, texto) {
+  const aside = document.querySelector('.app-sidebar');
+  if (!aside || aside.dataset.estado !== 'colapsada') return;
+  const tip = document.querySelector('#sidebar-tooltip');
+  if (!tip || !texto) return;
+  const r = alvo.getBoundingClientRect();
+  tip.textContent = texto;
+  tip.style.left = `${r.right + 10}px`;
+  tip.style.top  = `${r.top + r.height / 2}px`;
+  tip.dataset.visivel = 'true';
+  tip.setAttribute('aria-hidden', 'false');
+}
+
+function esconderTooltip() {
+  clearTimeout(tooltipTimer);
+  tooltipTimer = null;
+  const tip = document.querySelector('#sidebar-tooltip');
+  if (!tip) return;
+  tip.dataset.visivel = 'false';
+  tip.setAttribute('aria-hidden', 'true');
 }
 
 function escFechaMobile(e) {
@@ -244,16 +295,7 @@ function svgHamburguer() {
   return `
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
       <path d="M4 7 H20 M4 12 H20 M4 17 H20" stroke="currentColor"
-            stroke-width="1.6" stroke-linecap="round"/>
-    </svg>`;
-}
-
-function svgPontos() {
-  return `
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-      <circle cx="3" cy="7" r="1.4"/>
-      <circle cx="7" cy="7" r="1.4"/>
-      <circle cx="11" cy="7" r="1.4"/>
+            stroke-width="1.5" stroke-linecap="round"/>
     </svg>`;
 }
 
