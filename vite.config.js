@@ -1,18 +1,17 @@
-// vite.config.js — dev server para o frontend do Caixa Boti.
+// vite.config.js — dev server e build do frontend do Caixa Boti.
 //
-// Por que Vite e nao mais "python -m http.server":
-//   1. SPA fallback: dar F5 em /dashboard ou /caixa/2026-04-30 ja nao
-//      retorna 404. Vite serve index.html para qualquer rota nao-arquivo.
-//   2. Cache desativado em dev: mudancas no CSS/JS aparecem na hora,
-//      sem Ctrl+Shift+R.
-//   3. HMR (hot module reload): editar e ver atualizar sem perder estado.
+// Vite serve o app SPA a partir de web/, le .env de .. (raiz do repo),
+// e gera o build em ../dist (pronto para Cloudflare Pages na Fase 4).
 //
-// O que NAO mudou:
-//   - HTML+JS vanilla (sem framework).
-//   - Tailwind via CDN (script src=cdn.tailwindcss.com no index.html).
-//   - supabase-js carregado via esm.sh dentro do JS.
-//   - Estrutura de pastas web/ com imports absolutos /components/...,
-//     /styles/..., /app/... — Vite resolve naturalmente porque root='web'.
+// Toolchain:
+//   - Tailwind: PostCSS plugin (tailwind.config.js, postcss.config.js).
+//   - supabase-js: pacote npm @supabase/supabase-js, importado em
+//     web/app/supabase.js — credenciais via import.meta.env.VITE_*.
+//   - SPA fallback: rotas como /caixa/2026-04-30 voltam o index.html
+//     (appType: 'spa').
+//
+// HMR + Cache-Control: no-store em dev garantem que mudancas aparecem
+// na hora, sem Ctrl+Shift+R.
 
 import { defineConfig } from 'vite';
 

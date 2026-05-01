@@ -1,7 +1,7 @@
-/* tailwind.css — entry point do Tailwind buildado via PostCSS.
-   Substitui o <script src="cdn.tailwindcss.com"> que vivia no index.html.
-   Importado pelo main.js para que o pipeline do Vite resolva todas as
-   classes utilitárias usadas em qualquer arquivo .html ou .js do web/. */
+/* Entrypoint do Tailwind. Carregado por main.js antes de tokens.css
+   e components.css para que classes utility apareçam abaixo do reset
+   mas acima dos componentes editoriais. PostCSS expande as diretivas
+   no build (Vite + tailwindcss + autoprefixer). */
 
 @tailwind base;
 @tailwind components;
