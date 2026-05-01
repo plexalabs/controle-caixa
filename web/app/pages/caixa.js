@@ -205,21 +205,31 @@ function linhaLancamento(l) {
     </button>`;
 }
 
-// ─── Rodapé com totais ────────────────────────────────────────────────────
+// ─── Resumo do dia ─────────────────────────────────────────────────────────
+// 3 blocos em coluna, com label-eyebrow à esquerda e conteúdo à direita.
+// Mobile empilha. Cada bloco tem identidade visual propria.
 function atualizarRodape(lancamentos) {
   const rod = document.querySelector('#rodape');
   if (!rod) return;
   if (lancamentos.length === 0) { rod.classList.add('hidden'); return; }
   rod.classList.remove('hidden');
 
-  const validos    = lancamentos.filter(l => l.categoria !== 'cancelado');
+  // Categorias filtradas por significado real (sem redundância):
+  const validos    = lancamentos.filter(l => l.categoria !== 'cancelado'
+                                          && l.estado !== 'cancelado');
   const total      = validos.reduce((s, l) => s + Number(l.valor_nf || 0), 0);
-  const emAnalise  = lancamentos.filter(l => !l.categoria);
-  const pendentes  = lancamentos.filter(l => ['pendente','em_preenchimento'].includes(l.estado));
-  const resolvidos = lancamentos.filter(l => l.estado === 'resolvido');
-  const cancelados = lancamentos.filter(l => l.categoria === 'cancelado');
 
-  // Distribuição por categoria — exclui pendentes "em análise" da contagem.
+  const emAnalise  = lancamentos.filter(l => !l.categoria);
+  const emCurso    = lancamentos.filter(l => l.categoria
+                                          && l.estado === 'completo'
+                                          && !l.dados_categoria?.estado_final);
+  const resolvidos = lancamentos.filter(l => l.estado === 'resolvido'
+                                          || l.dados_categoria?.estado_final === 'finalizado');
+  const cancelados = lancamentos.filter(l => l.categoria === 'cancelado'
+                                          || l.estado === 'cancelado'
+                                          || l.dados_categoria?.estado_final === 'cancelado');
+
+  // Distribuição por categoria (apenas categorizados, exclui em-análise).
   const dist = {};
   for (const l of validos) {
     if (!l.categoria) continue;
@@ -227,32 +237,50 @@ function atualizarRodape(lancamentos) {
   }
 
   rod.innerHTML = `
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-      <div>
-        <p class="h-eyebrow">Total do dia</p>
-        <p class="h-display" style="font-style:normal;font-weight:500;font-size:2.2rem;font-variant-numeric:tabular-nums;line-height:1.05">
-          ${formatBRL(total)}
-        </p>
-        <p class="text-sm" style="color:var(--c-tinta-3)">${validos.length} lançamento${validos.length !== 1 ? 's' : ''} válidos</p>
+    <div class="resumo-dia-bloco resumo-dia-bloco--total">
+      <p class="h-eyebrow">Total do dia</p>
+      <div class="resumo-dia-total">
+        <span class="resumo-dia-total-valor">${formatBRL(total)}</span>
+        <span class="resumo-dia-total-quant">
+          ${validos.length} ${validos.length === 1 ? 'lançamento válido' : 'lançamentos válidos'}
+        </span>
       </div>
-      <div>
+    </div>
+
+    <div class="resumo-dia-bloco resumo-dia-bloco--estado">
+      <p class="h-eyebrow">Estado</p>
+      <div class="resumo-dia-chips">
+        ${chipEstado('analise',   'Em análise', emAnalise.length)}
+        ${chipEstado('curso',     'Em curso',   emCurso.length)}
+        ${chipEstado('resolvido', 'Resolvidas', resolvidos.length)}
+        ${chipEstado('cancelado', 'Canceladas', cancelados.length)}
+      </div>
+    </div>
+
+    ${Object.keys(dist).length ? `
+      <div class="resumo-dia-bloco resumo-dia-bloco--dist">
         <p class="h-eyebrow">Distribuição</p>
-        <ul class="lista-edit" style="margin-top:0.5rem">
-          ${Object.entries(dist).map(([cat, n]) =>
-            `<li>${esc(LABEL_CATEGORIA[cat] || cat)} — ${n}</li>`
-          ).join('') || '<li style="color:var(--c-tinta-3)">—</li>'}
-        </ul>
+        <div class="resumo-dia-cats">
+          ${Object.entries(dist).map(([cat, n]) => `
+            <span class="rd-cat" data-cat="${esc(cat)}">
+              <span class="rd-cat-conteudo">
+                <span class="rd-cat-nome">${esc(LABEL_CATEGORIA[cat] || cat)}</span>
+                <span class="rd-cat-num">${n}</span>
+              </span>
+            </span>
+          `).join('')}
+        </div>
       </div>
-      <div>
-        <p class="h-eyebrow">Status</p>
-        <ul class="lista-edit" style="margin-top:0.5rem">
-          <li>Em análise: <strong style="color:${emAnalise.length > 0 ? 'var(--cat-pendente-text)' : 'var(--c-tinta-3)'}">${emAnalise.length}</strong></li>
-          <li>Pendentes: <strong style="color:${pendentes.length > 0 ? 'var(--c-ambar-2)' : 'var(--c-musgo)'}">${pendentes.length}</strong></li>
-          <li>Resolvidas hoje: <strong>${resolvidos.length}</strong></li>
-          <li>Canceladas: <strong>${cancelados.length}</strong></li>
-        </ul>
-      </div>
-    </div>`;
+    ` : ''}
+  `;
+}
+
+function chipEstado(tom, rotulo, n) {
+  return `
+    <span class="rd-chip" data-tom="${tom}" data-zero="${n === 0 ? 'true' : 'false'}">
+      <span class="rd-chip-num">${n}</span>
+      <span class="rd-chip-rotulo">${rotulo}</span>
+    </span>`;
 }
 
 function renderSemCaixa(dataAlvo) {
