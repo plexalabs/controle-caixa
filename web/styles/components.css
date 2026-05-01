@@ -1159,6 +1159,234 @@
 
 
 /* ============================================================
+   Pop-data — calendário mensal custom, slim e editorial.
+   Substitui o popup nativo do <input type="date|datetime-local">.
+   ============================================================ */
+
+.pop-data-trigger {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.65rem 0.85rem;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-sm);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.95rem;
+    color: var(--c-tinta);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+    font-variant-numeric: tabular-nums;
+}
+.pop-data-trigger:hover { border-color: var(--c-tinta-3); }
+.pop-data-trigger:focus-visible,
+.pop-data-trigger[aria-expanded="true"] {
+    outline: 0;
+    border-color: var(--c-musgo);
+    box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+}
+.pop-data-trigger:disabled { opacity: 0.55; cursor: not-allowed; }
+.pop-data-trigger-texto {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.3;
+}
+.pop-data-trigger-texto.is-placeholder {
+    color: var(--c-tinta-3);
+    font-style: italic;
+}
+.pop-data-trigger-icone {
+    display: inline-flex;
+    color: var(--c-musgo);
+    flex-shrink: 0;
+}
+
+.pop-data-popover {
+    z-index: 200;
+    width: 308px;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-md);
+    padding: 0.95rem 1rem 0.85rem;
+    box-shadow: var(--shadow-deep), 0 6px 16px -8px rgba(15, 76, 58, 0.22);
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+    transform-origin: top center;
+    transition: opacity 180ms var(--ease-out),
+                transform 240ms var(--ease-spring);
+    position: relative;
+}
+.pop-data-popover--acima { transform-origin: bottom center; }
+.pop-data-popover.is-aberto    { opacity: 1; transform: translateY(0) scale(1); }
+.pop-data-popover.is-fechando  { opacity: 0; transform: translateY(-4px) scale(0.99); }
+.pop-data-popover::before {
+    /* Filete âmbar lateral — assinatura editorial */
+    content: '';
+    position: absolute;
+    left: 0; top: 18%; bottom: 18%;
+    width: 2px;
+    background: var(--c-ambar);
+    opacity: 0.42;
+    border-radius: 0 var(--r-pill) var(--r-pill) 0;
+}
+
+.pop-data-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+}
+.pop-data-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.05rem;
+    color: var(--c-tinta);
+    letter-spacing: -0.01em;
+    line-height: 1;
+}
+.pop-data-titulo-ano {
+    color: var(--c-tinta-3);
+    font-weight: 300;
+    margin-left: 0.15em;
+    font-variant-numeric: tabular-nums;
+}
+.pop-data-nav {
+    background: 0;
+    border: 0;
+    cursor: pointer;
+    width: 28px; height: 28px;
+    border-radius: var(--r-pill);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--c-musgo);
+    transition: background 160ms var(--ease-out), color 160ms var(--ease-out);
+    flex-shrink: 0;
+}
+.pop-data-nav:hover { background: var(--c-papel-2); color: var(--c-musgo-2); }
+.pop-data-nav:focus-visible {
+    outline: 2px solid var(--c-musgo);
+    outline-offset: 1px;
+}
+
+.pop-data-semana {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--c-tinta-3);
+    text-align: center;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid var(--c-papel-3);
+    margin-bottom: 0.45rem;
+}
+.pop-data-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+.pop-data-dia {
+    background: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    font-family: 'Fraunces', serif;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92rem;
+    color: var(--c-tinta);
+    height: 36px;
+    cursor: pointer;
+    transition: background 140ms var(--ease-out),
+                color 140ms var(--ease-out),
+                box-shadow 140ms var(--ease-out);
+    line-height: 1;
+}
+.pop-data-dia:hover { background: var(--c-papel-2); color: var(--c-musgo); }
+.pop-data-dia.is-fora { color: var(--c-papel-3); pointer-events: none; }
+.pop-data-dia.is-hoje {
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--c-ambar);
+}
+.pop-data-dia.is-sel {
+    background: var(--c-musgo);
+    color: var(--c-papel);
+    font-weight: 500;
+    box-shadow: none;
+}
+.pop-data-dia.is-sel:hover { background: var(--c-musgo-2); color: var(--c-papel); }
+.pop-data-dia.is-sel.is-hoje {
+    box-shadow: inset 0 0 0 1px var(--c-ambar);
+}
+
+.pop-data-hora {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.85rem;
+    margin-top: 0.85rem;
+    border-top: 1px dashed var(--c-papel-3);
+}
+.pop-data-hora-input {
+    width: 50px;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-sm);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    background: var(--c-papel);
+    color: var(--c-tinta);
+    transition: border-color 200ms var(--ease-out);
+}
+.pop-data-hora-input:focus {
+    outline: 0;
+    border-color: var(--c-musgo);
+    box-shadow: 0 0 0 2px rgba(15, 76, 58, 0.15);
+}
+.pop-data-hora-input::-webkit-outer-spin-button,
+.pop-data-hora-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pop-data-hora-input { -moz-appearance: textfield; }
+.pop-data-hora-sep {
+    color: var(--c-tinta-3);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    line-height: 1;
+    transform: translateY(-1px);
+}
+
+.pop-data-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.85rem;
+    margin-top: 0.85rem;
+    border-top: 1px solid var(--c-papel-3);
+}
+.pop-data-rodape .btn-link {
+    font-size: 0.8rem;
+}
+.pop-data-rodape .btn-primary {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    margin-left: auto;
+}
+
+
+/* ============================================================
    Form controls custom — selects, datas, números sem aparência
    nativa do navegador (banimos visual de Windows 95 do MVP).
    ============================================================ */

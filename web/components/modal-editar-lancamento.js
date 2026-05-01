@@ -17,6 +17,7 @@ import { CATEGORIAS, BANDEIRAS, MODALIDADES, STATUS_LINK, TIPOS_OBS,
 import { mostrarToast } from '../app/notifications.js';
 import { debounce } from '../app/utils.js';
 import { instalarPopSelectsEm } from './pop-select.js';
+import { instalarPopDatasEm }   from './pop-data.js';
 
 // Estado interno do drawer (limpo a cada abertura).
 let estado = null;
@@ -134,8 +135,10 @@ function ligarCategorizar() {
   const f = (id) => form.querySelector(`#${id}`) || document.querySelector(`#${id}`);
   const erroEl = document.querySelector('#erro-form');
 
-  // Substitui os <select> nativos pelo listbox custom papel/musgo.
+  // Substitui os <select> nativos pelo listbox custom papel/musgo
+  // e os inputs date/datetime pelo calendário custom.
   instalarPopSelectsEm(form);
+  instalarPopDatasEm(form);
 
   setTimeout(() => {
     const alvo = estado.lancamento ? f('categoria') : f('numero_nf');
@@ -308,9 +311,11 @@ async function renderCamposCategoria(cat) {
     el.addEventListener('input', () => { estado.sujo = true; revalidar(); });
   });
 
-  // Re-instala pop-selects nos novos campos dinamicos (bandeira,
-  // modalidade, vendedora, status_link, tipo_obs).
+  // Re-instala pop-selects e pop-datas nos novos campos dinamicos
+  // (bandeira, modalidade, vendedora, status_link, tipo_obs +
+  //  data_hora_pix, data_cancelamento, data_envio_link).
   instalarPopSelectsEm(container);
+  instalarPopDatasEm(container);
 }
 
 // ─── Helpers de geração de campos ───────────────────────────────────────
