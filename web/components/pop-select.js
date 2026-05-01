@@ -21,6 +21,10 @@ export function instalarPopSelect(select) {
   select.style.pointerEvents = 'none';
   select.tabIndex = -1;
   select.setAttribute('aria-hidden', 'true');
+  // Bloqueia abertura do popup nativo via for="" do label, atalho
+  // de teclado ou click programatico.
+  select.addEventListener('focus', (e) => { e.preventDefault(); e.target.blur(); });
+  select.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
 
   // ── Cria o trigger custom no lugar do select. ──
   const trigger = document.createElement('button');
@@ -31,13 +35,20 @@ export function instalarPopSelect(select) {
   if (select.required) trigger.dataset.required = '1';
   if (select.disabled) trigger.disabled = true;
 
-  // Reaproveita o <label> da .field para a11y, se houver
+  // Reaproveita o <label> da .field para a11y, se houver, mas
+  // DESPAREIA o for="" — senao o navegador foca o select original e
+  // pode abrir o popup nativo em alguns browsers.
   const labelEl = select.closest('.field')?.querySelector('label.field-label');
   if (labelEl) {
     if (!labelEl.id) labelEl.id = 'lbl-' + (select.id || cryptoRandom());
     trigger.setAttribute('aria-labelledby', labelEl.id);
-    // Click no label foca o trigger
-    labelEl.addEventListener('click', (e) => { e.preventDefault(); trigger.focus(); });
+    labelEl.removeAttribute('for');
+    labelEl.style.cursor = 'pointer';
+    labelEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      trigger.focus();
+    });
   }
 
   select.parentElement.insertBefore(trigger, select);

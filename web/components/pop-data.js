@@ -18,7 +18,9 @@ export function instalarPopData(input) {
 
   const ehDateTime = input.type === 'datetime-local';
 
-  // Esconde input nativo
+  // Esconde input nativo. CRITICAL: tambem readonly + bloqueio de
+  // focus, para impedir que o calendar picker nativo abra via tecla
+  // Tab, click programatico ou for="" do label.
   input.style.position = 'absolute';
   input.style.opacity  = '0';
   input.style.height   = '0';
@@ -26,8 +28,16 @@ export function instalarPopData(input) {
   input.style.padding  = '0';
   input.style.margin   = '0';
   input.style.pointerEvents = 'none';
+  input.readOnly = true;
   input.tabIndex = -1;
   input.setAttribute('aria-hidden', 'true');
+  // Bloqueia abertura do picker nativo quando algo tenta focar/clicar.
+  input.addEventListener('focus', (e) => { e.preventDefault(); e.target.blur(); });
+  input.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+  // Bloqueia showPicker() — disponivel em Chrome modernos.
+  if (typeof input.showPicker === 'function') {
+    input.showPicker = () => {};
+  }
 
   // Trigger custom
   const trigger = document.createElement('button');
@@ -37,12 +47,20 @@ export function instalarPopData(input) {
   trigger.setAttribute('aria-expanded', 'false');
   if (input.disabled) trigger.disabled = true;
 
-  // Reaproveita label
+  // Reaproveita label, mas DESPAREIA o for="" — senao o navegador abre
+  // o picker nativo ao clicar no label, ignorando o pointer-events.
   const labelEl = input.closest('.field')?.querySelector('label.field-label');
   if (labelEl) {
     if (!labelEl.id) labelEl.id = 'lbl-' + cryptoRandom();
     trigger.setAttribute('aria-labelledby', labelEl.id);
-    labelEl.addEventListener('click', (e) => { e.preventDefault(); trigger.focus(); });
+    labelEl.removeAttribute('for');
+    labelEl.style.cursor = 'pointer';
+    labelEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      trigger.focus();
+      if (!aberto) abrir();
+    });
   }
 
   input.parentElement.insertBefore(trigger, input);
