@@ -1490,7 +1490,9 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     left: 0; top: 0; bottom: 0;
     width: var(--tira-w);
     background: linear-gradient(180deg, var(--c-musgo) 0%, var(--c-musgo-3) 100%);
-    z-index: 0;
+    /* z-index acima dos blocos garante que as linhas separadoras
+       NAO cortam horizontalmente a tira/texto. */
+    z-index: 3;
 }
 .resumo-dia::after {
     /* Texto vertical "DO DIA" em creme — discreto, mas marca a peça. */
@@ -1511,11 +1513,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-papel);
     pointer-events: none;
     user-select: none;
-    z-index: 1;
+    /* Texto fica acima da propria tira — z-index maior que ::before. */
+    z-index: 4;
 }
 
 /* Bloco interno: eyebrow a esquerda + conteudo a direita. Em mobile,
-   empilha. Padding-left respeita a tira lateral. */
+   empilha. Padding-left respeita a tira lateral. As linhas separadoras
+   (border-top do proximo irmao) tem z-index baixo, ficam atras da tira. */
 .resumo-dia-bloco {
     display: grid;
     grid-template-columns: 6.5rem 1fr;
@@ -1523,7 +1527,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     align-items: center;
     padding: 1rem 1.5rem 1rem calc(var(--tira-w) + 1.5rem);
     position: relative;
-    z-index: 2;
+    z-index: 1;
 }
 .resumo-dia-bloco + .resumo-dia-bloco {
     border-top: 1px solid var(--c-papel-2);
