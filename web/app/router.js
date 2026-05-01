@@ -11,6 +11,7 @@ import { renderCaixa }         from './pages/caixa.js';
 import { renderCaixas }        from './pages/caixas.js';
 import { renderConfiguracoes } from './pages/configuracoes.js';
 import { renderVendedoras }    from './pages/configuracoes-vendedoras.js';
+import { renderPendencias }    from './pages/pendencias.js';
 import { pegarSessao }         from './supabase.js';
 
 // Lista de rotas, em ordem. `aberta: true` = não exige sessão.
@@ -29,6 +30,7 @@ const rotas = [
   { padrao: /^\/caixa\/([\w-]+)$/,            handler: renderCaixa },
   { padrao: /^\/configuracoes$/,              handler: renderConfiguracoes },
   { padrao: /^\/configuracoes\/vendedoras$/,  handler: renderVendedoras },
+  { padrao: /^\/pendencias$/,                 handler: renderPendencias },
 ];
 
 export async function navegar(url) {
