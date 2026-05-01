@@ -57,4 +57,30 @@ export default defineConfig({
     sourcemap: true,
     target: 'es2020',
   },
+
+  // npm run preview replica os mesmos cabecalhos que web/public/_headers
+  // entrega no Cloudflare Pages. Permite validar a CSP antes do deploy.
+  preview: {
+    headers: {
+      'Strict-Transport-Security':
+        'max-age=31536000; includeSubDomains; preload',
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy':
+        'geolocation=(), camera=(), microphone=(), interest-cohort=()',
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: blob:",
+        "connect-src 'self' https://shjtwrojdgotmxdbpbta.supabase.co wss://shjtwrojdgotmxdbpbta.supabase.co",
+        "manifest-src 'self'",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join('; '),
+    },
+  },
 });

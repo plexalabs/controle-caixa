@@ -1,6 +1,6 @@
-# Cabeçalhos servidos pelo Cloudflare Pages na Fase 4.
-# Em desenvolvimento local (npx serve / python -m http.server) esses headers
-# não são aplicados; validar apenas com `curl -I` simulado ou no deploy real.
+# Cabeçalhos servidos pelo Cloudflare Pages na Fase 4. Em dev local
+# (npm run dev / npm run preview), aplicar via vite.config.js para
+# validar antes do deploy.
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -8,4 +8,4 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), camera=(), microphone=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; manifest-src 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://shjtwrojdgotmxdbpbta.supabase.co wss://shjtwrojdgotmxdbpbta.supabase.co; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
