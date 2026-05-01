@@ -1465,56 +1465,86 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    Resumo do dia (acima da lista de lançamentos)
    ============================================================ */
 
+/* Card do resumo do dia: mesma metafora dos .lanc-row e .caixa-row.
+   Lado esquerdo RETO com tira musgo gradient + texto vertical "DO DIA";
+   lado direito arredondado em var(--r-md). */
 .resumo-dia {
+    --tira-w: 38px;
     margin: 0 0 1.5rem 0;
     padding: 0;
     background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-md);
-    box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.025), 0 8px 24px -20px rgba(15, 76, 58, 0.18);
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.025),
+                0 12px 28px -22px rgba(15, 76, 58, 0.20);
     position: relative;
     overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 .resumo-dia::before {
-    /* Filete âmbar discreto à esquerda — assinatura editorial */
+    /* Tira musgo lateral — assinatura editorial unificada (mesma do
+       cabecalho de /caixas e dos cards). */
     content: '';
     position: absolute;
-    left: 0; top: 12%; bottom: 12%;
-    width: 2px;
-    background: var(--c-ambar);
-    opacity: 0.55;
-    border-radius: 0 var(--r-pill) var(--r-pill) 0;
+    left: 0; top: 0; bottom: 0;
+    width: var(--tira-w);
+    background: linear-gradient(180deg, var(--c-musgo) 0%, var(--c-musgo-3) 100%);
+    z-index: 0;
+}
+.resumo-dia::after {
+    /* Texto vertical "DO DIA" em creme — discreto, mas marca a peça. */
+    content: 'DO DIA';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: var(--tira-w);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.32em;
+    color: var(--c-papel);
+    pointer-events: none;
+    user-select: none;
     z-index: 1;
 }
 
-/* Cada bloco do resumo: label-eyebrow à esquerda + conteudo à direita.
-   Em mobile, empilha. */
+/* Bloco interno: eyebrow a esquerda + conteudo a direita. Em mobile,
+   empilha. Padding-left respeita a tira lateral. */
 .resumo-dia-bloco {
     display: grid;
-    grid-template-columns: 7.5rem 1fr;
-    gap: 1.25rem;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 1.5rem;
     align-items: center;
-    padding: 0.95rem 1.4rem 0.95rem 1.6rem;
+    padding: 1rem 1.5rem 1rem calc(var(--tira-w) + 1.5rem);
     position: relative;
+    z-index: 2;
 }
 .resumo-dia-bloco + .resumo-dia-bloco {
-    border-top: 1px dashed var(--c-papel-3);
+    border-top: 1px solid var(--c-papel-2);
 }
 .resumo-dia-bloco .h-eyebrow {
     margin: 0;
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     color: var(--c-tinta-3);
+    letter-spacing: 0.22em;
     align-self: center;
 }
 .resumo-dia-bloco--total {
-    padding-top: 1.15rem;
-    padding-bottom: 1.15rem;
+    padding-top: 1.4rem;
+    padding-bottom: 1.4rem;
 }
 .resumo-dia-bloco--total .h-eyebrow {
     align-self: start;
-    padding-top: 0.65rem;
+    padding-top: 0.6rem;
+}
+.resumo-dia-bloco--dist {
+    padding-bottom: 1.2rem;
 }
 
 /* Bloco TOTAL: valor enorme + qtd lado a lado */
@@ -1544,7 +1574,9 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     line-height: 1.3;
 }
 
-/* Bloco ESTADO: chips com bolinha cromatica + numero + rotulo */
+/* Bloco ESTADO: chips clean — fundo papel-2 neutro, borda esquerda
+   reta colorida (3px) na cor do estado, direita arredondada em pill.
+   Mesma metafora dos cards: esquerda reta + direita redonda. */
 .resumo-dia-chips {
     display: flex;
     flex-wrap: wrap;
@@ -1552,21 +1584,27 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 .rd-chip {
     display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.45rem 0.95rem 0.45rem 0.75rem;
+    align-items: baseline;
+    gap: 0.55rem;
+    padding: 0.5rem 1rem 0.5rem 0.95rem;
     background: var(--c-papel-2);
-    border: 1px solid transparent;
-    border-radius: var(--r-pill);
+    border: 1px solid var(--c-papel-3);
+    border-left: 3px solid var(--c-papel-3);
+    border-radius: 0 var(--r-pill) var(--r-pill) 0;  /* esquerda reta */
     font-family: 'Manrope', sans-serif;
-    transition: transform 220ms var(--ease-spring);
+    transition: border-color 200ms var(--ease-out),
+                transform 220ms var(--ease-spring),
+                background 200ms var(--ease-out);
 }
-.rd-chip:hover { transform: translateY(-1px); }
+.rd-chip:not([data-zero="true"]):hover {
+    transform: translateY(-1px);
+    background: var(--c-papel);
+}
 .rd-chip-num {
     font-family: 'Fraunces', serif;
     font-style: italic;
     font-weight: 500;
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     color: var(--c-tinta);
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -1580,25 +1618,24 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-tinta-2);
     line-height: 1;
 }
-/* Tons cromaticos por estado */
-.rd-chip[data-tom="analise"]   { background: rgba(10, 51, 42, 0.08);  border-color: rgba(10, 51, 42, 0.18); }
+/* Cores: borda esquerda + numero — fundo permanece neutro pra ficar clean */
+.rd-chip[data-tom="analise"]              { border-left-color: var(--c-musgo-3); }
 .rd-chip[data-tom="analise"]   .rd-chip-num { color: var(--c-musgo-3); }
-.rd-chip[data-tom="curso"]     { background: rgba(199, 122, 63, 0.12); border-color: rgba(199, 122, 63, 0.28); }
+.rd-chip[data-tom="curso"]                { border-left-color: var(--c-ambar-2); }
 .rd-chip[data-tom="curso"]     .rd-chip-num { color: var(--c-ambar-2); }
-.rd-chip[data-tom="resolvido"] { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.25); }
+.rd-chip[data-tom="resolvido"]            { border-left-color: #047857; }
 .rd-chip[data-tom="resolvido"] .rd-chip-num { color: #047857; }
-.rd-chip[data-tom="cancelado"] { background: rgba(239, 68, 68, 0.09);  border-color: rgba(239, 68, 68, 0.22); }
+.rd-chip[data-tom="cancelado"]            { border-left-color: #b91c1c; }
 .rd-chip[data-tom="cancelado"] .rd-chip-num { color: #b91c1c; }
-/* Estado zero — chip apagado */
+/* Zero — chip apagado, sem cor de estado */
 .rd-chip[data-zero="true"] {
-    background: var(--c-papel-2);
-    border-color: transparent;
-    opacity: 0.55;
+    border-left-color: var(--c-papel-3);
+    opacity: 0.45;
 }
 .rd-chip[data-zero="true"] .rd-chip-num { color: var(--c-tinta-3); }
-.rd-chip[data-zero="true"]:hover { transform: none; }
 
-/* Bloco DISTRIBUICAO: chips com tira canonica na esquerda */
+/* Bloco DISTRIBUICAO: chips com tira canonica reta na esquerda +
+   direita arredondada. Mesma linguagem dos chips de estado. */
 .resumo-dia-cats {
     display: flex;
     flex-wrap: wrap;
@@ -1608,11 +1645,14 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     display: inline-flex;
     align-items: stretch;
     background: var(--c-papel-2);
-    border-radius: var(--r-sm);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-pill) var(--r-pill) 0;  /* esquerda reta */
     overflow: hidden;
     line-height: 1;
-    border: 1px solid var(--c-papel-3);
+    transition: transform 220ms var(--ease-spring),
+                background 200ms var(--ease-out);
 }
+.rd-cat:hover { transform: translateY(-1px); background: var(--c-papel); }
 .rd-cat::before {
     content: '';
     width: 4px;
@@ -1628,8 +1668,8 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .rd-cat-conteudo {
     display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.42rem 0.85rem 0.42rem 0.7rem;
+    gap: 0.55rem;
+    padding: 0.45rem 1rem 0.45rem 0.7rem;
     font-family: 'Manrope', sans-serif;
 }
 .rd-cat-nome {
@@ -1647,15 +1687,21 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-tinta);
     font-variant-numeric: tabular-nums;
     line-height: 1;
-    padding-left: 0.4rem;
+    padding-left: 0.5rem;
     border-left: 1px dashed var(--c-papel-3);
 }
 
 @media (max-width: 640px) {
+    .resumo-dia { --tira-w: 30px; }
+    .resumo-dia::after { font-size: 0.55rem; letter-spacing: 0.28em; }
     .resumo-dia-bloco {
         grid-template-columns: 1fr;
         gap: 0.55rem;
-        padding: 0.85rem 1.1rem 0.95rem 1.3rem;
+        padding: 0.95rem 1.1rem 0.95rem calc(var(--tira-w) + 1.1rem);
+    }
+    .resumo-dia-bloco--total {
+        padding-top: 1.15rem;
+        padding-bottom: 1.15rem;
     }
     .resumo-dia-bloco .h-eyebrow,
     .resumo-dia-bloco--total .h-eyebrow {
