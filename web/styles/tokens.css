@@ -1,0 +1,116 @@
+/* tokens.css — variáveis de design do Caixa Boti.
+   Identidade editorial sóbria: papel quente + verde-petróleo + âmbar.
+   Cores das categorias virão no CP3 (não usadas no login). */
+
+:root {
+    /* Paleta base */
+    --c-papel:      #F5EFE6;
+    --c-papel-2:    #EDE5D6;
+    --c-papel-3:    #E2D7C0;
+    --c-tinta:      #1A1A1A;
+    --c-tinta-2:    #3F3F3F;
+    --c-tinta-3:    #6B6B6B;
+    --c-musgo:      #0F4C3A;
+    --c-musgo-2:    #1F6A55;
+    --c-musgo-3:    #0A332A;
+    --c-ambar:      #C77A3F;
+    --c-ambar-2:    #B86A30;
+    --c-alerta:     #9A2A1F;
+    --c-alerta-bg:  #F4E2DF;
+
+    /* Sombra editorial — discreta, sem drop-shadow do Material */
+    --shadow-edit:  0 1px 0 0 rgba(26,26,26,0.06), 0 12px 40px -16px rgba(15,76,58,0.18);
+    --shadow-deep:  0 8px 24px -12px rgba(26,26,26,0.18);
+
+    /* ────────────────────────────────────────────────────────────
+       Cores canônicas das 6 categorias — docs/01 §6.
+       Não alterar sem aprovação explícita (regra inviolável).
+       ──────────────────────────────────────────────────────────── */
+    --cat-cartao-bg:      #DBEAFE;
+    --cat-cartao-border:  #1E40AF;
+    --cat-cartao-text:    #1E3A8A;
+
+    --cat-pix-bg:         #CCFBF1;
+    --cat-pix-border:     #0F766E;
+    --cat-pix-text:       #134E4A;
+
+    --cat-dinheiro-bg:    #DCFCE7;
+    --cat-dinheiro-border:#166534;
+    --cat-dinheiro-text:  #14532D;
+
+    --cat-cancelado-bg:   #FECACA;
+    --cat-cancelado-border:#991B1B;
+    --cat-cancelado-text: #7F1D1D;
+
+    --cat-link-bg:        #EDE9FE;
+    --cat-link-border:    #5B21B6;
+    --cat-link-text:      #4C1D95;
+
+    --cat-obs-bg:         #FEF3C7;
+    --cat-obs-border:     #92400E;
+    --cat-obs-text:       #78350F;
+
+    --cat-resolvido:      #10B981;
+    --cat-atrasado:       #EF4444;
+    --cat-pendente-bg:    #F3F4F6;
+    --cat-pendente-text:  #6B7280;
+
+    /* Curvas e tempos */
+    --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-spring:  cubic-bezier(0.32, 0.72, 0, 1);  /* drawer slide */
+
+    /* Raios — calmos, sem pílulas exageradas */
+    --r-xs:     6px;     /* badges, chips */
+    --r-sm:     10px;    /* botões, inputs, tabs */
+    --r-md:     14px;    /* lanc-row, stat-card, alertas */
+    --r-lg:     20px;    /* drawer, modal, vazio */
+    --r-pill:   999px;   /* avatar, fechar */
+
+    /* Tipografia */
+    --leading-tight:   1.1;
+    --leading-normal:  1.5;
+    --tracking-display: -0.025em;
+    --tracking-meta:    0.18em;  /* maiúsculas com espaçamento editorial */
+}
+
+/* Suporte a modo escuro futuro — preparado mas não ativo no MVP.
+   O Operador vai usar o sistema durante o dia em escritório iluminado. */
+@media (prefers-color-scheme: dark) {
+    /* deliberadamente vazio — manter modo claro como padrão */
+}
+
+/* Reset cirúrgico, sem normalizes pesados */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+    font-feature-settings: "ss01", "cv11";  /* refinamentos do Manrope */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* Foco visível e respeitoso — anel discreto musgo */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--c-musgo);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Scrollbar editorial — fina, em tom de musgo translúcido
+   sobre papel. Aparece tímida, ganha presença no hover.
+   ──────────────────────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: rgba(15, 76, 58, 0.28) transparent; }
+*::-webkit-scrollbar           { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track     { background: transparent; }
+*::-webkit-scrollbar-thumb     {
+    background: rgba(15, 76, 58, 0.28);
+    border-radius: var(--r-pill);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(15, 76, 58, 0.48); background-clip: padding-box; }
+*::-webkit-scrollbar-corner    { background: transparent; }
+
+/* Seleção de texto coerente com a paleta */
+::selection { background: rgba(199, 122, 63, 0.32); color: var(--c-tinta); }

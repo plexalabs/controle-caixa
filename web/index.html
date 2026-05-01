@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0F4C3A">
+    <meta name="description" content="Caixa Boti — caderno de auditoria diária da central.">
+    <title>Caixa Boti</title>
+
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="/assets/logo.svg">
+
+    <!-- Google Fonts: Fraunces (display serif) + Manrope (body humanist sans).
+         Não-padrão, com personalidade — evita o "AI slop" de Inter/Roboto. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700&display=swap">
+
+    <!-- Tailwind, tokens e components agora sao importados via main.js
+         (build pelo Vite + PostCSS). Config em tailwind.config.js. -->
+</head>
+<body class="bg-papel text-tinta antialiased font-sans">
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:bg-musgo focus:text-papel focus:px-3 focus:py-2 focus:rounded-md focus:z-50">
+        Pular para o conteúdo
+    </a>
+    <div id="app" role="main"></div>
+    <div id="toast-container" aria-live="polite" aria-atomic="false"
+         class="fixed bottom-6 right-6 space-y-2 z-50 max-w-sm"></div>
+
+    <script type="module" src="/app/main.js"></script>
+</body>
+</html>

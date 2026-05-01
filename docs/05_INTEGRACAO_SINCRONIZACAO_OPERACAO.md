@@ -633,7 +633,7 @@ Detalhes completos em `docs/SETUP_RESEND_SMTP.md`. Resumo:
 4. **Auth → Email Templates → Confirm signup**: substituir corpo padrão pelo template pt-BR com `{{ .Token }}` (variável validada na doc oficial Supabase). Mesmo padrão para Reset Password, Magic Link, Change Email.
 5. **Auth → URL Configuration**:
    - Site URL (dev): `https://controle-caixa.pages.dev`
-   - Redirect URLs: incluir dev + `https://caixa-boti.plexalabs.com/**` + `http://localhost:8080/**`.
+   - Redirect URLs: incluir dev + `https://caixa-boti.plexalabs.com/**` + `http://localhost:5173/**` (Vite dev server).
 
 **Verificação:**
 - Signup via API/SDK com email + senha → linha em `auth.users` com `email_confirmed_at = NULL`.

@@ -122,7 +122,7 @@ Para a Fase 2 (Web), configurar em https://supabase.com/dashboard/project/shjtwr
 - **Redirect URLs (Additional):**
   - `https://controle-caixa.pages.dev/**`
   - `https://caixa-boti.plexalabs.com/**`
-  - `http://localhost:8080/**`
+  - `http://localhost:5173/**` (Vite dev server)
 
 **Não precisa fazer agora** — a Web ainda não está deployada. Faz na Fase 2.
 

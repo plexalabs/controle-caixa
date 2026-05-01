@@ -1,0 +1,8 @@
+/* Entrypoint do Tailwind. Carregado por main.js antes de tokens.css
+   e components.css para que classes utility apareçam abaixo do reset
+   mas acima dos componentes editoriais. PostCSS expande as diretivas
+   no build (Vite + tailwindcss + autoprefixer). */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -71,10 +71,12 @@ $RECYCLE.BIN/
 .tmp/
 tmp/
 
-# --- Build artifacts da web (mesmo que normalmente não exista build) -------
+# --- Build artifacts da web (Vite gera em /dist) ---------------------------
 web/dist/
 web/build/
+dist/
 .parcel-cache/
+.vite/
 
 # --- Cobertura e testes -----------------------------------------------------
 coverage/
