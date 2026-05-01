@@ -1,14 +1,20 @@
 // modal-editar-lancamento.js — Drawer multi-modo para editar/categorizar
-// um lançamento ja existente. Tres modos detectados pelo estado:
+// um lançamento ja existente. Tres modos detectados pelo estado real
+// do enum (CP4 — backend deixou de usar dados_categoria.estado_final):
 //
-//   1. CATEGORIZAR  (categoria=null) — formulario completo com campos
-//      comuns + select de categoria + campos dinamicos. Submit aplica
-//      categoria, dados e estado='completo'.
-//   2. GERENCIAR    (categoria!=null, sem estado_final no JSON) — exibe
-//      dados read-only, lista de observacoes, botoes finalizar/cancelar
-//      e textarea para nova observacao. (implementado no proximo commit)
-//   3. FINALIZADO   (dados_categoria.estado_final setado) — banner do
-//      desfecho + dados read-only + observacoes (so adicionar). (idem)
+//   1. CATEGORIZAR  (estado=pendente, categoria=null) — formulario
+//      completo com campos comuns + select de categoria + campos
+//      dinamicos. Submit chama RPC categorizar_lancamento.
+//   2. GERENCIAR    (estado=completo) — dados read-only, lista de
+//      observacoes lida de lancamento_observacao, botoes finalizar e
+//      cancelar (chamam marcar_finalizado / marcar_cancelado_pos),
+//      textarea para nova observacao (chama adicionar_observacao).
+//      Subscribe realtime em lancamento_observacao para sync cross-tab.
+//   3. FINALIZADO   (estado=finalizado ou cancelado_pos) — banner do
+//      desfecho + dados read-only + observacoes (so adicionar).
+//
+// Estados legados resolvido/cancelado entram no modo finalizado por
+// compatibilidade.
 
 import { supabase } from '../app/supabase.js';
 import { abrirModal, fecharModal } from './modal.js';
@@ -39,8 +45,12 @@ export function abrirModalEditarLancamento({ lancamento, dataCaixa, aoSalvar = (
 }
 
 function detectarModo(l) {
-  if (!l || l.categoria == null) return 'categorizar';
-  if (l.dados_categoria?.estado_final) return 'finalizado';
+  if (!l || l.categoria == null || l.estado === 'pendente' || l.estado === 'em_preenchimento') {
+    return 'categorizar';
+  }
+  if (['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado)) {
+    return 'finalizado';
+  }
   return 'gerenciar';
 }
 
@@ -195,7 +205,17 @@ function ligarCategorizar() {
       return;
     }
 
-    const { error } = await supabase.rpc('upsert_lancamento', payload);
+    // Caso A: lancamento ja existe em pendente -> usa RPC categorizar_lancamento
+    //         (transicao pendente -> completo, validada no banco).
+    // Caso B: lancamento ainda nao existe (criacao direta full) -> upsert_lancamento.
+    const { error } = estado.lancamento?.id
+      ? await supabase.rpc('categorizar_lancamento', {
+          p_lancamento_id:   estado.lancamento.id,
+          p_categoria:       payload.p_categoria,
+          p_dados_categoria: payload.p_dados_categoria,
+        })
+      : await supabase.rpc('upsert_lancamento', payload);
+
     btn.removeAttribute('aria-busy');
 
     if (error) {
@@ -440,16 +460,18 @@ function esc(s) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// MODOS 2/3 — GERENCIAR (categorizado) e FINALIZADO (estado_final setado)
+// MODOS 2/3 — GERENCIAR (estado=completo) e FINALIZADO (estado=finalizado |
+// cancelado_pos | resolvido | cancelado).
+// Observacoes vem de lancamento_observacao (tabela real, CP4).
 // ════════════════════════════════════════════════════════════════════════
 function abrirModoGerenciarOuFinalizado() {
   const l = estado.lancamento;
-  const ef = l.dados_categoria?.estado_final;
-  const finalizado = !!ef;
-  const eyebrow = finalizado
-    ? `NF ${l.numero_nf} · ${ef === 'cancelado' ? 'cancelado' : 'finalizado'}`
+  const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
+  const ehCancelado = ['cancelado_pos','cancelado'].includes(l.estado);
+  const eyebrow = finalizadoOuCancelado
+    ? `NF ${l.numero_nf} · ${ehCancelado ? 'cancelado' : 'finalizado'}`
     : `NF ${l.numero_nf} · ${LABEL_CATEGORIA[l.categoria] || l.categoria}`;
-  const titulo  = finalizado ? 'Histórico do lançamento.' : 'Lançamento em curso.';
+  const titulo  = finalizadoOuCancelado ? 'Histórico do lançamento.' : 'Lançamento em curso.';
 
   abrirModal({
     lateral: true,
@@ -457,23 +479,22 @@ function abrirModoGerenciarOuFinalizado() {
     titulo,
     conteudo: corpoGerenciar(),
     rodape:   rodapeGerenciar(),
-    onConfirmarFechar: () => true,  // sem dados de form pra perder
+    onConfirmarFechar: () => { desligarRealtimeObs(); return true; },
   });
 
   ligarGerenciar();
+  carregarObservacoes();   // popula lista a partir da tabela real
+  ligarRealtimeObs();      // subscribe em lancamento_observacao
 }
 
 function corpoGerenciar() {
   const l  = estado.lancamento;
-  const ef = l.dados_categoria?.estado_final;
-  const ts = l.dados_categoria?.estado_final_em;
-  const motivo = l.dados_categoria?.estado_final_motivo;
-  const observacoes = Array.isArray(l.dados_categoria?.observacoes)
-    ? l.dados_categoria.observacoes
-    : [];
+  const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
+  const ehCancelado = ['cancelado_pos','cancelado'].includes(l.estado);
+  const tsFinal = l.resolvido_em || l.atualizado_em;
 
   return `
-    ${ef ? bannerFinal(ef, ts, motivo) : ''}
+    ${finalizadoOuCancelado ? bannerFinal(ehCancelado, tsFinal) : ''}
 
     <section class="lanc-leitura">
       ${cardLeitura('Categoria',
@@ -490,15 +511,13 @@ function corpoGerenciar() {
     <section class="lanc-obs-bloco">
       <h3 class="h-eyebrow" style="margin-top:1.75rem;margin-bottom:0.85rem">Observações</h3>
       <ul id="lista-obs" class="lanc-obs-lista">
-        ${observacoes.length === 0
-          ? `<li class="lanc-obs-vazio">Nenhuma observação ainda.</li>`
-          : observacoes.map(linhaObs).join('')}
+        <li class="lanc-obs-vazio">Carregando observações…</li>
       </ul>
       <div class="lanc-obs-novo">
         <label class="field-label" for="nova-obs" style="margin-bottom:0.4rem">Adicionar observação</label>
         <textarea id="nova-obs" rows="2" class="field-input"
                   placeholder="ex.: avisei o cliente em 02/05, vence dia 05/05"
-                  maxlength="500" style="resize:vertical"></textarea>
+                  maxlength="2000" style="resize:vertical"></textarea>
         <div style="display:flex;justify-content:flex-end;margin-top:0.5rem">
           <button type="button" id="btn-add-obs" class="btn-primary" style="padding:0.55rem 1.1rem;font-size:0.85rem" disabled>
             Adicionar
@@ -511,11 +530,12 @@ function corpoGerenciar() {
 
 function rodapeGerenciar() {
   const l  = estado.lancamento;
-  const ef = l.dados_categoria?.estado_final;
-  if (ef) {
+  const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
+  if (finalizadoOuCancelado) {
+    const ehCancelado = ['cancelado_pos','cancelado'].includes(l.estado);
     return `<div class="painel-rodape-acoes">
       <span class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3)">
-        Lançamento ${ef === 'cancelado' ? 'cancelado' : 'finalizado'}. Apenas observações continuam editáveis.
+        Lançamento ${ehCancelado ? 'cancelado' : 'finalizado'}. Apenas observações continuam editáveis.
       </span>
       <button type="button" id="btn-fechar-leitura" class="btn-link">Fechar</button>
     </div>`;
@@ -532,14 +552,12 @@ function rodapeGerenciar() {
     </div>`;
 }
 
-function bannerFinal(ef, ts, motivo) {
-  const cancelado = ef === 'cancelado';
+function bannerFinal(cancelado, ts) {
   return `
     <div class="lanc-banner lanc-banner--${cancelado ? 'cancelado' : 'finalizado'}">
       <div class="lanc-banner-icone">${cancelado ? '✕' : '✓'}</div>
       <div>
         <p class="lanc-banner-titulo">${cancelado ? 'Cancelado' : 'Finalizado'}${ts ? ' em ' + formatarTs(ts) : ''}</p>
-        ${motivo ? `<p class="lanc-banner-motivo">${esc(motivo)}</p>` : ''}
       </div>
     </div>`;
 }
@@ -607,16 +625,76 @@ function dadosCategoriaLeitura(l) {
 }
 
 function linhaObs(o) {
+  // Email truncado em "@" para visual mais limpo.
+  const autor = (o.autor_email || 'operador').split('@')[0];
   return `
-    <li class="lanc-obs-item">
+    <li class="lanc-obs-item" data-obs-id="${esc(o.id)}">
       <p class="lanc-obs-texto">${esc(o.texto)}</p>
-      <p class="lanc-obs-meta">${esc(o.autor || 'operador')} · ${formatarTs(o.criado_em)}</p>
+      <p class="lanc-obs-meta">${esc(autor)} · ${formatarTs(o.criado_em)}${o.fonte && o.fonte !== 'manual' ? ` · ${esc(o.fonte)}` : ''}</p>
     </li>`;
+}
+
+// ─── Carrega observacoes da tabela lancamento_observacao ─────────────
+async function carregarObservacoes() {
+  const lista = document.querySelector('#lista-obs');
+  if (!lista) return;
+  const { data, error } = await supabase
+    .from('lancamento_observacao')
+    .select('id, texto, autor_email, criado_em, fonte')
+    .eq('lancamento_id', estado.lancamento.id)
+    .order('criado_em', { ascending: false });
+
+  if (error) {
+    lista.innerHTML = `<li class="lanc-obs-vazio">Não foi possível carregar observações.</li>`;
+    return;
+  }
+  estado.observacoes = data || [];
+  renderListaObs();
+}
+
+function renderListaObs() {
+  const lista = document.querySelector('#lista-obs');
+  if (!lista) return;
+  const arr = estado.observacoes || [];
+  lista.innerHTML = arr.length === 0
+    ? `<li class="lanc-obs-vazio">Nenhuma observação ainda.</li>`
+    : arr.map(linhaObs).join('');
+}
+
+// ─── Realtime: subscribe em lancamento_observacao do lancamento atual ─
+let canalObs = null;
+function ligarRealtimeObs() {
+  desligarRealtimeObs();
+  const lid = estado.lancamento.id;
+  canalObs = supabase.channel(`lanc-obs-${lid}`)
+    .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'lancamento_observacao',
+          filter: `lancamento_id=eq.${lid}` },
+        (payload) => {
+          const nova = payload.new;
+          const arr = estado.observacoes || [];
+          // Anti-duplicacao: se ja temos pela inserção otimista, ignora.
+          if (arr.some(o => o.id === nova.id)) return;
+          estado.observacoes = [nova, ...arr];
+          renderListaObs();
+          // Flash ambar leve no item recem-chegado
+          requestAnimationFrame(() => {
+            const el = document.querySelector(`.lanc-obs-item[data-obs-id="${nova.id}"]`);
+            if (el) el.classList.add('lanc-row--flash');
+          });
+        })
+    .subscribe();
+}
+function desligarRealtimeObs() {
+  if (canalObs) {
+    supabase.removeChannel(canalObs).catch(() => {});
+    canalObs = null;
+  }
 }
 
 function ligarGerenciar() {
   const l = estado.lancamento;
-  const ef = l.dados_categoria?.estado_final;
+  const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
 
   // Sempre liga: textarea de adicionar observacao.
   const tx = document.querySelector('#nova-obs');
@@ -635,102 +713,75 @@ function ligarGerenciar() {
       if (!ok) { btnAdd.disabled = false; return; }
       tx.value = '';
       mostrarToast('Observação adicionada.', 'ok', 1800);
-      // Recarrega o drawer com dados frescos.
-      await reabrirComDadosFrescos();
+      await carregarObservacoes();   // re-fetch para refletir o novo + outros que chegaram
     });
   }
 
-  // Modos finalizado: so botao fechar.
-  if (ef) {
-    document.querySelector('#btn-fechar-leitura')?.addEventListener('click', () => fecharModal(true));
+  // Modos finalizado/cancelado: so botao fechar.
+  if (finalizadoOuCancelado) {
+    document.querySelector('#btn-fechar-leitura')?.addEventListener('click', () => {
+      desligarRealtimeObs(); fecharModal(true);
+    });
     return;
   }
 
   // Modo gerenciar: liga botoes finalizar / cancelar-pos.
   document.querySelector('#btn-finalizar')?.addEventListener('click', async () => {
     if (!confirm('Confirma que o cliente buscou e o lançamento está finalizado?')) return;
-    await aplicarEstadoFinal('finalizado', null);
+    await chamarMarcarFinalizado();
   });
   document.querySelector('#btn-cancelar-pos')?.addEventListener('click', async () => {
     const motivo = prompt('Motivo do cancelamento:');
     if (motivo == null) return;
-    if (motivo.trim().length < 3) {
-      alert('Informe um motivo com ao menos 3 caracteres.');
+    if (motivo.trim().length < 5) {
+      alert('Informe um motivo com ao menos 5 caracteres.');
       return;
     }
-    await aplicarEstadoFinal('cancelado', motivo.trim());
+    await chamarMarcarCanceladoPos(motivo.trim());
   });
 }
 
 async function persistirObservacao(texto) {
-  // Por enquanto, append em dados_categoria.observacoes (array). O backend
-  // da proxima rodada migra isso pra tabela lancamento_observacao.
-  const l = estado.lancamento;
-  const obsAtuais = Array.isArray(l.dados_categoria?.observacoes)
-    ? l.dados_categoria.observacoes : [];
-  const obs = {
-    texto,
-    autor:     await pegarEmail(),
-    criado_em: new Date().toISOString(),
-  };
-  const novosDados = { ...l.dados_categoria, observacoes: [...obsAtuais, obs] };
-
-  const { error } = await supabase
-    .from('lancamento')
-    .update({ dados_categoria: novosDados, atualizado_em: new Date().toISOString() })
-    .eq('id', l.id);
-
+  const { error } = await supabase.rpc('adicionar_observacao', {
+    p_lancamento_id: estado.lancamento.id,
+    p_texto:         texto,
+  });
   if (error) {
     alert('Não foi possível salvar a observação: ' + error.message);
     return false;
   }
-  // Atualiza o objeto em memoria.
-  estado.lancamento = { ...l, dados_categoria: novosDados };
   return true;
 }
 
-async function aplicarEstadoFinal(tipo, motivo) {
-  const l = estado.lancamento;
-  const dados = {
-    ...l.dados_categoria,
-    estado_final:        tipo,
-    estado_final_em:     new Date().toISOString(),
-    estado_final_motivo: motivo,
-  };
-  const { error } = await supabase
-    .from('lancamento')
-    .update({ dados_categoria: dados })
-    .eq('id', l.id);
-
+async function chamarMarcarFinalizado() {
+  const { error } = await supabase.rpc('marcar_finalizado', {
+    p_lancamento_id: estado.lancamento.id,
+  });
   if (error) {
     document.querySelector('#erro-form')?.classList.remove('hidden');
-    document.querySelector('#erro-form').textContent =
-      'Não foi possível atualizar: ' + error.message;
+    document.querySelector('#erro-form').textContent = 'Não foi possível finalizar: ' + error.message;
     return;
   }
-  estado.lancamento = { ...l, dados_categoria: dados };
-  mostrarToast(tipo === 'finalizado' ? 'Lançamento finalizado.' : 'Lançamento cancelado.', 'ok', 2000);
+  mostrarToast('Lançamento finalizado.', 'ok', 2000);
+  desligarRealtimeObs();
   fecharModal(true);
   estado.aoSalvar();
 }
 
-async function reabrirComDadosFrescos() {
-  const l = estado.lancamento;
-  // Re-busca o lancamento (caso outro operador tenha mexido).
-  const { data } = await supabase.from('lancamento').select('*').eq('id', l.id).maybeSingle();
-  if (data) estado.lancamento = data;
+async function chamarMarcarCanceladoPos(motivo) {
+  const { error } = await supabase.rpc('marcar_cancelado_pos', {
+    p_lancamento_id: estado.lancamento.id,
+    p_motivo:        motivo,
+  });
+  if (error) {
+    document.querySelector('#erro-form')?.classList.remove('hidden');
+    document.querySelector('#erro-form').textContent = 'Não foi possível cancelar: ' + error.message;
+    return;
+  }
+  mostrarToast('Lançamento cancelado.', 'ok', 2000);
+  desligarRealtimeObs();
   fecharModal(true);
-  setTimeout(() => abrirModalEditarLancamento({
-    lancamento: estado.lancamento,
-    dataCaixa:  estado.dataCaixa,
-    aoSalvar:   estado.aoSalvar,
-  }), 280);
   estado.aoSalvar();
-}
-
-async function pegarEmail() {
-  const { data } = await supabase.auth.getSession();
-  return data?.session?.user?.email || 'operador';
 }
 
 // ─── Helpers compartilhados pelos modos read-only ────────────────────────
