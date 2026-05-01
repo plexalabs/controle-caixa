@@ -1,17 +1,24 @@
 // supabase.js — cliente Supabase configurado para o Caixa Boti.
 //
-// Carrega o supabase-js v2 via ESM CDN (esm.sh). Nada de bundler ou npm install.
-// As credenciais são públicas: a URL é endpoint, a anon key é JWT pré-assinado
-// que carrega `role: anon` e que o backend valida via RLS — quem não tem papel
-// não vê nem altera nada (validado nos smoke tests F1 e F1B).
+// Carrega supabase-js v2 via npm (gerenciado pelo Vite). As credenciais
+// vem do .env.local via import.meta.env.VITE_*. URL e anon key sao
+// publicas — a anon key e um JWT com role:anon validado pelas policies
+// RLS do banco (smoke tests F1 e F1B confirmaram). Mesmo assim, o
+// arquivo .env.local fica fora do git para evitar exposicao acidental
+// em forks publicos.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { createClient } from '@supabase/supabase-js';
 
 // ─── Configuração do projeto ──────────────────────────────────────────────
-// project ref: shjtwrojdgotmxdbpbta (controle-caixa-prod, sa-east-1).
-const SUPABASE_URL = 'https://shjtwrojdgotmxdbpbta.supabase.co';
-const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoanR3cm9qZGdvdG14ZGJwYnRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODY2NTUsImV4cCI6MjA5MzA2MjY1NX0.iNYDow4v5-F4D3dBk7uVkbibaT8ZVAY60pnmhUOmXw8';
+const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    'Credenciais Supabase ausentes. Crie um arquivo .env.local na raiz com ' +
+    'VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (ver .env.example).'
+  );
+}
 
 // ─── Storage adapter em memória ───────────────────────────────────────────
 // Regra inviolável do projeto: NÃO usar localStorage ou sessionStorage.
