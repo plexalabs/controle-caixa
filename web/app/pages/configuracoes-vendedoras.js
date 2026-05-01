@@ -9,7 +9,7 @@
 //   DELETE — bloqueado (false). Soft-delete via ativa=false.
 
 import { supabase } from '../supabase.js';
-import { renderHeader, ligarHeader } from '../../components/header.js';
+import { renderShell, ligarShell } from '../shell.js';
 import { abrirModal, fecharModal } from '../../components/modal.js';
 import { mostrarToast } from '../notifications.js';
 import { pegarPapeis } from '../papeis.js';
@@ -19,8 +19,9 @@ let papeisCache = null;
 export async function renderVendedoras() {
   papeisCache = await pegarPapeis();
 
-  document.querySelector('#app').innerHTML = `
-    ${await renderHeader('config')}
+  document.querySelector('#app').innerHTML = await renderShell({
+    rotaAtiva: 'config',
+    conteudo: `
     <main id="main" class="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
       <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
         <a href="/configuracoes" data-link class="btn-link" style="font-size:0.85rem">← Configurações</a>
@@ -47,9 +48,10 @@ export async function renderVendedoras() {
       <section id="vd-bloco-ativas" class="reveal reveal-3"></section>
       <div id="vd-bloco-inativas" class="reveal reveal-4"></div>
     </main>
-  `;
+  `,
+  });
 
-  ligarHeader();
+  ligarShell();
   document.querySelector('#vd-btn-novo').addEventListener('click', () => abrirDrawerVendedora(null));
   await carregarLista();
 }

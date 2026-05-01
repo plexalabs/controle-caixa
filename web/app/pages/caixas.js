@@ -3,13 +3,14 @@
 // resumo de lancamentos, pendentes, resolvidas, canceladas e status.
 
 import { supabase } from '../supabase.js';
-import { renderHeader, ligarHeader } from '../../components/header.js';
+import { renderShell, ligarShell } from '../shell.js';
 import { ESTADO_CAIXA, LABEL_ESTADO_CAIXA_CURTO } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 
 export async function renderCaixas() {
-  document.querySelector('#app').innerHTML = `
-    ${await renderHeader('caixas')}
+  document.querySelector('#app').innerHTML = await renderShell({
+    rotaAtiva: 'caixas',
+    conteudo: `
     <main class="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
       <header class="caixas-cabec reveal reveal-1" data-etiqueta="ARQUIVO">
         <div class="caixas-cabec-conteudo">
@@ -23,8 +24,9 @@ export async function renderCaixas() {
 
       <section id="lista-caixas" class="reveal reveal-2 mt-8"></section>
     </main>
-  `;
-  ligarHeader();
+  `,
+  });
+  ligarShell();
   await carregarCaixas();
 }
 

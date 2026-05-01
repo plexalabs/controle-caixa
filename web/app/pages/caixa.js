@@ -3,7 +3,7 @@
 // com cores canônicas, realtime, estado vazio, criar caixa se não existe.
 
 import { supabase } from '../supabase.js';
-import { renderHeader, ligarHeader } from '../../components/header.js';
+import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalAdicionarNF }    from '../../components/modal-adicionar-nf.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
 import { instalarFilterBar } from '../../components/filter-bar.js';
@@ -31,8 +31,9 @@ export async function renderCaixa({ params }) {
     return mostrarErroEFim('Data inválida.');
   }
 
-  document.querySelector('#app').innerHTML = `
-    ${await renderHeader('caixas')}
+  document.querySelector('#app').innerHTML = await renderShell({
+    rotaAtiva: 'caixas',
+    conteudo: `
     <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
       <!-- Voltar para a lista -->
       <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
@@ -69,9 +70,10 @@ export async function renderCaixa({ params }) {
         ${blocoSkel()}
       </section>
     </main>
-  `;
+  `,
+  });
 
-  ligarHeader();
+  ligarShell();
 
   // Carrega caixa do dia. Se não existe, oferece criar.
   await carregarCaixa(dataAlvo);

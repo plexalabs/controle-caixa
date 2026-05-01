@@ -4,7 +4,7 @@
 // edição. Realtime em lancamento (debounce 2s).
 
 import { supabase } from '../supabase.js';
-import { renderHeader, ligarHeader } from '../../components/header.js';
+import { renderShell, ligarShell } from '../shell.js';
 import { instalarFilterBar } from '../../components/filter-bar.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
 import { LABEL_CATEGORIA, dataLonga, CATEGORIAS } from '../dominio.js';
@@ -19,8 +19,9 @@ let fbCtrl = null;
 export async function renderPendencias() {
   desmontar();
 
-  document.querySelector('#app').innerHTML = `
-    ${await renderHeader('pendencias')}
+  document.querySelector('#app').innerHTML = await renderShell({
+    rotaAtiva: 'pendencias',
+    conteudo: `
     <main id="main" class="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
       <header class="tela-cabec reveal reveal-1">
         <div class="tela-cabec-texto">
@@ -38,9 +39,10 @@ export async function renderPendencias() {
 
       <section id="pend-lista" class="reveal reveal-3" aria-live="polite"></section>
     </main>
-  `;
+  `,
+  });
 
-  ligarHeader();
+  ligarShell();
 
   // Configura filter-bar
   fbCtrl = instalarFilterBar(document.querySelector('#pend-filtros'), {

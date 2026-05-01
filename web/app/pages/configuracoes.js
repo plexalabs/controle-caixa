@@ -3,15 +3,16 @@
 // o usuário tiver o papel; placeholders dos CP7+ aparecem desativados.
 // Layout editorial: índice numerado tipo sumário de revista.
 
-import { renderHeader, ligarHeader } from '../../components/header.js';
+import { renderShell, ligarShell } from '../shell.js';
 import { pegarPapeis } from '../papeis.js';
 
 export async function renderConfiguracoes() {
   const papeis  = await pegarPapeis();
   const ehAdmin = papeis.includes('admin');
 
-  document.querySelector('#app').innerHTML = `
-    ${await renderHeader('config')}
+  document.querySelector('#app').innerHTML = await renderShell({
+    rotaAtiva: 'config',
+    conteudo: `
     <main id="main" class="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
       <header class="config-cabec reveal reveal-1" data-etiqueta="AJUSTES">
         <div class="config-cabec-conteudo">
@@ -34,8 +35,9 @@ export async function renderConfiguracoes() {
           : 'Você está logado como <strong>operador</strong>. Itens administrativos aparecem só para o admin.'}
       </p>
     </main>
-  `;
-  ligarHeader();
+  `,
+  });
+  ligarShell();
 }
 
 function itens(ehAdmin) {

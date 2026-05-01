@@ -4,7 +4,7 @@
 // Botões: "marcar como lida" e "descartar" por item.
 
 import { supabase, pegarSessao } from '../supabase.js';
-import { renderHeader, ligarHeader } from '../../components/header.js';
+import { renderShell, ligarShell } from '../shell.js';
 import { instalarFilterBar } from '../../components/filter-bar.js';
 import { mostrarToast } from '../notifications.js';
 import { navegar } from '../router.js';
@@ -18,8 +18,9 @@ let totalAtual = 0;
 export async function renderNotificacoes() {
   desmontar();
 
-  document.querySelector('#app').innerHTML = `
-    ${await renderHeader('pendencias')}
+  document.querySelector('#app').innerHTML = await renderShell({
+    rotaAtiva: 'notificacoes',
+    conteudo: `
     <main id="main" class="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
       <header class="tela-cabec reveal reveal-1">
         <div class="tela-cabec-texto">
@@ -37,9 +38,10 @@ export async function renderNotificacoes() {
       <nav id="notif-pag" class="reveal reveal-4 mt-6 flex items-center justify-between"
            aria-label="Paginação"></nav>
     </main>
-  `;
+  `,
+  });
 
-  ligarHeader();
+  ligarShell();
 
   fbCtrl = instalarFilterBar(document.querySelector('#notif-filtros'), {
     filtros: [

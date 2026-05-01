@@ -4,7 +4,7 @@
 // com re-autenticação prévia.
 
 import { supabase, pegarSessao } from '../supabase.js';
-import { renderHeader, ligarHeader } from '../../components/header.js';
+import { renderShell, ligarShell } from '../shell.js';
 import { abrirModal, fecharModal } from '../../components/modal.js';
 import { mostrarToast } from '../notifications.js';
 import { pegarPapeis, limparCachePapeis } from '../papeis.js';
@@ -21,8 +21,9 @@ export async function renderPerfil() {
   const email    = u.email || '';
   const cadastro = u.created_at;
 
-  document.querySelector('#app').innerHTML = `
-    ${await renderHeader('config')}
+  document.querySelector('#app').innerHTML = await renderShell({
+    rotaAtiva: 'config',
+    conteudo: `
     <main id="main" class="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
       <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
         <a href="/configuracoes" data-link class="btn-link" style="font-size:0.85rem">← Configurações</a>
@@ -84,9 +85,10 @@ export async function renderPerfil() {
         </article>
       </section>
     </main>
-  `;
+  `,
+  });
 
-  ligarHeader();
+  ligarShell();
 
   document.querySelector('#btn-editar-nome').addEventListener('click', () =>
     abrirDrawerEditarNome({ nome, sobrenome })

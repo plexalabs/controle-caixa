@@ -47,11 +47,14 @@ export async function despachar() {
   const url = location.pathname;
   const sessao = await pegarSessao();
 
+  // Limpa shell entre rotas — páginas autenticadas (com sidebar) chamam
+  // `ligarShell()` que reativa o data-shell. Páginas auth (login etc.)
+  // ficam em layout cheio.
+  document.querySelector('#app')?.removeAttribute('data-shell');
+
   for (const rota of rotas) {
     const m = url.match(rota.padrao);
     if (!m) continue;
-    // Limpa querystring bookmarks vindos por copy/paste, mas guarda
-    // p/ as páginas que dependem dele (filter-bar lê via URLSearchParams).
 
     // Se rota fechada e sem sessão → manda para login.
     if (!rota.aberta && !sessao) {
