@@ -10,6 +10,7 @@
 // Após a 3a falha, marca Supabase como fora do ar (banner global).
 
 import { marcarSupabaseFora, marcarSupabaseOk } from './saude-supabase.js';
+import { log } from './log.js';
 
 const TENTATIVAS_MAXIMAS = 3;
 const ATRASO_BASE_MS = 1000;
@@ -89,7 +90,7 @@ export async function comRetry(operacao, contexto = 'operação') {
   }
 
   // 3 tentativas falharam → Supabase está fora pra essa op
-  console.error(`[supabase-wrapper] ${contexto} falhou após ${TENTATIVAS_MAXIMAS} tentativas:`, ultimoErro);
+  log.erro(`falha após ${TENTATIVAS_MAXIMAS} tentativas: ${contexto}`, ultimoErro, { contexto });
   marcarSupabaseFora();
 
   // Devolve no mesmo formato {error} pra quem chama tratar normalmente

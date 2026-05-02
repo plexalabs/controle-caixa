@@ -10,11 +10,33 @@ import '../styles/tokens.css';
 import '../styles/components.css';
 import '../styles/auth.css';
 
+import * as Sentry              from '@sentry/browser';
 import { despachar }            from './router.js';
 import { supabase, pegarSessao } from './supabase.js';
 import { mostrarToast }         from './notifications.js';
 import { prepararAuthStorage }  from './auth-storage.js';
 import { pegarPapeis }          from './papeis.js';
+
+// Sentry: só ativo em PROD com DSN definido. Dev fica silencioso pra
+// não poluir o dashboard com ruído de desenvolvimento. Operador deve
+// configurar VITE_SENTRY_DSN no .env.production antes do deploy
+// (ver docs/INFRA.md).
+if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    environment: 'production',
+    tracesSampleRate: 0.1,  // 10% das transações
+    integrations: [],
+    // Higiene: nunca enviar tokens de auth em URLs/queries pra Sentry
+    beforeSend(event) {
+      if (event.request?.url) {
+        event.request.url = event.request.url
+          .replace(/[?&](token|access_token|refresh_token|code)=[^&]+/g, '$1=REDACTED');
+      }
+      return event;
+    },
+  });
+}
 
 const ROTAS_ABERTAS = ['/login', '/cadastro', '/recuperar', '/redefinir', '/confirmar'];
 
@@ -57,8 +79,13 @@ async function iniciar() {
   });
 }
 
-iniciar().catch((e) => {
-  console.error('[main] falha ao iniciar:', e);
+iniciar().catch(async (e) => {
+  // Boot falhou — Sentry pode não estar inicializado ainda; usar import
+  // dinâmico evita ciclo de import e garante que o catch sempre roda.
+  try {
+    const { log } = await import('./log.js');
+    log.erro('falha ao iniciar app', e);
+  } catch { console.error('[main] falha ao iniciar:', e); }
   document.querySelector('#app').innerHTML = `
     <div class="min-h-screen flex items-center justify-center p-8 text-center">
       <div>
