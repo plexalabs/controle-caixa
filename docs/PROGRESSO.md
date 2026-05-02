@@ -1,7 +1,25 @@
 # PROGRESSO — Sistema de Controle de Caixa
 
-> Estado do projeto após o merge do CP7 na `main` (2026-05-02).
+> Estado do projeto após a conclusão da Fase 2 na `main` (2026-05-02).
 > Stack canônica documentada em `docs/STACK.md`.
+
+## Status — Fase 2 concluída (2026-05-02)
+
+A Fase 2 (frontend) está completa após CP1 a CP7 + saneamentos.
+
+CP8 (PWA + offline-first) foi avaliado e descartado. Decisão de produto:
+o sistema é um site web responsivo padrão. Operador acessa via navegador
+em PC e celular sem necessidade de instalação como app. `manifest.webmanifest`
+e `sw.js` (placeholder) foram removidos do repo; `index.html` perdeu as tags
+`<link rel="manifest">` e `<meta name="theme-color">`; CSP perdeu a diretiva
+`manifest-src`.
+
+### Próximos passos
+
+- Fase 3 — Excel/VBA + Apps Script (sincronia bidirecional, backup local,
+  importação em massa, exportação para contação)
+- Fase 4 — Integração e operação (deploy Cloudflare Pages, alias prod,
+  UAT, manuais)
 
 ## Status — fim do CP7 (2026-05-02)
 
@@ -135,7 +153,6 @@
 
 ### Em andamento
 
-- [ ] **Fase 2 — CP8**: PWA + offline-first (service worker funcional, fila de mutações, IndexedDB cache)
 - [ ] **Fase 3** — Excel/VBA + Apps Script (sincronia bidirecional)
 - [ ] **Fase 4** — Integração e operação (deploy Cloudflare Pages, UAT, alias prod)
 
@@ -144,11 +161,10 @@
 1. **`fn_recalcular_caixa`**: decisão alinhada (Escola 1 + coluna auxiliar) — `cancelado_pos` sai do `total_valor` e ganha coluna nova `total_cancelado_pos`. Sub-rodada do CP6.
 2. **Triggers de auditoria/notificação**: `trg_lancamento_audit` e `trg_lancamento_notif_pendencia` tratam novos estados genericamente. Notificações específicas para `finalizado`/`cancelado_pos` ficam para evolução.
 3. **Self-host de fontes**: Fraunces + Manrope ainda via Google Fonts CDN (decisão de produto — ver D5 da auditoria pós-Vite).
-4. **`web/public/sw.js` é placeholder**: cache-first do shell e fila offline entram no CP8.
-5. **Redirect URLs no Supabase Dashboard**: confirmar manualmente que `:8080` (porta antiga) foi removida e `:5173` (Vite) está na lista. MCP não expõe Auth config — manual no Dashboard.
-6. **Ruído em `dados_categoria`**: itens migrados do CP3 ainda têm chaves `estado_final` etc. no JSON. Frontend ignora — limpar exigiria desabilitar trigger anti-mudança (privilégio indisponível em Supabase Cloud).
-7. **`web/components/header.js`**: stub vazio para não quebrar imports legados. Deletar em rodada de polimento futura quando grep confirmar 0 referências.
-8. **Bell drawer descontinuado**: o popover antigo do sino (com últimas 20 notificações) saiu junto com o refactor da sidebar. Click no item "Notificações" da sidebar leva direto a `/notificacoes` (tela paginada). Atalho `Alt+N` foi removido junto.
+4. **Redirect URLs no Supabase Dashboard**: confirmar manualmente que `:8080` (porta antiga) foi removida e `:5173` (Vite) está na lista. MCP não expõe Auth config — manual no Dashboard.
+5. **Ruído em `dados_categoria`**: itens migrados do CP3 ainda têm chaves `estado_final` etc. no JSON. Frontend ignora — limpar exigiria desabilitar trigger anti-mudança (privilégio indisponível em Supabase Cloud).
+6. **`web/components/header.js`**: stub vazio para não quebrar imports legados. Deletar em rodada de polimento futura quando grep confirmar 0 referências.
+7. **Bell drawer descontinuado**: o popover antigo do sino (com últimas 20 notificações) saiu junto com o refactor da sidebar. Click no item "Notificações" da sidebar leva direto a `/notificacoes` (tela paginada). Atalho `Alt+N` foi removido junto.
 
 ## Como rodar
 

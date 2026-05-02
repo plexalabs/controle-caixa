@@ -83,8 +83,7 @@ caixa-boti/
     │   └── components.css    # classes editoriais (.lanc-row, .caixa-row, etc.)
     └── public/               # statics copiados 1:1 para o build
         ├── assets/           #   logo.svg + img/
-        ├── manifest.webmanifest
-        ├── sw.js             #   placeholder (CP5 implementa)
+        ├── favicon.svg       #   adaptativo light/dark
         ├── _headers          #   CSP + headers de segurança (Cloudflare Pages)
         └── _redirects        #   SPA fallback (Cloudflare Pages)
 ```
@@ -98,6 +97,7 @@ caixa-boti/
 - **Tailwind purgado no build** mantém apenas classes efetivamente usadas. Bundle CSS final ~12KB gzip.
 - **CSS imports via `main.js`** (não via `<link>` no HTML) — Vite garante ordem (Tailwind → tokens → components) e bundla tudo num único `index-[hash].css`.
 - **CSP estrita em produção** — `script-src 'self'` sem `unsafe-inline` (HTML produzido pelo Vite tem só `<script src=>`), `connect-src` restrito ao project-ref específico do Supabase. Replicada em `vite.config.js` preview.headers para validação local antes do deploy.
+- **Sem PWA** — o sistema é um site web responsivo padrão, acessado via navegador (PC e celular). PWA foi avaliado e descartado para evitar complexidade desnecessária: sem service worker, sem manifest, sem fila offline, sem instalação como app. Decisão tomada após CP7 (2026-05-02).
 
 ## Segurança
 
@@ -108,7 +108,6 @@ caixa-boti/
 
 ## Não está aqui (pendente)
 
-- **Service worker funcional** — `web/public/sw.js` é placeholder. Cache-first do shell, fila offline e PWA install entram no CP5.
 - **Self-host de fontes** — Fraunces + Manrope ainda via Google CDN. Trade-off: dependência de network vs. ~200KB extras no bundle. Decisão de produto.
 - **Deploy Cloudflare Pages** — automação via wrangler/MCP entra na Fase 4.
 - **Backend "em análise"** — RPCs `categorizar_lancamento`, `marcar_finalizado`, `marcar_cancelado_pos`, `adicionar_observacao` + tabela `lancamento_observacao`. Documentado em `docs/PROXIMA_RODADA_BACKEND.md`.
