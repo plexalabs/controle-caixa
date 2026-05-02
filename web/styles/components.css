@@ -831,22 +831,43 @@
 .lanc-row[data-estado-final="finalizado"] {
     background: linear-gradient(180deg, rgba(16, 185, 129, 0.04), transparent 60%), var(--c-papel);
 }
-.lanc-row[data-estado-final="finalizado"]::after {
-    /* Marcador de "OK" sobreposto ao texto da etiqueta */
-    background: linear-gradient(transparent, rgba(15, 76, 58, 0.08));
-}
-.lanc-row[data-estado-final="finalizado"] .lanc-categoria {
-    background: rgba(16, 185, 129, 0.16) !important;
-    color: #064e3b !important;
-}
 .lanc-row[data-estado-final="cancelado"] .lanc-cliente,
 .lanc-row[data-estado-final="cancelado"] .lanc-valor {
     text-decoration: line-through;
     opacity: 0.65;
 }
+.lanc-row[data-estado-final="finalizado"] .lanc-categoria {
+    background: rgba(16, 185, 129, 0.16) !important;
+    color: #064e3b !important;
+}
 .lanc-row[data-estado-final="cancelado"] .lanc-categoria {
     background: rgba(239, 68, 68, 0.16) !important;
     color: #7f1d1d !important;
+}
+
+/* Em itens com desfecho final (finalizado/cancelado), a bandeira lateral
+   fica permanentemente expandida com o texto vertical visível, sem precisar
+   de hover. Operador escaneia a lista e identifica de imediato o estado. */
+.lanc-row[data-estado-final="finalizado"],
+.lanc-row[data-estado-final="cancelado"] {
+    padding-left: calc(var(--tira-w-hover) + 1.1rem);
+}
+.lanc-row[data-estado-final="finalizado"]::before,
+.lanc-row[data-estado-final="cancelado"]::before {
+    width: var(--tira-w-hover);
+}
+.lanc-row[data-estado-final="finalizado"]::after,
+.lanc-row[data-estado-final="cancelado"]::after {
+    color: var(--tira-texto);
+    transition-delay: 0ms;
+}
+/* Cores específicas dos desfechos */
+.lanc-row[data-estado-final="finalizado"] {
+    --tira-cor: var(--cat-resolvido);
+}
+.lanc-row[data-estado-final="cancelado"] {
+    --tira-cor: var(--cat-cancelado-border);
+    --tira-texto: var(--c-papel);
 }
 .lanc-row[data-estado-final] .lanc-detalhes::before {
     content: '';
@@ -4417,46 +4438,50 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 
 
 /* ============================================================
-   CTA "Fechar caixa" — compacto, single-line.
-   Aparece só quando total_pendentes=0; preenche no hover.
+   CTA "Fechar caixa" — harmonioso com .btn-primary (mesmo tamanho).
+   Versão secundária outline musgo: mesmo footprint, outra hierarquia.
+   Aparece só quando total_pendentes=0.
    ============================================================ */
 
 .btn-fechar-caixa {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.45rem 0.8rem;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1.5rem;
     background: var(--c-papel);
     color: var(--c-musgo);
     text-decoration: none;
-    border: 1px solid rgba(15, 76, 58, 0.28);
-    border-left: 2px solid var(--c-musgo);
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    border: 1.5px solid var(--c-musgo);
+    border-radius: var(--r-sm);
     font-family: 'Manrope', sans-serif;
-    font-size: 0.82rem;
     font-weight: 600;
+    font-size: 0.95rem;
     letter-spacing: 0.01em;
     cursor: pointer;
     transition: background 200ms var(--ease-out),
                 color 200ms var(--ease-out),
-                border-color 200ms var(--ease-out),
-                transform 200ms var(--ease-spring);
+                transform 200ms var(--ease-out),
+                box-shadow 200ms var(--ease-out);
+    box-shadow: 0 1px 0 0 rgba(15, 76, 58, 0.04);
     animation: fechar-cta-entra 360ms var(--ease-spring) backwards;
-    line-height: 1.2;
+    line-height: 1;
 }
 .btn-fechar-caixa.hidden { display: none; }
 .btn-fechar-caixa:hover {
     background: var(--c-musgo);
     color: var(--c-papel);
-    border-color: var(--c-musgo);
-    transform: translateY(-1px);
+    box-shadow: 0 1px 0 0 rgba(10, 51, 42, 0.4) inset,
+                0 6px 14px -8px rgba(15, 76, 58, 0.45);
 }
-.btn-fechar-caixa:active { transform: translateY(0); }
+.btn-fechar-caixa:active { transform: translateY(1px); }
 .btn-fechar-caixa:focus-visible { outline-offset: 3px; }
 
 .btn-fechar-caixa-icone {
     flex-shrink: 0;
     color: inherit;
+    width: 16px;
+    height: 16px;
 }
 
 @keyframes fechar-cta-entra {
@@ -4465,29 +4490,29 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 
-/* Hint compacto quando há pendências */
+/* Hint quando há pendências — mesmo tamanho dos botões para harmonia */
 .hint-pendencias {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.7rem;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.85rem 1.3rem;
     background: rgba(199, 122, 63, 0.06);
     color: var(--c-ambar-2);
-    border: 1px dashed rgba(199, 122, 63, 0.35);
-    border-left: 2px solid var(--c-ambar);
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    border: 1px dashed rgba(199, 122, 63, 0.4);
+    border-radius: var(--r-sm);
     font-family: 'Manrope', sans-serif;
-    font-size: 0.78rem;
+    font-size: 0.9rem;
     font-weight: 500;
     text-decoration: none;
     cursor: pointer;
     transition: background 180ms var(--ease-out), border-color 180ms var(--ease-out);
-    line-height: 1.2;
+    line-height: 1;
 }
 .hint-pendencias.hidden { display: none; }
 .hint-pendencias:hover {
-    background: rgba(199, 122, 63, 0.13);
-    border-color: rgba(199, 122, 63, 0.55);
+    background: rgba(199, 122, 63, 0.12);
+    border-color: rgba(199, 122, 63, 0.6);
 }
 .hint-pendencias strong {
     color: var(--c-ambar-2);
