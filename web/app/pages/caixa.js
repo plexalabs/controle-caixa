@@ -296,6 +296,29 @@ function renderListaFiltrada() {
       });
     });
   });
+
+  // Destaque opcional via ?nf=NUMERO (vindo de notificação `pendencia_aberta`).
+  // Localiza a linha, faz scroll suave e pulsa por 4s. Idempotente em re-renders.
+  destacarNfDaURL();
+}
+
+function destacarNfDaURL() {
+  const params = new URLSearchParams(location.search);
+  const nf = params.get('nf');
+  if (!nf) return;
+
+  // Aguarda o DOM commitar antes de medir/scrollar
+  requestAnimationFrame(() => {
+    const el = document.querySelector(`.lanc-row[data-numero-nf="${cssEsc(nf)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('lanc-row--destacado');
+    setTimeout(() => el.classList.remove('lanc-row--destacado'), 4200);
+  });
+}
+
+function cssEsc(s) {
+  return String(s).replace(/[^a-zA-Z0-9_-]/g, c => '\\' + c);
 }
 
 function aplicarFiltrosCaixa(itens, f) {
@@ -350,7 +373,8 @@ function linhaLancamento(l) {
             data-em-analise="${emAnalise}"
             data-estado-final="${esc(estadoFinal)}"
             data-resolvido="${ehResolvido}" data-atrasado="${ehAtrasado}"
-            data-id="${esc(l.id)}">
+            data-id="${esc(l.id)}"
+            data-numero-nf="${esc(l.numero_nf || '')}">
       <div class="lanc-meta">
         <span class="lanc-meta-nf">NF ${esc(l.numero_nf)}</span>
         <span style="font-style:italic">${hora(l.criado_em)}</span>

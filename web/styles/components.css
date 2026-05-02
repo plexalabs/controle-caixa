@@ -6233,3 +6233,31 @@ body.supabase-down [data-acao="critica"] {
 @media (prefers-reduced-motion: reduce) {
     .banner-instabilidade { animation: none; }
 }
+
+
+/* ============================================================
+   Destaque de NF em /caixa via ?nf=NUMERO
+   Usado quando notificação `pendencia_aberta` leva o operador
+   pra um caixa específico e queremos chamar atenção pra a NF.
+   ============================================================ */
+.lanc-row--destacado {
+    animation: pulso-destaque 4s var(--ease-out) forwards;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes pulso-destaque {
+    0%, 100% {
+        background: var(--c-papel);
+        box-shadow: none;
+    }
+    20%, 60% {
+        background: rgba(199, 122, 63, 0.14);
+        box-shadow: 0 0 0 2px var(--c-ambar),
+                    0 8px 24px -10px rgba(199, 122, 63, 0.4);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lanc-row--destacado { animation: none; background: rgba(199, 122, 63, 0.12); }
+}
