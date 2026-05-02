@@ -384,7 +384,7 @@ async function carregarNotificacoes() {
     .is('lida_em', null)
     .is('descartada_em', null)
     .order('criada_em', { ascending: false })
-    .limit(5);
+    .limit(3);
 
   const lista = document.querySelector('#lista-notif');
   const cont  = document.querySelector('#contagem-notif');
@@ -408,8 +408,8 @@ async function carregarNotificacoes() {
 
   if (cont) {
     const total = count ?? data.length;
-    cont.textContent = total > 5
-      ? `mostrando 5 de ${total}`
+    cont.textContent = total > 3
+      ? `mostrando 3 de ${total}`
       : `${total} aviso${total > 1 ? 's' : ''}`;
   }
   lista.innerHTML = data.map(n => itemNotif(n)).join('');

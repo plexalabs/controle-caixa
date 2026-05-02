@@ -5792,30 +5792,35 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     .dash-grid { grid-template-columns: 1fr 1fr; }
 }
 
+/* Rebrand: quadros do dashboard usam bordas totalmente arredondadas
+   (exceção da regra flat-left/round-right — escolha do produto pra dar
+   "presença de cartão" sem o filete vertical da identidade de listas). */
 .dash-quadro {
     position: relative;
     background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
-    border-radius: 0 var(--r-md) var(--r-md) 0;  /* identidade do sistema */
-    padding: 1.25rem 1.4rem 1rem 1.65rem;
+    border-radius: var(--r-md);
+    padding: 1.25rem 1.4rem 1rem 1.4rem;
     overflow: hidden;
-    transition: border-color 220ms var(--ease-out);
+    transition: border-color 220ms var(--ease-out),
+                box-shadow 220ms var(--ease-out),
+                transform 220ms var(--ease-out);
+    box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.04),
+                0 8px 24px -16px rgba(15, 76, 58, 0.16);
     display: flex;
     flex-direction: column;
     min-width: 0;
     animation: fade-up 600ms var(--ease-out) backwards;
 }
-.dash-quadro::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
-    background: var(--c-musgo);
-    transition: background 220ms var(--ease-out);
+.dash-quadro:hover {
+    border-color: var(--c-musgo-2);
+    box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.05),
+                0 14px 32px -18px rgba(15, 76, 58, 0.28);
+    transform: translateY(-1px);
 }
-.dash-quadro:hover { border-color: var(--c-musgo-2); }
 
 .dash-quadro--full { grid-column: 1 / -1; }
+.dash-quadro--full:hover { transform: none; }  /* não eleva o full-width */
 
 .dash-quadro-cabec {
     display: flex;
@@ -5903,16 +5908,20 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     line-height: 1.5;
 }
 
-/* ─── Item de aviso dentro do quadro Avisos ─── */
+/* ─── Item de aviso dentro do quadro Avisos ───
+   Bordas totalmente arredondadas pra acompanhar o rebrand do quadro pai.
+   O filete colorido continua à esquerda (sinal funcional de severidade)
+   mas com cantos arredondados acompanhando o cartão (overflow: hidden
+   no item garante o clip). */
 .dash-aviso {
     appearance: none;
     text-align: left;
     display: block;
     width: 100%;
-    background: var(--c-papel);
+    background: var(--c-papel-2);
     border: 1px solid var(--c-papel-3);
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
-    padding: 0.7rem 0.85rem 0.7rem 0.95rem;
+    border-radius: var(--r-sm);
+    padding: 0.7rem 0.85rem 0.7rem 1rem;
     cursor: pointer;
     font-family: 'Manrope', sans-serif;
     transition: all 180ms var(--ease-out);
