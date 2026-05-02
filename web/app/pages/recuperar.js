@@ -10,12 +10,11 @@ export function renderRecuperar() {
 
   document.querySelector('#app').innerHTML = `
     <div id="main" class="auth-shell">
-      <header class="auth-marca">
-        <span class="auth-marca-simbolo" aria-hidden="true"></span>
-        <h1 class="auth-marca-wordmark">Caixa Boti</h1>
-      </header>
-
       <main class="auth-card" aria-labelledby="auth-titulo">
+        <header class="auth-marca">
+          <span class="auth-marca-simbolo" aria-hidden="true"></span>
+          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+        </header>
         <h2 id="auth-titulo" class="auth-titulo">Recuperar senha</h2>
         <p class="auth-subtitulo">
           Enviaremos um link válido por 1 hora para o email cadastrado.

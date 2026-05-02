@@ -8,7 +8,17 @@
 
 .auth-shell {
     min-height: 100vh;
-    background: var(--c-papel);
+    /* Fundo clean: gradiente radial papel → papel-2, com grão SVG sutil
+       sobreposto (8% opacity) que dá textura editorial sem poluir. */
+    background-color: var(--c-papel-2);
+    background-image:
+        radial-gradient(ellipse 80% 60% at 50% 0%,
+            rgba(245, 239, 230, 0.95) 0%,
+            rgba(237, 229, 214, 0.6) 60%,
+            rgba(237, 229, 214, 0) 100%),
+        url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.30 0 0 0 0 0.23 0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-repeat: no-repeat, repeat;
+    background-size: 100% 100%, 200px 200px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -17,29 +27,33 @@
     gap: 0;
 }
 
-/* ─── Marca (símbolo + wordmark) ─── */
+/* ─── Marca (símbolo + wordmark) — agora dentro do card ─── */
 .auth-marca {
     text-align: center;
-    margin-bottom: 1.6rem;
+    margin: 0 0 1.4rem 0;
+    padding-bottom: 1.4rem;
+    border-bottom: 1px solid var(--c-papel-3);
     animation: fade-up 600ms var(--ease-out) backwards;
 }
 .auth-marca-simbolo {
-    width: 48px;
-    height: 48px;
-    background: var(--c-musgo);
+    width: 44px;
+    height: 44px;
+    /* Tom mais claro do musgo — leve, não pesa no topo do card */
+    background: var(--c-musgo-2);
     -webkit-mask: url(/assets/logo.svg) no-repeat center / contain;
             mask: url(/assets/logo.svg) no-repeat center / contain;
-    margin: 0 auto 0.7rem;
+    margin: 0 auto 0.55rem;
     display: block;
-    transition: background 200ms var(--ease-out);
+    opacity: 0.92;
+    transition: background 200ms var(--ease-out), opacity 200ms var(--ease-out);
 }
 .auth-marca-wordmark {
     font-family: 'Fraunces', serif;
     font-style: italic;
     font-weight: 400;
     font-variation-settings: "opsz" 144, "SOFT" 50;
-    font-size: 1.75rem;
-    color: var(--c-tinta);
+    font-size: 1.5rem;
+    color: var(--c-tinta-2);
     letter-spacing: -0.01em;
     line-height: 1;
     margin: 0;
@@ -48,13 +62,14 @@
 /* ─── Card único ─── */
 /* Auth foge da regra flat-left/round-right do resto do sistema:
    aqui é foco em foco único (um campo, uma decisão), e o filete reto
-   à esquerda destoa do tom minimal. Bordas totalmente arredondadas. */
+   à esquerda destoa do tom minimal. Bordas totalmente arredondadas.
+   Card mais claro que o fundo (papel) — destaca-se da textura. */
 .auth-card {
-    background: var(--c-papel-2);
+    background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
     border-radius: 18px;
     box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.03),
-                0 14px 36px -20px rgba(15, 76, 58, 0.24);
+                0 18px 44px -22px rgba(15, 76, 58, 0.28);
     width: 100%;
     max-width: 420px;
     padding: 2rem;

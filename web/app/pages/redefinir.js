@@ -21,11 +21,11 @@ export async function renderRedefinir() {
   if (!sessao) {
     document.querySelector('#app').innerHTML = `
       <div id="main" class="auth-shell">
-        <header class="auth-marca">
-          <span class="auth-marca-simbolo" aria-hidden="true"></span>
-          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
-        </header>
         <main class="auth-card">
+          <header class="auth-marca">
+            <span class="auth-marca-simbolo" aria-hidden="true"></span>
+            <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+          </header>
           <h2 class="auth-titulo" style="color:var(--c-alerta)">Link inválido</h2>
           <p class="auth-subtitulo">
             Sessão não encontrada. Use o link enviado por email — ele só funciona uma vez
@@ -42,12 +42,11 @@ export async function renderRedefinir() {
 
   document.querySelector('#app').innerHTML = `
     <div id="main" class="auth-shell">
-      <header class="auth-marca">
-        <span class="auth-marca-simbolo" aria-hidden="true"></span>
-        <h1 class="auth-marca-wordmark">Caixa Boti</h1>
-      </header>
-
       <main class="auth-card" aria-labelledby="auth-titulo">
+        <header class="auth-marca">
+          <span class="auth-marca-simbolo" aria-hidden="true"></span>
+          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+        </header>
         <h2 id="auth-titulo" class="auth-titulo">Redefinir senha</h2>
         <p class="auth-subtitulo">
           Defina uma nova senha para sua conta. Mínimo 8 caracteres, com letra e número.
