@@ -12,6 +12,7 @@ import { renderCaixas }        from './pages/caixas.js';
 import { renderCaixaFechar }   from './pages/caixa-fechar.js';
 import { renderConfiguracoes } from './pages/configuracoes.js';
 import { renderVendedoras }    from './pages/configuracoes-vendedoras.js';
+import { renderUsuarios }      from './pages/configuracoes-usuarios.js';
 import { renderPendencias }    from './pages/pendencias.js';
 import { renderNotificacoes }  from './pages/notificacoes.js';
 import { renderPerfil }        from './pages/perfil.js';
@@ -36,6 +37,7 @@ const rotas = [
   { padrao: /^\/lancamento\/([\w-]+)$/,       handler: renderLancamento },
   { padrao: /^\/configuracoes$/,              handler: renderConfiguracoes },
   { padrao: /^\/configuracoes\/vendedoras$/,  handler: renderVendedoras },
+  { padrao: /^\/configuracoes\/usuarios$/,    handler: renderUsuarios },
   { padrao: /^\/pendencias$/,                 handler: renderPendencias },
   { padrao: /^\/notificacoes$/,               handler: renderNotificacoes },
   { padrao: /^\/perfil$/,                     handler: renderPerfil },
