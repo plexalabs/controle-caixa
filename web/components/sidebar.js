@@ -54,6 +54,7 @@ export async function renderSidebar(rotaAtiva) {
       <nav class="sidebar-nav" aria-label="Seções">
         ${linkSidebar('caixas',        '/caixas',         'Caixas',       svgCaixa(), rotaAtiva)}
         ${linkSidebar('pendencias',    '/pendencias',     'Pendências',   svgRelogio(), rotaAtiva)}
+        ${linkSidebar('relatorios',    '/relatorios',     'Relatórios',   svgRelatorio(), rotaAtiva)}
         ${linkSidebar('notificacoes',  '/notificacoes',   'Notificações', svgSino(), rotaAtiva, { bellSlot: true })}
       </nav>
 
@@ -285,6 +286,16 @@ function svgRelogio() {
       <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.5"/>
       <path d="M12 7.5 V12 L15 14" stroke="currentColor" stroke-width="1.5"
             stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+}
+
+function svgRelatorio() {
+  // Página com gráfico de barras pequeno — métrica/relatório.
+  return `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M5 3.5 H14 L19 8.5 V20.5 H5 Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M14 3.5 V8.5 H19" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M8.5 16.5 V13 M11.5 16.5 V11 M14.5 16.5 V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
     </svg>`;
 }
 

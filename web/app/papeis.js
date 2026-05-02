@@ -21,7 +21,8 @@ export async function pegarPapeis() {
   const { data, error } = await supabase
     .from('usuario_papel')
     .select('papel')
-    .eq('usuario_id', uid);
+    .eq('usuario_id', uid)
+    .eq('ativo', true);
 
   if (error) {
     console.warn('[papeis] erro ao consultar usuario_papel:', error.message);
