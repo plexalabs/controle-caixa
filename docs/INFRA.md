@@ -8,17 +8,29 @@
 Sem o DSN, o `Sentry.init()` em `web/app/main.js` é pulado e nada vai pra
 plataforma. Erros viram apenas `console.error`.
 
-### Setup
+### Status atual
 
-1. Criar conta em https://sentry.io (free tier 5K eventos/mês)
-2. Criar org **plexalabs** + projeto **caixa-boti** (platform: Browser JavaScript)
-3. Copiar o DSN do projeto (formato `https://xxx@sentry.io/yyy`)
-4. Em `.env.production` (ou env do Cloudflare Pages), adicionar:
-   ```
-   VITE_SENTRY_DSN=https://xxx@sentry.io/yyy
-   ```
-5. Rebuild: `npm run build` — Vite injeta `import.meta.env.VITE_SENTRY_DSN`
-   no bundle apenas em PROD.
+- Conta + projeto criados em sentry.io
+- DSN configurado em `.env.production` local (gitignored)
+- Pendente: setar a env var no painel **Cloudflare Pages → Settings →
+  Environment variables** antes do deploy de produção
+
+DSN: `https://9b198954a1ba50aa05d79ec34f6ab304@o4511051433115648.ingest.us.sentry.io/4511321945210880`
+
+### Configuração ativa em main.js
+
+- `tracesSampleRate: 0.1` — 10% das transações
+- `sendDefaultPii: true` — envia IP/user-agent (recomendado pelo Sentry pra
+  apps internos próprios; ajuda no debug). Sistema é interno (operadores
+  autenticados), então PII tá ok.
+- `beforeSend` higieniza tokens de auth em URLs antes de enviar ao Sentry
+
+### Reset / troca de projeto
+
+Se precisar trocar de projeto/conta no futuro:
+1. Atualizar `VITE_SENTRY_DSN` em `.env.production` local
+2. Atualizar a env var no painel Cloudflare Pages
+3. Próximo deploy injeta o novo DSN no bundle
 
 ### Por que condicional ao PROD
 

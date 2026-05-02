@@ -27,7 +27,11 @@ if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
     environment: 'production',
     tracesSampleRate: 0.1,  // 10% das transações
     integrations: [],
-    // Higiene: nunca enviar tokens de auth em URLs/queries pra Sentry
+    // Sistema interno (operadores autenticados) — IP e user-agent ajudam
+    // o debug. Configuração recomendada pelo painel do Sentry pra apps
+    // próprios da empresa.
+    sendDefaultPii: true,
+    // Higiene mesmo com PII ativo: nunca enviar tokens de auth em URLs.
     beforeSend(event) {
       if (event.request?.url) {
         event.request.url = event.request.url

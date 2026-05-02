@@ -37,9 +37,9 @@
 
 ### Pendências CP-PRE-DEPLOY-1 (registradas)
 
-- DSN do Sentry pendente: `VITE_SENTRY_DSN` precisa ser setado em
-  `.env.production` antes do deploy. Sem isso, `Sentry.init()` é pulado
-  e erros viram só `console.error`.
+- Sentry: DSN configurado localmente em `.env.production` (gitignored).
+  Pendente apenas setar `VITE_SENTRY_DSN` no painel Cloudflare Pages
+  antes do deploy de produção. Detalhes em `docs/INFRA.md`.
 - Cron mensal do arquivamento pendente: `0 3 1 * *` precisa ser configurado
   manualmente no Dashboard Supabase → Edge Functions → Schedules.
 - Tela `/caderno-do-dia` (sub-rodada futura): substituirá o destino temporário
