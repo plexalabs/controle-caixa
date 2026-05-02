@@ -4,28 +4,45 @@ Fonte da verdade dos 3 emails de auth do projeto. Versionados no git;
 **aplicados manualmente no Dashboard Supabase** porque o MCP/Management
 API não expõe Email Templates.
 
-## Os 3 templates
+## Os 3 templates — mapeamento real do app
 
-| Arquivo | Template Supabase | Quando dispara | Variáveis usadas |
+O app usa **OTP de 8 dígitos** no cadastro (não link clicável). O fluxo:
+operador faz `signUp()` → recebe email com código → digita em `/confirmar` →
+`verifyOtp({ type: 'signup' })`. Então a variável certa em **Confirm
+signup** é `{{ .Token }}`, **não** `{{ .ConfirmationURL }}`.
+
+| Arquivo | Template Supabase | Função do app | Variável principal |
 |---|---|---|---|
-| `confirmation.html` | **Confirm signup** | Cadastro novo (ConfirmationURL clicável) | `{{ .ConfirmationURL }}`, `{{ .Email }}` |
-| `recovery.html` | **Reset Password** | Operador clicou em "Esqueci a senha" | `{{ .ConfirmationURL }}`, `{{ .Email }}` |
-| `magic_link.html` | **Magic Link** | Login OTP de 8 dígitos (`signInWithOtp`) | `{{ .Token }}`, `{{ .Email }}` |
+| `confirmation.html` | **Confirm signup** | `signUp()` no cadastro | **`{{ .Token }}`** (código 8 dígitos) |
+| `recovery.html` | **Reset Password** | `resetPasswordForEmail()` | `{{ .ConfirmationURL }}` (link → `/redefinir`) |
+| `magic_link.html` | **Magic Link** | ⚠️ **NÃO usado pelo app hoje** | `{{ .Token }}` |
 
-> **Atenção sobre o template Magic Link:** o app usa OTP de 8 dígitos
-> (configurado em Auth → Providers → Email → Email OTP Length = 8). O
-> template `magic_link.html` mostra o código `{{ .Token }}` em destaque
-> Courier 38px. Se um dia migrar pra link mágico de verdade, trocar
-> `{{ .Token }}` por `{{ .ConfirmationURL }}`.
+### Por que `magic_link.html` está aqui se não é usado
+
+Por completude. Se um dia o app adicionar `signInWithOtp()` (login sem
+senha, só com código por email), o template já está pronto. Por enquanto
+**não precisa** ser configurado no Dashboard — pode pular esse passo.
+
+### Pré-requisito no Dashboard
+
+Em https://supabase.com/dashboard/project/shjtwrojdgotmxdbpbta/auth/providers
+→ seção **Email** → garantir:
+- ✅ **Confirm email** está habilitado
+- ✅ **Email OTP Length** = `8`
+- ✅ **Email OTP Expiration** = `900` (15 min) ou similar
+
+Sem isso, o `{{ .Token }}` no template "Confirm signup" não é gerado e
+o operador recebe link em vez de código.
 
 ## Como aplicar no Dashboard
 
 1. Abrir https://supabase.com/dashboard/project/shjtwrojdgotmxdbpbta/auth/templates
-2. Pra cada um dos 3 templates:
+2. Aplicar **2 templates obrigatórios**:
    - **Confirm signup** ← copiar `confirmation.html`
    - **Reset Password** ← copiar `recovery.html`
+3. Opcional (caso futuro do app usar Magic Link):
    - **Magic Link** ← copiar `magic_link.html`
-3. Em cada um:
+4. Em cada um:
    - Colar o **HTML inteiro** no campo "Email body" (sobrescreve o default Supabase)
    - Atualizar o **Subject** conforme tabela abaixo
    - Clicar em **Save changes**
