@@ -9,6 +9,7 @@
 // Acesso: admin OU operador (operador também precisa exportar pra contação).
 
 import { supabase, pegarSessao } from '../supabase.js';
+import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { mostrarToast } from '../notifications.js';
 import { pegarPapeis } from '../papeis.js';
@@ -623,7 +624,7 @@ async function baixarPDF() {
     doc.save(nomeArquivo('pdf'));
     mostrarToast('PDF baixado.', 'ok', 2200);
   } catch (e) {
-    console.error('[relatorios] erro PDF:', e);
+    log.erro('falha ao gerar PDF do relatório', e, { periodo: estado });
     mostrarToast('Erro ao gerar PDF: ' + (e.message || e), 'erro', 5000);
   } finally {
     btn.removeAttribute('aria-busy');

@@ -3,6 +3,7 @@
 // cronológica reversa abaixo, ações conforme estado no rodapé.
 
 import { supabase } from '../supabase.js';
+import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
 import { LABEL_CATEGORIA, dataLonga, resumoDetalhes } from '../dominio.js';
@@ -26,8 +27,11 @@ export async function renderLancamento({ params }) {
     .eq('id', lancId)
     .maybeSingle();
 
-  if (error) return mostrarErro('Não foi possível carregar: ' + error.message);
-  if (!lanc)  return mostrarErro('Lançamento não encontrado.');
+  if (error) {
+    log.erro('falha ao carregar lançamento', error, { lancId });
+    return mostrarErro('Não foi possível carregar: ' + error.message);
+  }
+  if (!lanc) return mostrarErro('Lançamento não encontrado.');
 
   const { data: cx } = await supabase
     .from('caixa').select('id, data, estado').eq('id', lanc.caixa_id).maybeSingle();

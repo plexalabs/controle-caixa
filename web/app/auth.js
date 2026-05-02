@@ -4,6 +4,7 @@
 
 import { supabase } from './supabase.js';
 import { comRetry } from './supabase-wrapper.js';
+import { log } from './log.js';
 
 // Mapa de mensagens de erro do Supabase para textos pt-BR claros que o
 // Operador entenderia sem saber o que é "rate limit" ou "invalid grant".
@@ -46,7 +47,14 @@ export async function entrarComSenha(email, senha) {
     }),
     'login'
   );
-  if (error) return { ok: false, mensagem: traduzirErro(error), code: error.code };
+  if (error) {
+    // Senha errada / email não confirmado: validação esperada → warn.
+    // Erro inesperado (5xx, infra): erro real → erro.
+    const esperado = ['invalid_credentials', 'email_not_confirmed', 'over_email_send_rate_limit'].includes(error.code || '');
+    if (esperado) log.warn(`login rejeitado (${error.code})`, { email });
+    else          log.erro('falha de login não esperada', error, { email });
+    return { ok: false, mensagem: traduzirErro(error), code: error.code };
+  }
   return { ok: true, dados: data };
 }
 

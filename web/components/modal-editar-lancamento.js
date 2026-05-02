@@ -17,6 +17,7 @@
 // compatibilidade.
 
 import { supabase } from '../app/supabase.js';
+import { log } from '../app/log.js';
 import { abrirModal, fecharModal } from './modal.js';
 import { CATEGORIAS, BANDEIRAS, MODALIDADES, STATUS_LINK, TIPOS_OBS,
          LABEL_CATEGORIA } from '../app/dominio.js';
@@ -219,6 +220,14 @@ function ligarCategorizar() {
     btn.removeAttribute('aria-busy');
 
     if (error) {
+      // Validação esperada (NF duplicada etc) tem code conhecido — log.warn.
+      // Falha real (rede/RPC) — log.erro pra Sentry.
+      const codigoConhecido = ['23505', '23514', '42501', 'P0001'].includes(error.code);
+      if (codigoConhecido) {
+        log.warn(`erro de validação ao categorizar/upsert NF ${codigoConhecido ? error.code : ''}`, { code: error.code });
+      } else {
+        log.erro('falha ao categorizar/upsert lançamento', error, { lancamentoId: payload.p_id || payload.lancamento_id });
+      }
       btn.disabled = false;
       erroEl.classList.remove('hidden');
       erroEl.textContent = traduzirErroBanco(error);

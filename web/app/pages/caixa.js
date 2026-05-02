@@ -4,6 +4,7 @@
 
 import { supabase } from '../supabase.js';
 import { comRetry } from '../supabase-wrapper.js';
+import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalAdicionarNF }    from '../../components/modal-adicionar-nf.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
@@ -213,6 +214,7 @@ async function carregarLancamentos(caixaId) {
   );
 
   if (error) {
+    log.erro('falha ao carregar lançamentos do caixa', error, { caixaId });
     bloco.innerHTML = `<p class="alert">Não conseguimos carregar os lançamentos.</p>`;
     return;
   }
