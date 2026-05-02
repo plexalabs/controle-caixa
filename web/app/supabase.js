@@ -8,6 +8,7 @@
 // em forks publicos.
 
 import { createClient } from '@supabase/supabase-js';
+import { authStorageAdapter } from './auth-storage.js';
 
 // ─── Configuração do projeto ──────────────────────────────────────────────
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL;
@@ -20,16 +21,12 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
-// ─── Storage adapter em memória ───────────────────────────────────────────
+// ─── Storage adapter persistente (IndexedDB com cache síncrono) ──────────
 // Regra inviolável do projeto: NÃO usar localStorage ou sessionStorage.
-// Para o CP1, sessão vive em memória (perde no F5). No CP5 (PWA), troca
-// para IndexedDB via Dexie e ganha persistência de verdade.
-const memoria = new Map();
-const memoriaStorage = {
-  getItem:    (chave)        => memoria.get(chave) ?? null,
-  setItem:    (chave, valor) => { memoria.set(chave, valor); },
-  removeItem: (chave)        => { memoria.delete(chave); },
-};
+// Sessão fica em IndexedDB; o adapter expõe API síncrona via Map em memória
+// que é pré-populado em prepararAuthStorage() no boot do app.
+// Antes desta refatoração (CP-PRE-DEPLOY-1), sessão vivia só em RAM e F5
+// jogava o operador pra /login mesmo logado.
 
 // ─── Cliente único exportado ──────────────────────────────────────────────
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -37,7 +34,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession:    true,
     autoRefreshToken:  true,
     detectSessionInUrl: true,
-    storage:           memoriaStorage,
+    storage:           authStorageAdapter,
     storageKey:        'caixa-boti-auth',
     flowType:          'pkce',
   },

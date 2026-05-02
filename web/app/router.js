@@ -68,9 +68,11 @@ export async function despachar() {
     const m = url.match(rota.padrao);
     if (!m) continue;
 
-    // Se rota fechada e sem sessão → manda para login.
+    // Se rota fechada e sem sessão → manda para login com ?next= preservando
+    // a intenção. Pós-login o /login lê esse ?next= e devolve o operador
+    // exatamente onde ele tentou ir.
     if (!rota.aberta && !sessao) {
-      const destino = '/login?proximo=' + encodeURIComponent(url);
+      const destino = '/login?next=' + encodeURIComponent(url);
       return navegar(destino);
     }
     // Se rota é login mas usuário já tem sessão válida → manda para dashboard.
