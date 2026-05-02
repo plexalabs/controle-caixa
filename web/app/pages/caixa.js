@@ -3,6 +3,7 @@
 // com cores canônicas, realtime, estado vazio, criar caixa se não existe.
 
 import { supabase } from '../supabase.js';
+import { comRetry } from '../supabase-wrapper.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalAdicionarNF }    from '../../components/modal-adicionar-nf.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
@@ -199,12 +200,17 @@ async function carregarLancamentos(caixaId) {
   const bloco  = document.querySelector('#bloco-conteudo');
   if (!bloco) return;
 
-  const { data, error } = await supabase
-    .from('lancamento')
-    .select('id, numero_nf, codigo_pedido, cliente_nome, valor_nf, categoria, estado, dados_categoria, criado_em, resolvido_em, atualizado_em')
-    .eq('caixa_id', caixaId)
-    .neq('estado', 'excluido')
-    .order('criado_em', { ascending: true });
+  // Carregar lançamentos do caixa: tolerância a instabilidade transitória
+  // via comRetry (3 tentativas, backoff 1s/2s, ativa banner após falha).
+  const { data, error } = await comRetry(
+    () => supabase
+      .from('lancamento')
+      .select('id, numero_nf, codigo_pedido, cliente_nome, valor_nf, categoria, estado, dados_categoria, criado_em, resolvido_em, atualizado_em')
+      .eq('caixa_id', caixaId)
+      .neq('estado', 'excluido')
+      .order('criado_em', { ascending: true }),
+    'carregar lançamentos'
+  );
 
   if (error) {
     bloco.innerHTML = `<p class="alert">Não conseguimos carregar os lançamentos.</p>`;

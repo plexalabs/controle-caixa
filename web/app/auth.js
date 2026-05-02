@@ -3,6 +3,7 @@
 // sem precisar interpretar mensagens cruas do Supabase.
 
 import { supabase } from './supabase.js';
+import { comRetry } from './supabase-wrapper.js';
 
 // Mapa de mensagens de erro do Supabase para textos pt-BR claros que o
 // Operador entenderia sem saber o que é "rate limit" ou "invalid grant".
@@ -34,11 +35,17 @@ function traduzirErro(error) {
 }
 
 // ─── Login com email e senha ──────────────────────────────────────────────
+// Envolvido em comRetry: tolera 1-2 falhas de rede antes de mostrar erro
+// ao operador. Senha incorreta NÃO é retentada (auth.js retorna error com
+// status 400, fora da lista de recuperáveis do wrapper).
 export async function entrarComSenha(email, senha) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password: senha,
-  });
+  const { data, error } = await comRetry(
+    () => supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: senha,
+    }),
+    'login'
+  );
   if (error) return { ok: false, mensagem: traduzirErro(error), code: error.code };
   return { ok: true, dados: data };
 }

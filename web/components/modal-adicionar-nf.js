@@ -5,6 +5,7 @@
 // descobrir como foi pago.
 
 import { supabase } from '../app/supabase.js';
+import { comRetry } from '../app/supabase-wrapper.js';
 import { abrirModal, fecharModal } from './modal.js';
 import { mostrarToast } from '../app/notifications.js';
 import { debounce } from '../app/utils.js';
@@ -124,7 +125,12 @@ function ligarComportamento() {
       p_fonte_origem:    'web',
     };
 
-    const { error } = await supabase.rpc('upsert_lancamento', payload);
+    // Criar lançamento "em análise": tolerância a instabilidade transitória
+    // via comRetry. Erros de validação (NF duplicada etc) NÃO retentam.
+    const { error } = await comRetry(
+      () => supabase.rpc('upsert_lancamento', payload),
+      'criar lançamento'
+    );
     btn.removeAttribute('aria-busy');
 
     if (error) {
