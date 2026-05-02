@@ -15,6 +15,7 @@ import { renderVendedoras }    from './pages/configuracoes-vendedoras.js';
 import { renderUsuarios }      from './pages/configuracoes-usuarios.js';
 import { renderFeriados }      from './pages/configuracoes-feriados.js';
 import { renderSistema }       from './pages/configuracoes-sistema.js';
+import { renderRelatorios }    from './pages/relatorios.js';
 import { renderPendencias }    from './pages/pendencias.js';
 import { renderNotificacoes }  from './pages/notificacoes.js';
 import { renderPerfil }        from './pages/perfil.js';
@@ -42,6 +43,7 @@ const rotas = [
   { padrao: /^\/configuracoes\/usuarios$/,    handler: renderUsuarios },
   { padrao: /^\/configuracoes\/feriados$/,    handler: renderFeriados },
   { padrao: /^\/configuracoes\/sistema$/,     handler: renderSistema },
+  { padrao: /^\/relatorios$/,                 handler: renderRelatorios },
   { padrao: /^\/pendencias$/,                 handler: renderPendencias },
   { padrao: /^\/notificacoes$/,               handler: renderNotificacoes },
   { padrao: /^\/perfil$/,                     handler: renderPerfil },
