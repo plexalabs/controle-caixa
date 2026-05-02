@@ -47,16 +47,23 @@ API não expõe Email Templates.
 
 ## Decisões de design
 
-### Por que sem logo SVG inline
+### Logo SVG inline (topo esquerdo)
 
-`web/public/assets/logo.svg` tem ~13 KB de paths densos. Inline em email:
-- Aumenta tamanho do email (alguns provedores cortam acima de 100 KB)
-- Outlook desktop e versões antigas do Gmail Android não suportam SVG
-- Provedores corporativos podem strip por filtros de segurança
+O logo real (`web/public/assets/logo.svg`, ~18 KB) está embutido inline
+nos 3 templates, no topo-esquerdo do card, com `fill="#2A3D2C"` (musgo) e
+tamanho 42×42 px. Ao lado, o wordmark "Caixa Boti" em Fraunces italic
+24px. Layout em tabela 2-col (cell logo | cell wordmark) com `vertical-align: middle`.
 
-**Solução**: ornamento geométrico CSS (3 caixas empilhadas em âmbar/musgo/cinza
-via `box-shadow`) + wordmark "Caixa Boti" em Fraunces italic. Identidade
-visual mantida sem nenhum asset binário/vetor — funciona em 100% dos clientes.
+**Compatibilidade:** SVG inline funciona em Apple Mail (iOS/macOS), Gmail
+(web/Android), Yahoo, ProtonMail, Thunderbird. **Outlook desktop 2016/2019
+strippa SVG inline** — nesses clientes o espaço fica vazio, mas o wordmark
+Fraunces ao lado mantém a marca legível. Aceitável: público corporativo do
+Caixa Boti usa Gmail web/Outlook web (não desktop legado).
+
+Tamanho final por email: ~21 KB (3 KB de markup + 18 KB do SVG). Bem dentro
+do limite Gmail de 102 KB. Se precisar reduzir no futuro, alternativa é
+hospedar PNG monocromático em `https://caixa-boti.plexalabs.com/assets/logo-email.png`
+e usar `<img src>` com fallback `alt="Caixa Boti"`.
 
 ### Por que tabelas e inline styles
 
