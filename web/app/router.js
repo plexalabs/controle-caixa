@@ -20,6 +20,7 @@ import { renderPendencias }    from './pages/pendencias.js';
 import { renderNotificacoes }  from './pages/notificacoes.js';
 import { renderPerfil }        from './pages/perfil.js';
 import { renderLancamento }    from './pages/lancamento.js';
+import { renderErro404 }       from './pages/erro-404.js';
 import { pegarSessao }         from './supabase.js';
 
 // Lista de rotas, em ordem. `aberta: true` = não exige sessão.
@@ -47,6 +48,9 @@ const rotas = [
   { padrao: /^\/pendencias$/,                 handler: renderPendencias },
   { padrao: /^\/notificacoes$/,               handler: renderNotificacoes },
   { padrao: /^\/perfil$/,                     handler: renderPerfil },
+  { padrao: /^\/erros\/404$/,                 handler: renderErro404, aberta: true },
+  // Catch-all editorial — sempre o último. Se chegou aqui é 404.
+  { padrao: /.*/,                              handler: renderErro404, aberta: true },
 ];
 
 export async function navegar(url) {
@@ -83,15 +87,7 @@ export async function despachar() {
     }
     return rota.handler({ params: m.slice(1), sessao });
   }
-
-  document.querySelector('#app').innerHTML = `
-    <div class="min-h-screen flex items-center justify-center p-8 text-center">
-      <div>
-        <p class="h-eyebrow mb-2">404</p>
-        <h1 class="h-display text-5xl mb-4">Página não encontrada</h1>
-        <a href="/dashboard" data-link class="btn-link">Voltar para o início</a>
-      </div>
-    </div>`;
+  // Inalcançável: o catch-all `/.*/  ` no fim da lista garante match.
 }
 
 // Intercepta cliques em <a data-link href="..."> para navegação client-side.

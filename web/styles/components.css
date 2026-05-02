@@ -6083,3 +6083,90 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     .dash-quadro, .dash-aviso { animation: none; transition: none; }
     .dash-quadro-cta:hover, .dash-aviso:hover { transform: none; }
 }
+
+
+/* ============================================================
+   Tela 404 editorial (CP-PRE-DEPLOY-1)
+   Etiqueta lateral âmbar com "404" vertical + título Fraunces
+   + texto Manrope + ações editorial.
+   ============================================================ */
+
+.erro-shell {
+    min-height: 80vh;
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 2rem;
+    padding: 3rem 2rem;
+    max-width: 720px;
+    margin: 0 auto;
+    align-items: start;
+    animation: fade-up 600ms var(--ease-out) backwards;
+}
+
+.erro-etiqueta {
+    background: var(--c-ambar);
+    color: var(--c-papel);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 2rem;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    padding: 1.5rem 0.5rem;
+    /* Etiqueta inverte a regra do projeto: aqui é round-LEFT/flat-RIGHT
+       porque a etiqueta "abraça" o conteúdo pela direita. */
+    border-radius: 12px 0 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.08em;
+    height: fit-content;
+    min-height: 8rem;
+    box-shadow: 0 8px 24px -16px rgba(199, 122, 63, 0.4);
+}
+
+.erro-conteudo .h-eyebrow {
+    margin-bottom: 0.4rem;
+}
+
+.erro-titulo {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-style: normal;
+    font-variation-settings: "opsz" 144;
+    font-size: clamp(1.85rem, 4vw, 2.6rem);
+    line-height: 1.15;
+    color: var(--c-tinta);
+    margin: 0.5rem 0 1.5rem;
+    letter-spacing: -0.01em;
+}
+.erro-titulo em {
+    font-style: italic;
+    color: var(--c-musgo);
+    font-weight: 400;
+}
+
+.erro-texto {
+    font-family: 'Manrope', sans-serif;
+    font-size: 1rem;
+    color: var(--c-tinta-2);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    max-width: 480px;
+}
+
+.erro-acoes {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .erro-shell { grid-template-columns: 40px 1fr; padding: 2rem 1rem; gap: 1.25rem; }
+    .erro-etiqueta { font-size: 1.4rem; padding: 1rem 0.3rem; min-height: 6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .erro-shell { animation: none; }
+}
