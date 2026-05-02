@@ -6170,3 +6170,66 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 @media (prefers-reduced-motion: reduce) {
     .erro-shell { animation: none; }
 }
+
+
+/* ============================================================
+   Banner global de instabilidade Supabase (CP-PRE-DEPLOY-1)
+   Mostrado quando 3 tentativas falhadas; some em até 5s após volta.
+   ============================================================ */
+
+.banner-instabilidade {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-left: 3px solid var(--c-ambar);
+    border-radius: 0 12px 12px 0;
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    gap: 0.85rem;
+    align-items: center;
+    box-shadow: 0 1px 0 0 rgba(26,26,26,0.04),
+                0 14px 36px -16px rgba(199, 122, 63, 0.3);
+    z-index: 1000;
+    max-width: 380px;
+    font-family: 'Manrope', sans-serif;
+    animation: banner-deslizar 320ms var(--ease-spring);
+}
+.banner-instabilidade.hidden { display: none; }
+.banner-icone { color: var(--c-ambar); flex-shrink: 0; display: inline-flex; }
+
+.banner-titulo {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--c-tinta);
+    margin: 0;
+    line-height: 1.2;
+}
+.banner-sub {
+    font-size: 0.8rem;
+    color: var(--c-tinta-3);
+    margin: 0.15rem 0 0;
+    line-height: 1.35;
+}
+
+/* Estado global: desabilita CTAs críticos enquanto Supabase está fora.
+   Botões marcados com [data-acao=critica] ficam não-clicáveis. Submit
+   de forms também — evita pressionar Enter pra "tentar de novo" em
+   loop. Botões de navegação seguem funcionando. */
+body.supabase-down .btn-primary[type="submit"],
+body.supabase-down [data-acao="critica"] {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+@keyframes banner-deslizar {
+    from { transform: translate(-50%, -120%); opacity: 0; }
+    to   { transform: translate(-50%, 0);     opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .banner-instabilidade { animation: none; }
+}
