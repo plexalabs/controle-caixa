@@ -5279,3 +5279,480 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     font-size: 0.85rem;
 }
 
+
+/* ============================================================
+   CP7.3-FIX — /configuracoes/sistema redesenhado
+   Toggle inline + cards clicáveis + modal com stepper rico
+   ============================================================ */
+
+.sis-grupo {
+    margin-top: 2rem;
+    animation: fade-up 600ms var(--ease-out) backwards;
+}
+.sis-grupo:first-child { margin-top: 0.4rem; }
+
+.sis-grupo-cabec {
+    border-bottom: 1px solid var(--c-papel-3);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+.sis-grupo-titulo-novo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    font-size: 1.4rem;
+    color: var(--c-tinta);
+    line-height: 1.15;
+    margin: 0;
+}
+.sis-grupo-desc {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+    margin-top: 0.3rem;
+    line-height: 1.45;
+}
+.sis-grupo-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.sis-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.2rem;
+    align-items: center;
+    padding: 1.05rem 1.25rem 1.05rem 1.55rem;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-md) var(--r-md) 0;  /* identidade flat-left */
+    overflow: hidden;
+    transition: border-color 220ms var(--ease-out), transform 220ms var(--ease-out);
+    animation: fade-up 500ms var(--ease-out) backwards;
+}
+.sis-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--c-ambar);
+    transition: background 220ms var(--ease-out);
+}
+.sis-card:hover { border-color: var(--c-musgo); }
+.sis-card:hover::before { background: var(--c-musgo); }
+
+.sis-card--clickable { cursor: pointer; }
+.sis-card--clickable:hover { transform: translateY(-1px); }
+.sis-card--clickable:focus-visible {
+    outline: 2px solid var(--c-musgo);
+    outline-offset: 2px;
+}
+
+.sis-card-conteudo { min-width: 0; }
+.sis-card-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-variation-settings: "opsz" 144;
+    font-size: 1.15rem;
+    color: var(--c-tinta);
+    line-height: 1.2;
+}
+.sis-card-desc {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-2);
+    margin-top: 0.32rem;
+    line-height: 1.5;
+    max-width: 38rem;
+}
+.sis-card-audit {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    color: var(--c-tinta-3);
+    margin-top: 0.5rem;
+    letter-spacing: 0.02em;
+}
+
+/* ─── Toggle inline (boolean) ─── */
+.sis-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+}
+.sis-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.sis-toggle-trilho {
+    position: relative;
+    width: 56px;
+    height: 30px;
+    background: var(--c-papel-3);
+    border-radius: var(--r-pill);
+    transition: background 240ms var(--ease-out);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+.sis-toggle-handle {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    background: var(--c-papel);
+    border-radius: var(--r-pill);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    transition: left 240ms var(--ease-spring), background 240ms var(--ease-out);
+}
+.sis-toggle.is-on .sis-toggle-trilho { background: var(--c-musgo); }
+.sis-toggle.is-on .sis-toggle-handle { left: 29px; background: var(--c-papel); }
+.sis-toggle:hover .sis-toggle-trilho { box-shadow: inset 0 1px 2px rgba(0,0,0,0.12), 0 0 0 4px rgba(15,76,58,0.08); }
+
+.sis-toggle-rotulo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--c-tinta-2);
+    min-width: 110px;
+    text-align: left;
+    transition: color 200ms var(--ease-out);
+}
+.sis-toggle.is-on .sis-toggle-rotulo { color: var(--c-musgo); }
+.sis-toggle.is-off .sis-toggle-rotulo { color: var(--c-tinta-3); }
+
+/* ─── Card com valor (number/time/date/text) ─── */
+.sis-card-valor {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    color: var(--c-musgo-3);
+    font-family: 'Fraunces', serif;
+}
+.sis-valor-num {
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    font-size: 1.6rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.sis-valor-unid {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--c-tinta-3);
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+}
+.sis-card-edit-icone {
+    margin-left: 0.5rem;
+    color: var(--c-tinta-3);
+    transition: color 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+.sis-card--clickable:hover .sis-card-edit-icone {
+    color: var(--c-musgo);
+    transform: rotate(-8deg);
+}
+
+@media (max-width: 540px) {
+    .sis-card { grid-template-columns: 1fr; gap: 0.7rem; }
+    .sis-card-valor { justify-content: flex-start; }
+    .sis-toggle { justify-content: flex-start; }
+}
+
+/* ─── Modal de edição ─── */
+.sis-modal-desc {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    color: var(--c-tinta-2);
+    line-height: 1.55;
+    margin-bottom: 1.4rem;
+}
+
+/* NUMBER editor */
+.sis-num-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    align-items: center;
+}
+.sis-num-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+.sis-num-btn {
+    appearance: none;
+    width: 52px;
+    height: 52px;
+    border: 1.5px solid var(--c-papel-3);
+    background: var(--c-papel);
+    border-radius: var(--r-pill);
+    color: var(--c-musgo);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 160ms var(--ease-out);
+    flex-shrink: 0;
+    user-select: none;
+}
+.sis-num-btn:hover:not(:disabled) {
+    background: var(--c-musgo);
+    color: var(--c-papel);
+    border-color: var(--c-musgo);
+    transform: scale(1.05);
+}
+.sis-num-btn:active:not(:disabled) { transform: scale(0.96); }
+.sis-num-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.sis-num-display {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    background: var(--c-papel-2);
+    border: 1.5px dashed var(--c-papel-3);
+    border-radius: var(--r-md);
+    padding: 0.85rem 1.4rem;
+    min-width: 180px;
+    justify-content: center;
+}
+.sis-num-display:focus-within {
+    border-style: solid;
+    border-color: var(--c-musgo);
+    background: var(--c-papel);
+}
+#sis-num-input {
+    appearance: textfield;
+    -moz-appearance: textfield;
+    background: transparent;
+    border: 0;
+    outline: none;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    font-size: 2.6rem;
+    color: var(--c-tinta);
+    width: 5ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+#sis-num-input::-webkit-outer-spin-button,
+#sis-num-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.sis-num-unidade {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    color: var(--c-tinta-3);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.sis-num-range {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    max-width: 320px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    color: var(--c-tinta-3);
+    font-variant-numeric: tabular-nums;
+}
+.sis-num-range input[type="range"] {
+    flex: 1;
+    appearance: none;
+    height: 4px;
+    background: var(--c-papel-3);
+    border-radius: var(--r-pill);
+    outline: none;
+}
+.sis-num-range input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px; height: 18px;
+    background: var(--c-musgo);
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(15,76,58,0.3);
+    transition: transform 160ms var(--ease-out);
+}
+.sis-num-range input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.sis-num-range input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    background: var(--c-musgo);
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    border: 0;
+    box-shadow: 0 2px 4px rgba(15,76,58,0.3);
+}
+
+.sis-num-sugestoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0.4rem;
+    border-top: 1px dashed var(--c-papel-3);
+    width: 100%;
+    max-width: 320px;
+}
+.sis-num-sugestoes-rot {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--c-tinta-3);
+    font-weight: 700;
+    margin-right: 0.3rem;
+}
+.sis-num-sug {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-pill);
+    padding: 0.32rem 0.7rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-2);
+    cursor: pointer;
+    transition: all 160ms var(--ease-out);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+.sis-num-sug:hover { border-color: var(--c-musgo); color: var(--c-musgo); transform: translateY(-1px); }
+.sis-num-sug.is-ativo {
+    background: var(--c-musgo);
+    color: var(--c-papel);
+    border-color: var(--c-musgo);
+}
+.sis-num-sug-unid {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    margin-left: 0.15rem;
+}
+
+/* TIME editor */
+.sis-time-editor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+.sis-time-grupo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+}
+.sis-time-btn {
+    appearance: none;
+    width: 36px; height: 28px;
+    background: transparent;
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-sm);
+    color: var(--c-musgo);
+    cursor: pointer;
+    font-size: 0.7rem;
+    line-height: 1;
+    transition: all 160ms var(--ease-out);
+}
+.sis-time-btn:hover { background: var(--c-musgo); color: var(--c-papel); border-color: var(--c-musgo); }
+.sis-time-btn:active { transform: scale(0.94); }
+
+#sis-time-hh, #sis-time-mm {
+    appearance: textfield;
+    -moz-appearance: textfield;
+    width: 86px;
+    height: 86px;
+    text-align: center;
+    border: 1.5px dashed var(--c-papel-3);
+    border-radius: var(--r-md);
+    background: var(--c-papel-2);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    font-size: 3rem;
+    color: var(--c-tinta);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    padding: 0;
+}
+#sis-time-hh::-webkit-outer-spin-button,
+#sis-time-hh::-webkit-inner-spin-button,
+#sis-time-mm::-webkit-outer-spin-button,
+#sis-time-mm::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+#sis-time-hh:focus, #sis-time-mm:focus {
+    outline: none;
+    border-style: solid;
+    border-color: var(--c-musgo);
+    background: var(--c-papel);
+}
+
+.sis-time-rot {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--c-tinta-3);
+    font-weight: 700;
+}
+
+.sis-time-sep {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 3rem;
+    color: var(--c-musgo);
+    align-self: flex-start;
+    margin-top: 1.5rem;
+    font-weight: 300;
+}
+.sis-time-sufixo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+    text-align: center;
+    margin-top: 0.85rem;
+    font-style: italic;
+}
+
+/* DATE editor */
+.sis-date-editor { padding: 0.5rem 0; }
+#sis-date-input { width: 100%; font-size: 1.05rem; }
+
+/* TEXT editor */
+.sis-text-editor { padding: 0.4rem 0; }
+.sis-text-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1.5px solid var(--c-papel-3);
+    border-radius: var(--r-md);
+    font-family: 'Manrope', sans-serif;
+    font-size: 1.05rem;
+    color: var(--c-tinta);
+    background: var(--c-papel);
+    transition: border-color 180ms var(--ease-out);
+}
+.sis-text-input:focus { outline: none; border-color: var(--c-musgo); }
+.sis-text-contador {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.72rem;
+    color: var(--c-tinta-3);
+    text-align: right;
+    margin-top: 0.4rem;
+    font-variant-numeric: tabular-nums;
+}
+
