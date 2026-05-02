@@ -4263,26 +4263,26 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    ============================================================ */
 
 /* Distribuição por categoria — barras horizontais ranqueadas */
+/* Chart de distribuição: vive DENTRO do .dash-quadro do dashboard,
+   então não precisa mais de border/border-radius/padding próprios.
+   Linha em grid auto-1fr-auto: rótulo (largura natural), trilha (cresce
+   pra ocupar todo o espaço disponível em qualquer dispositivo), meta. */
 .chart-dist {
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
-    background: var(--c-papel);
-    border: 1px solid var(--c-papel-3);
-    border-left: 3px solid var(--c-musgo);
-    border-radius: 0 var(--r-md) var(--r-md) 0;
-    padding: 1.2rem 1.4rem;
+    gap: 0.6rem;
+    width: 100%;
 }
 .chart-dist-linha {
     display: grid;
-    grid-template-columns: 7rem 1fr auto;
+    grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.9rem;
     animation: fade-up 500ms var(--ease-out) backwards;
 }
-@media (max-width: 640px) {
+@media (max-width: 480px) {
     .chart-dist-linha {
-        grid-template-columns: 5rem 1fr auto;
+        grid-template-columns: minmax(4.5rem, auto) minmax(0, 1fr) auto;
         gap: 0.55rem;
     }
 }
@@ -4295,12 +4295,18 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     overflow: hidden;
     text-overflow: ellipsis;
 }
+/* Linhas zeradas (categoria sem lançamento no mês) ficam suaves */
+.chart-dist-linha[data-zero="true"] .chart-dist-rotulo { color: var(--c-tinta-3); font-weight: 500; }
+.chart-dist-linha[data-zero="true"] .chart-dist-pct,
+.chart-dist-linha[data-zero="true"] .chart-dist-valor { color: var(--c-tinta-3); }
 .chart-dist-trilha {
     background: var(--c-papel-2);
-    height: 28px;
+    height: 24px;
     border-radius: 0 var(--r-sm) var(--r-sm) 0;
     overflow: hidden;
     position: relative;
+    width: 100%;
+    min-width: 0;
 }
 .chart-dist-barra {
     display: block;
@@ -4318,6 +4324,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .chart-dist-barra[data-cat="cancelado"]   { background: var(--cat-cancelado-border); }
 .chart-dist-barra[data-cat="cartao_link"] { background: var(--cat-link-border); }
 .chart-dist-barra[data-cat="obs"]         { background: var(--cat-obs-border); }
+.chart-dist-barra[data-cat="em_analise"]  { background: var(--cat-pendente-text); }
 
 .chart-dist-meta {
     display: flex;
@@ -4338,30 +4345,30 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-tinta-3);
 }
 
-/* Movimento dos últimos 30 dias — barrinhas verticais editoriais */
+/* Movimento dos últimos 30 dias — barrinhas verticais editoriais.
+   Vive DENTRO do .dash-quadro, então sem borda/padding próprios.
+   Rebrand: barras com cantos arredondados no topo, espaçamento mais
+   generoso, label do dia do mês embaixo de cada barra. */
 .chart-mov {
-    background: var(--c-papel);
-    border: 1px solid var(--c-papel-3);
-    border-left: 3px solid var(--c-musgo);
-    border-radius: 0 var(--r-md) var(--r-md) 0;
-    padding: 1.4rem 1.4rem 1rem;
+    width: 100%;
     position: relative;
 }
 .chart-mov-barras {
     display: grid;
-    grid-template-columns: repeat(30, 1fr);
-    gap: 4px;
+    grid-template-columns: repeat(30, minmax(0, 1fr));
+    gap: 5px;
     align-items: end;
-    height: 110px;
-    margin-bottom: 0.4rem;
+    height: 130px;
+    margin-bottom: 0.5rem;
+    padding: 0 0.1rem;
 }
 @media (max-width: 640px) {
-    /* Em mobile, usa scroll horizontal pra preservar a leitura.
-       Cada barrinha mantém largura mínima legível. */
+    /* Mobile: scroll horizontal preservando legibilidade dos labels. */
     .chart-mov-barras {
-        grid-template-columns: repeat(30, minmax(14px, 1fr));
+        grid-template-columns: repeat(30, minmax(18px, 1fr));
         overflow-x: auto;
-        padding-bottom: 0.4rem;
+        padding: 0 0.2rem 0.5rem;
+        scrollbar-width: thin;
     }
 }
 
@@ -4369,70 +4376,82 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    align-items: center;
+    align-items: stretch;
     height: 100%;
     text-decoration: none;
     color: inherit;
     cursor: pointer;
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
     transition: transform 180ms var(--ease-spring);
     animation: fade-up 600ms var(--ease-out) backwards;
+    min-width: 0;
 }
 .chart-mov-coluna:hover { transform: translateY(-2px); }
-.chart-mov-coluna[data-hoje="true"] .chart-mov-rot {
-    color: var(--c-musgo);
-    font-weight: 700;
-}
 
 .chart-mov-barra {
     display: block;
     width: 100%;
     background: var(--c-musgo);
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    /* Cantos arredondados no topo — barras "crescem do chão" */
+    border-radius: 4px 4px 0 0;
     height: 0;
-    min-height: 1px;
+    min-height: 2px;
     transition: height 700ms cubic-bezier(0.32, 0.72, 0, 1),
-                background 180ms ease;
+                background 180ms ease,
+                box-shadow 180ms ease;
 }
 .chart-mov-barra.is-animado { height: var(--alvo, 0%); }
 .chart-mov-coluna:hover .chart-mov-barra {
     background: var(--c-musgo-2);
+    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.06) inset;
 }
 .chart-mov-coluna[data-fim="true"] .chart-mov-barra {
-    background: rgba(15, 76, 58, 0.4);
+    background: rgba(15, 76, 58, 0.32);
 }
 .chart-mov-coluna[data-vazio="true"] .chart-mov-barra {
     background: var(--c-papel-3);
-    min-height: 2px;
+    min-height: 3px;
 }
 .chart-mov-coluna[data-hoje="true"] .chart-mov-barra {
     background: var(--c-ambar);
-    box-shadow: 0 -2px 0 0 var(--c-ambar-2);
+    box-shadow: 0 -2px 0 0 var(--c-ambar-2) inset;
 }
 
+/* Label do dia do mês (1-31) embaixo de cada barra */
 .chart-mov-rot {
     font-family: 'Manrope', sans-serif;
-    font-size: 0.6rem;
-    font-weight: 600;
+    font-size: 0.62rem;
+    font-weight: 500;
     color: var(--c-tinta-3);
-    margin-top: 0.45rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    margin-top: 0.5rem;
+    letter-spacing: 0;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
 }
+.chart-mov-coluna[data-fim="true"] .chart-mov-rot { color: var(--c-tinta-3); opacity: 0.65; }
+.chart-mov-coluna[data-hoje="true"] .chart-mov-rot {
+    color: var(--c-ambar-2);
+    font-weight: 700;
+}
+.chart-mov-coluna:hover .chart-mov-rot { color: var(--c-musgo); }
 
+/* Linha base sutil sob as barras */
 .chart-mov-base {
     height: 1px;
-    background: rgba(15, 76, 58, 0.18);
-    margin: 0 0 0.5rem 0;
+    background: rgba(15, 76, 58, 0.14);
+    margin: 0 0 0.55rem 0;
 }
+
+/* Eixo de mês — 1 label só (mês/ano) ancorando a leitura */
 .chart-mov-eixo {
-    display: flex;
-    justify-content: space-between;
     font-family: 'Manrope', sans-serif;
     font-size: 0.7rem;
     font-variant-numeric: tabular-nums;
     color: var(--c-tinta-3);
-    padding: 0 0.4rem;
+    text-align: center;
+    letter-spacing: 0.04em;
+    text-transform: lowercase;
+    font-style: italic;
 }
 
 
@@ -5909,10 +5928,9 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 /* ─── Item de aviso dentro do quadro Avisos ───
-   Bordas totalmente arredondadas pra acompanhar o rebrand do quadro pai.
-   O filete colorido continua à esquerda (sinal funcional de severidade)
-   mas com cantos arredondados acompanhando o cartão (overflow: hidden
-   no item garante o clip). */
+   Volta pra identidade flat-left/round-right do projeto: o filete colorido
+   por severidade fica à esquerda como uma "lapela" reta, e os cantos da
+   direita são arredondados. Faz par com .lanc-row, .vd-card, etc. */
 .dash-aviso {
     appearance: none;
     text-align: left;
@@ -5920,7 +5938,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     width: 100%;
     background: var(--c-papel-2);
     border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-sm);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
     padding: 0.7rem 0.85rem 0.7rem 1rem;
     cursor: pointer;
     font-family: 'Manrope', sans-serif;

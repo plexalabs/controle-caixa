@@ -4,7 +4,7 @@
 
 import { supabase, pegarSessao } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
-import { saudacaoPorHora, dataLonga, isoData, LABEL_CATEGORIA } from '../dominio.js';
+import { saudacaoPorHora, dataLonga, isoData, LABEL_CATEGORIA, CATEGORIAS } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
 import { navegar } from '../router.js';
@@ -161,24 +161,42 @@ async function carregarDistribuicaoCategoria() {
     return;
   }
 
-  if (!data || data.length === 0) {
+  // Lista completa de categorias a exibir: 6 canônicas + "em análise"
+  // (lançamentos sem categoria definida). Categorias zeradas aparecem
+  // com 0% pra dar comparação visual completa em qualquer mês.
+  const TODAS = [
+    ...CATEGORIAS,
+    { valor: 'em_analise', rotulo: 'Em análise' },
+  ];
+
+  // Mapa categoria → totais retornados pela RPC. Categorias ausentes ficam zeradas.
+  const porCat = Object.fromEntries((data || []).map(r => [r.categoria, r]));
+  const linhas = TODAS.map(c => ({
+    categoria: c.valor,
+    rotulo:    c.rotulo,
+    total_valor:        Number(porCat[c.valor]?.total_valor ?? 0),
+    total_lancamentos:  Number(porCat[c.valor]?.total_lancamentos ?? 0),
+  }));
+
+  const totalGeral = linhas.reduce((s, r) => s + r.total_valor, 0);
+
+  if (totalGeral === 0) {
     cont.innerHTML = `
-      <div class="vazio" style="padding:2rem 1.5rem">
-        <p class="vazio-titulo" style="font-size:1.05rem">Distribuição vai aparecer quando houver lançamentos no período.</p>
-        <p class="vazio-desc">Cadastre lançamentos categorizados pra ver a divisão entre Cartão, Pix, Dinheiro etc.</p>
+      <div class="dash-quadro-vazio">
+        <p class="dash-quadro-vazio-titulo">Sem distribuição neste mês ainda.</p>
+        <p class="dash-quadro-vazio-desc">Categorize lançamentos para ver a divisão.</p>
       </div>`;
     return;
   }
 
-  const totalGeral = data.reduce((s, r) => s + Number(r.total_valor || 0), 0);
-
   cont.innerHTML = `
     <div class="chart-dist">
-      ${data.map((r, i) => {
-        const pct = totalGeral > 0 ? (Number(r.total_valor) / totalGeral) * 100 : 0;
+      ${linhas.map((r, i) => {
+        const pct = (r.total_valor / totalGeral) * 100;
+        const ehZero = r.total_valor === 0;
         return `
-          <div class="chart-dist-linha" style="animation-delay:${i * 70}ms">
-            <span class="chart-dist-rotulo">${esc(LABEL_CATEGORIA[r.categoria] || r.categoria)}</span>
+          <div class="chart-dist-linha" data-zero="${ehZero}" style="animation-delay:${i * 60}ms">
+            <span class="chart-dist-rotulo">${esc(r.rotulo)}</span>
             <div class="chart-dist-trilha" aria-label="${pct.toFixed(1)} por cento">
               <span class="chart-dist-barra" data-cat="${esc(r.categoria)}"
                     style="--alvo:${pct.toFixed(2)}%"></span>
@@ -243,7 +261,6 @@ async function carregarMovimento30d() {
           const v = Number(d.total_valor || 0);
           const altura = maxValor > 0 ? Math.round((v / maxValor) * 100) : 0;
           const dt = new Date(d.data + 'T00:00:00');
-          const semana = ['DOM','SEG','TER','QUA','QUI','SEX','SAB'][dt.getDay()];
           const ehHoje = d.data === isoData(new Date());
           const fim = dt.getDay() === 0 || dt.getDay() === 6;
           const titulo = `${dataLonga(d.data)} — ${formatBRL(v)} · ${d.total_lancamentos} ${d.total_lancamentos === 1 ? 'lançamento' : 'lançamentos'}${d.estado ? ' (' + d.estado + ')' : ' (sem caixa)'}`;
@@ -257,16 +274,12 @@ async function carregarMovimento30d() {
                data-vazio="${v === 0}"
                style="animation-delay:${i * 18}ms">
               <span class="chart-mov-barra" style="--alvo:${altura}%"></span>
-              <span class="chart-mov-rot">${semana[0]}</span>
+              <span class="chart-mov-rot">${dt.getDate()}</span>
             </a>`;
         }).join('')}
       </div>
       <div class="chart-mov-base" aria-hidden="true"></div>
-      <div class="chart-mov-eixo">
-        <span>${esc(formatarDataCurta(dias[0].data))}</span>
-        <span>${esc(formatarDataCurta(dias[Math.floor(dias.length/2)].data))}</span>
-        <span>${esc(formatarDataCurta(dias[dias.length-1].data))}</span>
-      </div>
+      <div class="chart-mov-eixo">${esc(rotuloEixoMov(dias))}</div>
     </div>`;
 
   requestAnimationFrame(() => {
@@ -274,9 +287,16 @@ async function carregarMovimento30d() {
   });
 }
 
-function formatarDataCurta(iso) {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}`;
+// Eixo: se o intervalo cai num único mês, mostra "abril 2026". Se atravessa
+// dois meses, mostra "abril → maio 2026" (ou anos diferentes se aplicável).
+function rotuloEixoMov(dias) {
+  if (!dias.length) return '';
+  const fmt = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
+  const ini = new Date(dias[0].data + 'T00:00:00');
+  const fim = new Date(dias[dias.length - 1].data + 'T00:00:00');
+  const labIni = fmt.format(ini);
+  const labFim = fmt.format(fim);
+  return labIni === labFim ? labIni : `${labIni}  →  ${labFim}`;
 }
 
 // ─── Cards de resumo via dashboard_resumo + queries auxiliares ────────────
