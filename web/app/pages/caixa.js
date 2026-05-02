@@ -79,38 +79,24 @@ export async function renderCaixa({ params }) {
 
         <!-- CTA "Fechar caixa" — só aparece quando total_pendentes === 0 -->
         <a id="btn-fechar-dia" class="btn-fechar-caixa hidden" href="#" data-link
-           aria-label="Fechar este caixa">
-          <span class="btn-fechar-caixa-icone" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.6"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12.5 L10 17.5 L19 7.5"/>
-            </svg>
-          </span>
-          <span class="btn-fechar-caixa-texto">
-            <span class="btn-fechar-caixa-titulo">Fechar este caixa</span>
-            <span class="btn-fechar-caixa-sub">tudo conferido · pronto para fechar</span>
-          </span>
-          <span class="btn-fechar-caixa-seta" aria-hidden="true">
-            <svg width="14" height="10" viewBox="0 0 16 10" fill="none">
-              <path d="M1 5 H14 M10 1 L14 5 L10 9" stroke="currentColor"
-                    stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
+           aria-label="Fechar este caixa" title="Tudo conferido — pronto para fechar">
+          <svg class="btn-fechar-caixa-icone" width="14" height="14" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12.5 L10 17.5 L19 7.5"/>
+          </svg>
+          <span class="btn-fechar-caixa-titulo">Fechar caixa</span>
         </a>
 
         <!-- Hint quando há pendências — só aparece se total_pendentes > 0 -->
         <a id="hint-pendencias" class="hint-pendencias hidden" href="#" data-link>
-          <span class="hint-pendencias-icone" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9"/>
-              <path d="M12 7.5 V12 L15 14"/>
-            </svg>
-          </span>
+          <svg class="hint-pendencias-icone" width="13" height="13" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7.5 V12 L15 14"/>
+          </svg>
           <span id="hint-pendencias-texto"></span>
-          <span class="hint-pendencias-seta" aria-hidden="true">→</span>
         </a>
       </div>
 
