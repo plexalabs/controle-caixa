@@ -1,7 +1,60 @@
 # PROGRESSO — Sistema de Controle de Caixa
 
-> Estado do projeto após o merge do CP-PRE-DEPLOY-1 na `main` (2026-05-02).
+> Estado do projeto após o merge do CP-PRE-DEPLOY-2 na `main` (2026-05-02).
 > Stack canônica documentada em `docs/STACK.md`.
+
+## Status — fim do CP-PRE-DEPLOY-2 (2026-05-02)
+
+### Concluído (adições)
+
+- [x] **Pré-Deploy 2: Emails customizados pt-BR com identidade editorial**
+  - 3 templates HTML editoriais em `supabase/email-templates/`:
+    - `confirmation.html` (Confirm signup) — usa `{{ .Token }}`,
+      mostra código OTP de 8 dígitos em destaque Courier 38px
+    - `recovery.html` (Reset Password) — usa `{{ .ConfirmationURL }}`,
+      botão pra `/redefinir`, validade 1 hora
+    - `magic_link.html` (Magic Link) — pronto pra futuro `signInWithOtp()`,
+      **não usado pelo app hoje** (pular no Dashboard)
+  - Subjects editoriais pt-BR (aplicados manualmente no Dashboard):
+    - "Caixa Boti · Bem-vindo ao caderno"
+    - "Caixa Boti · Vamos refazer sua senha"
+    - "Caixa Boti · Sua chave de confirmação"
+  - Identidade editorial preservada com fallbacks email-safe:
+    - `font-family: 'Fraunces', Georgia, 'Times New Roman', serif` (títulos)
+    - `font-family: 'Manrope', -apple-system, 'Segoe UI', sans-serif` (corpo)
+    - `font-family: 'Courier New', 'Roboto Mono', monospace` (código OTP)
+    - Paleta papel/musgo/âmbar inline (sem CSS variables — Gmail strippa)
+  - Logo SVG real (`web/public/assets/logo.svg`) inline com `fill="#2A3D2C"`
+    42×42 px no topo esquerdo + wordmark Fraunces italic 24px ao lado.
+    Outlook desktop strippa SVG (fallback: wordmark sozinho mantém marca).
+  - Filete âmbar 4px à esquerda na caixa do código OTP (acento focal)
+  - `border-radius: 18px` total no card (não flat-left/round-right):
+    decisão contextual — emails são objetos isolados, não componentes do app
+  - README.md em `supabase/email-templates/` com instruções de aplicação
+    manual no Dashboard + pré-requisitos (Email OTP Length=8)
+
+### Decisões arquiteturais documentadas
+
+- **OTP via SMTP nativo, não edge function**: descobriu-se durante a
+  implementação que não existe edge function `enviar_otp_resend` — o
+  Supabase Auth dispara emails direto pelo SMTP do Resend (configurado
+  no Dashboard). Os 3 templates são todos aplicados via Auth → Email
+  Templates.
+- **Versionamento dos templates**: HTMLs ficam em git como fonte da
+  verdade. Aplicação no Dashboard é manual (documentada no README).
+  Trade-off aceito porque MCP/Management API do Supabase não expõe
+  Email Templates programaticamente.
+
+### Pendências CP-PRE-DEPLOY-2
+
+- Validação cross-cliente pendente: validado no cliente do operador,
+  mas Outlook desktop e Apple Mail não foram exercitados em escala.
+  Possíveis ajustes futuros: SVG inline pode não renderizar em Outlook
+  desktop (wordmark Fraunces ao lado mantém legibilidade); fonte
+  Fraunces vai pro fallback Georgia em Gmail web.
+- Pré-requisito do Dashboard: Auth → Providers → Email → "Email OTP
+  Length" deve ser `8` e "Confirm email" habilitado, senão `{{ .Token }}`
+  vem vazio no template Confirm signup.
 
 ## Status — fim do CP-PRE-DEPLOY-1 (2026-05-02)
 
@@ -234,6 +287,9 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+d3fdc95  [F3-PRE-2] merge: emails customizados pt-BR com identidade editorial
+         (3 templates HTML em supabase/email-templates/,
+          subjects editoriais aplicados no Dashboard)
 c33edb5  [F3-PRE-1] merge: bugs criticos e infra de producao
          (engloba CP-PRE-DEPLOY-1 + hotfix seeds: F5, 404,
           retry, Sentry, retencao, notificacao-router)
