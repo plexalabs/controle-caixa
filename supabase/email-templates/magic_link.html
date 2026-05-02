@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sua chave de confirmação · Caixa Boti</title>
+</head>
+<body style="margin:0; padding:0; background:#F5EFE6; font-family:'Manrope',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; color:#1F1A14; -webkit-text-size-adjust:100%;">
+  <!-- Pré-header (alguns clientes mostram na lista) -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">
+    Seu código de confirmação: {{ .Token }} — válido por alguns minutos.
+  </div>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F5EFE6;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px; background:#FAF6EF; border-radius:18px; box-shadow:0 8px 28px -16px rgba(15,76,58,0.18);">
+
+          <!-- Marca -->
+          <tr>
+            <td align="center" style="padding:36px 24px 8px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom:14px;">
+                    <div style="display:inline-block; width:36px; height:36px; background:#C8842A; border-radius:6px; box-shadow:6px 6px 0 0 #2A3D2C, 12px 12px 0 0 #6E665B;"></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:6px;">
+                    <h1 style="margin:0; font-family:'Fraunces',Georgia,'Times New Roman',serif; font-style:italic; font-weight:400; font-size:26px; color:#2A3D2C; letter-spacing:-0.01em; line-height:1;">Caixa Boti</h1>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Conteúdo -->
+          <tr>
+            <td style="padding:24px 40px 28px;">
+              <p style="margin:0 0 8px; font-family:'Manrope',-apple-system,sans-serif; font-size:11px; color:#6E665B; letter-spacing:0.18em; text-transform:uppercase; font-weight:600;">Código de confirmação</p>
+
+              <h2 style="margin:0 0 18px; font-family:'Fraunces',Georgia,'Times New Roman',serif; font-style:normal; font-weight:400; font-size:28px; line-height:1.2; color:#1F1A14;">
+                Aqui está <em style="font-style:italic; color:#2A3D2C;">sua chave.</em>
+              </h2>
+
+              <p style="margin:0 0 24px; font-family:'Manrope',-apple-system,sans-serif; font-size:15px; color:#1F1A14; line-height:1.6;">
+                Use o código abaixo na tela de confirmação do Caixa Boti.
+              </p>
+
+              <!-- Caixa do código com filete âmbar à esquerda -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:8px 0 28px;">
+                <tr>
+                  <td align="center" style="background:#F5EFE6; border-left:4px solid #C8842A; border-radius:0 14px 14px 0; padding:32px 16px;">
+                    <p style="margin:0; font-family:'Courier New','Roboto Mono',monospace; font-size:38px; font-weight:700; color:#2A3D2C; letter-spacing:0.4em; padding-left:0.4em; line-height:1;">
+                      {{ .Token }}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0; font-family:'Manrope',-apple-system,sans-serif; font-size:13px; color:#6E665B; line-height:1.6;">
+                Se você não pediu este código, alguém pode estar tentando acessar sua conta.
+                <strong style="color:#1F1A14;">Não compartilhe esse código com ninguém.</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Rodapé -->
+          <tr>
+            <td align="center" style="padding:24px 32px 28px; border-top:1px solid #EAE2D2;">
+              <p style="margin:0 0 8px; font-family:'Manrope',-apple-system,sans-serif; font-size:10px; color:#6E665B; letter-spacing:0.18em; text-transform:uppercase; font-weight:700;">
+                © 2026 Plexa Lab&apos;s · Caixa Boti
+              </p>
+              <p style="margin:0; font-family:'Manrope',-apple-system,sans-serif; font-size:11px; color:#6E665B; line-height:1.6;">
+                Email enviado para {{ .Email }}.<br>
+                Se não foi você quem solicitou, ignore esta mensagem.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
