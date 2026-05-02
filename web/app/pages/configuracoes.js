@@ -59,6 +59,14 @@ function itens(ehAdmin) {
       ativo: true,
     },
     {
+      slug: 'relatorios',
+      eyebrow: 'Auditoria',
+      titulo: 'Relatórios',
+      desc: 'Exportação de períodos por categoria, estado e formato. Base pra contação mensal e auditoria.',
+      href: '/relatorios',
+      ativo: true,
+    },
+    {
       slug: 'feriados',
       eyebrow: 'Calendário',
       titulo: 'Feriados',
