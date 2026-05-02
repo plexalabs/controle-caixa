@@ -46,13 +46,15 @@
 }
 
 /* ─── Card único ─── */
+/* Auth foge da regra flat-left/round-right do resto do sistema:
+   aqui é foco em foco único (um campo, uma decisão), e o filete reto
+   à esquerda destoa do tom minimal. Bordas totalmente arredondadas. */
 .auth-card {
     background: var(--c-papel-2);
     border: 1px solid var(--c-papel-3);
-    border-left: 3px solid var(--c-ambar);   /* identidade flat-left + filete âmbar editorial */
-    border-radius: 0 18px 18px 0;             /* identidade round-right */
+    border-radius: 18px;
     box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.03),
-                0 12px 32px -18px rgba(15, 76, 58, 0.22);
+                0 14px 36px -20px rgba(15, 76, 58, 0.24);
     width: 100%;
     max-width: 420px;
     padding: 2rem;
@@ -209,6 +211,18 @@
 @media (max-width: 420px) {
     .auth-card .otp-grid { gap: 0.3rem; }
     .auth-card .otp-input { font-size: 1rem; }
+}
+
+/* Override: alerts dentro do auth-card ficam arredondados pra harmonizar
+   com a estética minimal. No resto do sistema o .alert mantém flat-left. */
+.auth-card .alert {
+    border-radius: 10px;
+    border-left-width: 0;
+    border-top: 1px solid var(--c-alerta);
+    padding: 0.7rem 0.9rem;
+}
+.auth-card .alert--info {
+    border-top-color: var(--c-musgo);
 }
 
 /* Bloco enviado (recuperar) — dentro do card */
