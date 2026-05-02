@@ -1,128 +1,85 @@
-// cadastro.js — Tela /cadastro (CP2.1, Fase 2).
-// Form: nome, sobrenome, email, senha (com indicador de força), confirmar senha (com match).
-// Submit dispara supabase.auth.signUp e redireciona para /confirmar?email=<email>.
+// cadastro.js — Tela /cadastro (rebrand 2026-05-02).
+// Shell minimal centralizado com card mais largo (auth-card--lg) pra
+// acomodar nome+sobrenome lado a lado. Lógica de validação intacta.
 
 import { cadastrar }       from '../auth.js';
 import { navegar }         from '../router.js';
 import { validarEmail, validarSenha, debounce } from '../utils.js';
-import { renderLogo }      from '../../components/logo.js';
 
 export function renderCadastro() {
   document.querySelector('#app').innerHTML = `
-    <main id="main" class="min-h-screen grid grid-cols-1 lg:grid-cols-12">
-      <!-- Lado editorial: numeração 02. e tom de "primeiro caderno" -->
-      <aside class="hidden lg:flex lg:col-span-7 relative bg-papel2 guilhoche overflow-hidden">
-        <div class="absolute top-10 left-10 right-10 flex items-start justify-between">
-          <div class="flex items-center gap-3 reveal reveal-1">
-            ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
-            <span class="h-eyebrow" style="color:var(--c-tinta-3)">Caixa Boti</span>
-          </div>
-          <div class="text-right reveal reveal-1">
-            <p class="h-eyebrow">Caderno</p>
-            <p class="h-meta text-sm tracking-wider mt-1">Auditoria diária</p>
-          </div>
-        </div>
+    <div id="main" class="auth-shell">
+      <main class="auth-card auth-card--lg" aria-labelledby="auth-titulo">
+        <header class="auth-marca">
+          <span class="auth-marca-simbolo" aria-hidden="true"></span>
+          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+        </header>
+        <h2 id="auth-titulo" class="auth-titulo">Criar conta</h2>
+        <p class="auth-subtitulo">
+          Cadastre-se para começar a auditar. Você receberá um código por email para confirmar.
+        </p>
 
-        <div class="absolute inset-0 flex flex-col justify-center px-16">
-          <p class="edit-number reveal reveal-2 select-none">02.</p>
-          <h1 class="h-display text-6xl xl:text-7xl mt-2 reveal reveal-3" style="max-width: 640px;">
-            Abra o seu<br>
-            <em style="font-style:italic;color:var(--c-musgo)">primeiro caderno</em>.
-          </h1>
-          <p class="text-body text-base mt-6 max-w-md reveal reveal-4">
-            Cada lançamento auditado fica em uma página datada. Antes do
-            primeiro registro, defina o nome que vai assinar a auditoria
-            e a senha de acesso.
-          </p>
-
-          <ul class="lista-edit max-w-md reveal reveal-5">
-            <li>Conta única por pessoa, não compartilhada.</li>
-            <li>Confirmação do email por código que chega na sua caixa.</li>
-            <li>Senha conhecida só por você &mdash; nem nós temos acesso.</li>
-          </ul>
-        </div>
-
-        <div class="absolute bottom-10 left-10 right-10 flex items-end justify-between reveal reveal-6">
-          <p class="h-meta text-xs">Plexalabs &middot; Sistemas internos</p>
-          <p class="h-meta text-xs italic">v 1.0 &middot; ${new Date().getFullYear()}</p>
-        </div>
-      </aside>
-
-      <!-- Lado direito: formulário -->
-      <section class="lg:col-span-5 flex items-center justify-center p-6 sm:p-12 bg-papel">
-        <div class="w-full max-w-sm">
-          <div class="lg:hidden flex items-center gap-3 mb-8 reveal reveal-1">
-            ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
-            <span class="h-eyebrow" style="color:var(--c-tinta-3)">Caixa Boti</span>
-          </div>
-
-          <p class="h-eyebrow reveal reveal-2">Primeiro acesso</p>
-          <h2 class="h-display text-4xl mt-1 mb-2 reveal reveal-3">Criar conta.</h2>
-          <p class="text-body text-sm mb-8 reveal reveal-4">
-            Você vai receber um código por email para confirmar a conta.
-          </p>
-
-          <form id="form-cadastro" novalidate class="reveal reveal-5">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="field" style="margin-bottom:0">
-                <label class="field-label" for="nome">Nome</label>
-                <input id="nome" name="nome" type="text" autocomplete="given-name"
-                       required minlength="2" class="field-input" />
-                <span class="field-underline" aria-hidden="true"></span>
-              </div>
-              <div class="field" style="margin-bottom:0">
-                <label class="field-label" for="sobrenome">Sobrenome</label>
-                <input id="sobrenome" name="sobrenome" type="text" autocomplete="family-name"
-                       required minlength="2" class="field-input" />
-                <span class="field-underline" aria-hidden="true"></span>
-              </div>
-            </div>
-
-            <div class="field mt-5">
-              <label class="field-label" for="email">Email</label>
-              <input id="email" name="email" type="email" autocomplete="email"
-                     required class="field-input" placeholder="voce@plexalabs.com" />
-              <span class="field-underline" aria-hidden="true"></span>
-              <p id="email-erro" class="match match--erro hidden" role="alert"></p>
-            </div>
-
+        <form id="form-cadastro" novalidate>
+          <div class="auth-grid-2">
             <div class="field">
-              <label class="field-label" for="senha">Senha</label>
-              <input id="senha" name="senha" type="password" autocomplete="new-password"
-                     required minlength="8" class="field-input" />
+              <label class="field-label" for="nome">Nome</label>
+              <input id="nome" name="nome" type="text" autocomplete="given-name"
+                     required minlength="2" class="field-input" />
               <span class="field-underline" aria-hidden="true"></span>
-              <div id="senha-forca" class="senha-forca" data-nivel="0" aria-hidden="true">
-                <span class="senha-forca-barra"></span>
-                <span class="senha-forca-barra"></span>
-                <span class="senha-forca-barra"></span>
-              </div>
-              <p id="senha-rotulo" class="senha-forca-rotulo" data-nivel="0" aria-live="polite">
-                Mínimo 8 caracteres, ao menos 1 letra e 1 número
-              </p>
             </div>
-
             <div class="field">
-              <label class="field-label" for="senha2">Confirmar senha</label>
-              <input id="senha2" name="senha2" type="password" autocomplete="new-password"
-                     required class="field-input" />
+              <label class="field-label" for="sobrenome">Sobrenome</label>
+              <input id="sobrenome" name="sobrenome" type="text" autocomplete="family-name"
+                     required minlength="2" class="field-input" />
               <span class="field-underline" aria-hidden="true"></span>
-              <p id="senha-match" class="match hidden" aria-live="polite"></p>
             </div>
+          </div>
 
-            <div id="erro-form" role="alert" aria-live="polite" class="hidden alert"></div>
+          <div class="field">
+            <label class="field-label" for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email"
+                   required class="field-input" placeholder="voce@plexalabs.com" />
+            <span class="field-underline" aria-hidden="true"></span>
+            <p id="email-erro" class="match match--erro hidden" role="alert"></p>
+          </div>
 
-            <button id="btn-criar" type="submit" class="btn-primary w-full mt-2" disabled>
-              Criar conta
-            </button>
-          </form>
+          <div class="field">
+            <label class="field-label" for="senha">Senha</label>
+            <input id="senha" name="senha" type="password" autocomplete="new-password"
+                   required minlength="8" class="field-input" />
+            <span class="field-underline" aria-hidden="true"></span>
+            <div id="senha-forca" class="senha-forca" data-nivel="0" aria-hidden="true">
+              <span class="senha-forca-barra"></span>
+              <span class="senha-forca-barra"></span>
+              <span class="senha-forca-barra"></span>
+            </div>
+            <p id="senha-rotulo" class="senha-forca-rotulo" data-nivel="0" aria-live="polite">
+              Mínimo 8 caracteres, ao menos 1 letra e 1 número
+            </p>
+          </div>
 
-          <p class="text-sm text-center mt-8 pt-6 border-t border-papel-3 reveal reveal-6"
-             style="border-color:var(--c-papel-3);color:var(--c-tinta-3)">
-            Já tem conta? <a href="/login" data-link class="btn-link">Entrar</a>
-          </p>
-        </div>
-      </section>
-    </main>
+          <div class="field">
+            <label class="field-label" for="senha2">Confirmar senha</label>
+            <input id="senha2" name="senha2" type="password" autocomplete="new-password"
+                   required class="field-input" />
+            <span class="field-underline" aria-hidden="true"></span>
+            <p id="senha-match" class="match hidden" aria-live="polite"></p>
+          </div>
+
+          <div id="erro-form" role="alert" aria-live="polite" class="hidden alert"></div>
+
+          <button id="btn-criar" type="submit" class="btn-primary" disabled>
+            Criar conta
+          </button>
+        </form>
+
+        <p class="auth-rodape">
+          Já tem conta? <a href="/login" data-link>Entrar</a>
+        </p>
+      </main>
+
+      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Caixa Boti</footer>
+    </div>
   `;
 
   // ─── Estado de validação ────────────────────────────────────────────

@@ -9,7 +9,6 @@
 import { verificarCodigo, reenviarCodigo } from '../auth.js';
 import { navegar }        from '../router.js';
 import { mostrarToast }   from '../notifications.js';
-import { renderLogo }     from '../../components/logo.js';
 
 const COOLDOWN_INICIAL_S = 60;
 const OTP_LENGTH = 8;
@@ -25,84 +24,44 @@ export function renderConfirmar() {
   }
 
   document.querySelector('#app').innerHTML = `
-    <main id="main" class="min-h-screen grid grid-cols-1 lg:grid-cols-12">
-      <!-- Editorial -->
-      <aside class="hidden lg:flex lg:col-span-7 relative bg-papel2 guilhoche overflow-hidden">
-        <div class="absolute top-10 left-10 right-10 flex items-start justify-between">
-          <div class="flex items-center gap-3 reveal reveal-1">
-            ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
-            <span class="h-eyebrow" style="color:var(--c-tinta-3)">Caixa Boti</span>
-          </div>
-          <div class="text-right reveal reveal-1">
-            <p class="h-eyebrow">Caderno</p>
-            <p class="h-meta text-sm tracking-wider mt-1">Auditoria diária</p>
-          </div>
-        </div>
+    <div id="main" class="auth-shell">
+      <main class="auth-card auth-card--lg" aria-labelledby="auth-titulo">
+        <header class="auth-marca">
+          <span class="auth-marca-simbolo" aria-hidden="true"></span>
+          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+        </header>
+        <h2 id="auth-titulo" class="auth-titulo">Confirme seu email</h2>
+        <p class="auth-subtitulo">
+          Enviamos um código para <strong>${esc(email)}</strong>.
+          Cole abaixo para confirmar sua conta.
+        </p>
 
-        <div class="absolute inset-0 flex flex-col justify-center px-16">
-          <p class="edit-number reveal reveal-2 select-none">03.</p>
-          <h1 class="h-display text-6xl xl:text-7xl mt-2 reveal reveal-3" style="max-width: 640px;">
-            Identifique<br>
-            <em style="font-style:italic;color:var(--c-musgo)">o seu acesso</em>.
-          </h1>
-          <p class="text-body text-base mt-6 max-w-md reveal reveal-4">
-            Acabamos de enviar um código para <strong>${esc(email)}</strong>.
-            Use-o ao lado para confirmar a conta.
-          </p>
-          <p class="text-body text-sm mt-3 max-w-md reveal reveal-5"
-             style="color:var(--c-tinta-3);font-style:italic">
-            Não recebeu? Confira a caixa de spam &mdash; ou peça
-            um novo código abaixo do formulário.
-          </p>
-        </div>
-
-        <div class="absolute bottom-10 left-10 right-10 flex items-end justify-between reveal reveal-6">
-          <p class="h-meta text-xs">Plexalabs &middot; Sistemas internos</p>
-          <p class="h-meta text-xs italic">v 1.0 &middot; ${new Date().getFullYear()}</p>
-        </div>
-      </aside>
-
-      <!-- Form -->
-      <section class="lg:col-span-5 flex items-center justify-center p-6 sm:p-12 bg-papel">
-        <div class="w-full max-w-sm">
-          <div class="lg:hidden flex items-center gap-3 mb-8 reveal reveal-1">
-            ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
-            <span class="h-eyebrow" style="color:var(--c-tinta-3)">Caixa Boti</span>
+        <form id="form-otp" novalidate>
+          <div class="otp-grid" role="group" aria-label="Código de ${OTP_LENGTH} dígitos">
+            ${Array.from({ length: OTP_LENGTH }, (_, i) =>
+              `<input data-i="${i}" inputmode="numeric" pattern="\\d" maxlength="1"
+                      autocomplete="one-time-code" required
+                      aria-label="Dígito ${i+1} de ${OTP_LENGTH}"
+                      class="otp-input" />`
+            ).join('')}
           </div>
 
-          <p class="h-eyebrow reveal reveal-2">Verificação</p>
-          <h2 class="h-display text-4xl mt-1 mb-2 reveal reveal-3">Digite o código.</h2>
-          <p class="text-body text-sm reveal reveal-4">
-            Enviamos para <strong>${esc(email)}</strong>.<br class="hidden sm:inline">
-            Você pode colar o código inteiro de uma vez no primeiro campo.
-          </p>
+          <div id="msg" role="alert" aria-live="polite" class="hidden alert"></div>
 
-          <form id="form-otp" novalidate class="reveal reveal-5">
-            <div class="otp-grid" role="group" aria-label="Código de ${OTP_LENGTH} dígitos">
-              ${Array.from({ length: OTP_LENGTH }, (_, i) =>
-                `<input data-i="${i}" inputmode="numeric" pattern="\\d" maxlength="1"
-                        autocomplete="one-time-code" required
-                        aria-label="Dígito ${i+1} de ${OTP_LENGTH}"
-                        class="otp-input" />`
-              ).join('')}
-            </div>
+          <div class="text-center mt-2">
+            <button id="btn-reenviar" type="button" class="btn-link cooldown" disabled>
+              Reenviar em <span id="cooldown-segundos">${COOLDOWN_INICIAL_S}</span>s
+            </button>
+          </div>
+        </form>
 
-            <div id="msg" role="alert" aria-live="polite" class="hidden alert"></div>
+        <p class="auth-rodape">
+          Quer trocar o email? <a href="/login" data-link>Voltar</a>
+        </p>
+      </main>
 
-            <div class="text-center mt-6 reveal reveal-6">
-              <button id="btn-reenviar" type="button" class="btn-link cooldown" disabled>
-                Reenviar em <span id="cooldown-segundos">${COOLDOWN_INICIAL_S}</span>s
-              </button>
-            </div>
-          </form>
-
-          <p class="text-sm text-center mt-8 pt-6 border-t reveal reveal-6"
-             style="border-color:var(--c-papel-3);color:var(--c-tinta-3)">
-            Mudou de ideia? <a href="/login" data-link class="btn-link">Voltar ao login</a>
-          </p>
-        </div>
-      </section>
-    </main>
+      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Caixa Boti</footer>
+    </div>
   `;
 
   // ─── Estado e referências ───────────────────────────────────────────

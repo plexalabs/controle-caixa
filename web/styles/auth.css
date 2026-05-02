@@ -1,0 +1,261 @@
+/* auth.css — Shell minimal centralizado para as 5 telas de auth.
+   Inspiração: Microsoft sign-in (uma decisão por tela, foco no card).
+   Identidade preservada: paleta papel/musgo/âmbar, Fraunces no título,
+   filete âmbar à esquerda do card (flat-left/round-right do projeto).
+
+   IMPORTANTE: o resto do sistema (dashboard, caixa, configurações)
+   continua editorial — este CSS só afeta as 5 rotas de auth. */
+
+.auth-shell {
+    min-height: 100vh;
+    /* Fundo clean: gradiente radial papel → papel-2, com grão SVG sutil
+       sobreposto (8% opacity) que dá textura editorial sem poluir. */
+    background-color: var(--c-papel-2);
+    background-image:
+        radial-gradient(ellipse 80% 60% at 50% 0%,
+            rgba(245, 239, 230, 0.95) 0%,
+            rgba(237, 229, 214, 0.6) 60%,
+            rgba(237, 229, 214, 0) 100%),
+        url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.30 0 0 0 0 0.23 0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-repeat: no-repeat, repeat;
+    background-size: 100% 100%, 200px 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    gap: 0;
+}
+
+/* ─── Marca (símbolo + wordmark) — agora dentro do card ─── */
+.auth-marca {
+    text-align: center;
+    margin: 0 0 1.4rem 0;
+    padding-bottom: 1.4rem;
+    border-bottom: 1px solid var(--c-papel-3);
+    animation: fade-up 600ms var(--ease-out) backwards;
+}
+.auth-marca-simbolo {
+    width: 44px;
+    height: 44px;
+    /* Tom mais claro do musgo — leve, não pesa no topo do card */
+    background: var(--c-musgo-2);
+    -webkit-mask: url(/assets/logo.svg) no-repeat center / contain;
+            mask: url(/assets/logo.svg) no-repeat center / contain;
+    margin: 0 auto 0.55rem;
+    display: block;
+    opacity: 0.92;
+    transition: background 200ms var(--ease-out), opacity 200ms var(--ease-out);
+}
+.auth-marca-wordmark {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-size: 1.5rem;
+    color: var(--c-tinta-2);
+    letter-spacing: -0.01em;
+    line-height: 1;
+    margin: 0;
+}
+
+/* ─── Card único ─── */
+/* Auth foge da regra flat-left/round-right do resto do sistema:
+   aqui é foco em foco único (um campo, uma decisão), e o filete reto
+   à esquerda destoa do tom minimal. Bordas totalmente arredondadas.
+   Card mais claro que o fundo (papel) — destaca-se da textura. */
+.auth-card {
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 18px;
+    box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.03),
+                0 18px 44px -22px rgba(15, 76, 58, 0.28);
+    width: 100%;
+    max-width: 420px;
+    padding: 2rem;
+    box-sizing: border-box;
+    animation: fade-up 700ms var(--ease-out) 80ms backwards;
+}
+@media (max-width: 480px) {
+    .auth-card { padding: 1.5rem 1.25rem; }
+}
+
+/* Variante mais larga para a tela de cadastro (nome+sobrenome lado a lado) */
+.auth-card--lg {
+    max-width: 480px;
+}
+
+/* ─── Tipografia interna ─── */
+.auth-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    font-size: 1.55rem;
+    color: var(--c-tinta);
+    line-height: 1.15;
+    margin: 0 0 0.4rem 0;
+}
+.auth-subtitulo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.9rem;
+    color: var(--c-tinta-3);
+    margin: 0 0 1.6rem 0;
+    line-height: 1.55;
+}
+.auth-subtitulo strong {
+    color: var(--c-tinta);
+    font-weight: 600;
+}
+
+/* ─── Form: spacing consistente ─── */
+.auth-card form .field { margin-bottom: 1.05rem; }
+.auth-card form .field:last-of-type { margin-bottom: 0.4rem; }
+
+/* Grid 2 colunas (nome + sobrenome) — empilha em mobile */
+.auth-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 1rem;
+}
+@media (min-width: 480px) {
+    .auth-grid-2 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ─── Linha auxiliar ("esqueci a senha" alinhado à direita) ─── */
+.auth-aux {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -0.55rem;
+    margin-bottom: 0.85rem;
+}
+.auth-aux a {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.8rem;
+    color: var(--c-musgo);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 180ms var(--ease-out);
+}
+.auth-aux a:hover {
+    color: var(--c-musgo-3);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* ─── Botão principal full-width dentro do card ─── */
+.auth-card .btn-primary {
+    width: 100%;
+    margin-top: 1rem;
+    justify-content: center;
+}
+
+/* ─── Rodapé do card (link secundário centralizado) ─── */
+.auth-rodape {
+    text-align: center;
+    margin: 1.4rem 0 0 0;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--c-papel-3);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+}
+.auth-rodape a {
+    color: var(--c-musgo);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 180ms var(--ease-out);
+}
+.auth-rodape a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    color: var(--c-musgo-3);
+}
+
+/* ─── Footer da página (copyright, fora do card) ─── */
+.auth-footer {
+    margin-top: 1.8rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    color: var(--c-tinta-3);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    text-align: center;
+    animation: fade-up 700ms var(--ease-out) 200ms backwards;
+}
+
+/* ─── OTP: ajuste do grid para caber confortável no card ─── */
+.auth-card .otp-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.4rem;
+    margin: 0.4rem 0 1rem;
+}
+.auth-card .otp-input {
+    width: 100%;
+    aspect-ratio: 1 / 1.15;
+    text-align: center;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.2rem;
+    font-variant-numeric: tabular-nums;
+    border: 1.5px solid var(--c-papel-3);
+    border-radius: 8px;
+    background: var(--c-papel);
+    color: var(--c-tinta);
+    transition: border-color 180ms var(--ease-out),
+                background 180ms var(--ease-out);
+    padding: 0;
+    min-width: 0;
+}
+.auth-card .otp-input:focus {
+    outline: none;
+    border-color: var(--c-musgo);
+    background: var(--c-papel);
+}
+.auth-card .otp-input.otp-input--preenchido {
+    background: rgba(15, 76, 58, 0.06);
+    border-color: var(--c-musgo);
+    color: var(--c-musgo-3);
+}
+.auth-card .otp-input.otp-input--erro {
+    border-color: var(--c-alerta);
+    background: var(--c-alerta-bg);
+    animation: shake 360ms var(--ease-out);
+}
+@media (max-width: 420px) {
+    .auth-card .otp-grid { gap: 0.3rem; }
+    .auth-card .otp-input { font-size: 1rem; }
+}
+
+/* Override: alerts dentro do auth-card ficam arredondados pra harmonizar
+   com a estética minimal. No resto do sistema o .alert mantém flat-left. */
+.auth-card .alert {
+    border-radius: 10px;
+    border-left-width: 0;
+    border-top: 1px solid var(--c-alerta);
+    padding: 0.7rem 0.9rem;
+}
+.auth-card .alert--info {
+    border-top-color: var(--c-musgo);
+}
+
+/* Bloco enviado (recuperar) — dentro do card */
+.auth-bloco-enviado {
+    text-align: center;
+    padding: 0.4rem 0 0;
+}
+.auth-bloco-enviado .alert {
+    margin-bottom: 1.2rem;
+    text-align: left;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25%      { transform: translateX(-4px); }
+    75%      { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-marca, .auth-card, .auth-footer { animation: none; }
+}
