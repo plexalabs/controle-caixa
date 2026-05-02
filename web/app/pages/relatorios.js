@@ -111,38 +111,46 @@ function blocoFiltros() {
 
   return `
     <div class="rel-filtros">
-      <div class="rel-filtros-grid">
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="rel-inicio">De</label>
-          <input id="rel-inicio" type="date" class="field-input" value="${esc(ini)}">
-          <span class="field-underline"></span>
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="rel-fim">Até</label>
-          <input id="rel-fim" type="date" class="field-input" value="${esc(fim)}">
-          <span class="field-underline"></span>
-        </div>
-        <div>
-          <label class="field-label" style="margin-bottom:0.3rem;display:block">Categorias</label>
-          <div class="rel-checks" id="rel-categorias">
-            ${CATEGORIAS.map(c => pillCheck('cat', c.v, c.rotulo, estado.categorias.includes(c.v))).join('')}
+      <!-- Linha 1: Período (datas + atalhos) -->
+      <div class="rel-linha">
+        <p class="rel-linha-titulo">Período</p>
+        <div class="rel-periodo">
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="rel-inicio">De</label>
+            <input id="rel-inicio" type="date" class="field-input" value="${esc(ini)}">
+            <span class="field-underline"></span>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="rel-fim">Até</label>
+            <input id="rel-fim" type="date" class="field-input" value="${esc(fim)}">
+            <span class="field-underline"></span>
           </div>
         </div>
-        <div>
-          <label class="field-label" style="margin-bottom:0.3rem;display:block">Estados</label>
-          <div class="rel-checks" id="rel-estados">
-            ${ESTADOS.map(s => pillCheck('est', s.v, s.rotulo, estado.estados.includes(s.v))).join('')}
-          </div>
+        <div class="rel-filtros-quick">
+          <button type="button" class="rel-quick-btn" data-quick="mes-atual">Mês atual</button>
+          <button type="button" class="rel-quick-btn" data-quick="mes-passado">Mês passado</button>
+          <button type="button" class="rel-quick-btn" data-quick="trimestre">Trimestre atual</button>
+          <button type="button" class="rel-quick-btn" data-quick="ano">Ano atual</button>
         </div>
       </div>
 
-      <div class="rel-filtros-quick">
-        <button type="button" class="rel-quick-btn" data-quick="mes-atual">Mês atual</button>
-        <button type="button" class="rel-quick-btn" data-quick="mes-passado">Mês passado</button>
-        <button type="button" class="rel-quick-btn" data-quick="trimestre">Trimestre atual</button>
-        <button type="button" class="rel-quick-btn" data-quick="ano">Ano atual</button>
+      <!-- Linha 2: Categorias (full width, pílulas em wrap) -->
+      <div class="rel-linha">
+        <p class="rel-linha-titulo">Categorias</p>
+        <div class="rel-checks" id="rel-categorias">
+          ${CATEGORIAS.map(c => pillCheck('cat', c.v, c.rotulo, estado.categorias.includes(c.v))).join('')}
+        </div>
       </div>
 
+      <!-- Linha 3: Estados -->
+      <div class="rel-linha">
+        <p class="rel-linha-titulo">Estados</p>
+        <div class="rel-checks" id="rel-estados">
+          ${ESTADOS.map(s => pillCheck('est', s.v, s.rotulo, estado.estados.includes(s.v))).join('')}
+        </div>
+      </div>
+
+      <!-- Rodapé: ações -->
       <div class="rel-filtros-acoes">
         <button type="button" id="rel-limpar" class="btn-link">Limpar</button>
         <button type="button" id="rel-aplicar" class="btn-primary">Aplicar filtros</button>
