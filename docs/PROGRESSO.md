@@ -168,6 +168,10 @@ e `sw.js` (placeholder) foram removidos do repo; `index.html` perdeu as tags
 8. **Tela `/caderno-do-dia` (sub-rodada futura)**: tela editorial agrupando caixas em aberto + suas pendências, acessível via sidebar e via click em notificação `bom_dia_resumo`. Hoje a notificação roteia pra `/dashboard` como solução temporária (TODO no `web/app/notificacao-router.js`).
 9. **DSN do Sentry pendente** (CP-PRE-DEPLOY-1): `VITE_SENTRY_DSN` precisa ser setado em `.env.production` antes do deploy. Sem isso, `Sentry.init()` é pulado e erros viram só `console.error`. Setup completo em `docs/INFRA.md`.
 10. **Cron mensal do arquivamento pendente** (CP-PRE-DEPLOY-1): edge function `arquivar-mensal` precisa de cron `0 3 1 * *` configurado manualmente no Dashboard Supabase → Edge Functions → Schedules. Sem isso, RPC `arquivar_antigos` não roda automaticamente.
+11. **Lição aprendida sobre limpeza de banco** (CP-PRE-DEPLOY-1, 2026-05-02): durante teste de "sistema limpo", o TRUNCATE pegou também a tabela `config` (que é seed, não dado operacional) e o app quebrou — `/configuracoes/sistema` ficou vazio, RPCs que leem chaves passaram a falhar. Restaurado via migration `20260502150000_restore_seeds_pos_limpeza.sql` (idempotente, ON CONFLICT DO NOTHING). **Para resets futuros, distinguir três categorias:**
+    - **Dados operacionais** (`lancamento`, `caixa`, `lancamento_observacao`, `notificacao`, `audit_log`) → OK truncar pra começar do zero.
+    - **Dados de seed** (`config`, `feriado`) → NÃO truncar; são parte do "esqueleto" do sistema. Sem eles, partes da UI quebram silenciosamente.
+    - **Dados de identidade** (`usuario_papel`, `auth.users`, `vendedora`) → só truncar se explicitamente parte do reset de acesso.
 
 ## Como rodar
 

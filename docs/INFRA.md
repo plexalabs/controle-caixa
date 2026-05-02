@@ -104,6 +104,36 @@ CP-PRE-DEPLOY-1), conferir:
 3. Se vazio mesmo logado: `prepararAuthStorage` falhou silenciosamente
    (cai pra `cacheMemoria` em RAM, F5 perde como antes)
 
+## Backups do banco (Supabase Pro)
+
+Supabase Pro inclui **Daily Backups** automáticos com retenção de 7 dias
+— visível em [Dashboard → Database → Backups](https://supabase.com/dashboard/project/shjtwrojdgotmxdbpbta/database/backups).
+Antes do deploy em produção, confirmar que está ativo e considerar
+habilitar **Point-in-Time Recovery (PITR)** pra granularidade fina (qualquer
+ponto nos últimos 7 dias, em vez de apenas o snapshot diário).
+
+### Restaurar um backup
+
+1. Dashboard → Database → Backups → seleciona snapshot → **Restore**
+2. **CUIDADO**: restore sobrescreve o estado atual do banco — não há undo
+3. Em produção, sempre testar o restore num projeto staging primeiro pra
+   validar que não quebrou triggers/RLS/extensões custom
+
+### Seeds vs dados operacionais
+
+Lição do CP-PRE-DEPLOY-1: o TRUNCATE de "limpar tudo" pegou também a tabela
+`config`, que é **seed** (parte do esqueleto do sistema, não dado
+operacional). Resultado: app rodava mas `/configuracoes/sistema` ficou
+vazio e RPCs que leem chaves passaram a falhar silenciosamente.
+
+Distinguir antes de truncar:
+
+| Categoria | Tabelas | Pode truncar? |
+|---|---|---|
+| Operacional | `lancamento`, `caixa`, `lancamento_observacao`, `notificacao`, `audit_log` | sim, pra reset |
+| Seed | `config`, `feriado` | **não** — restaurar via migration `20260502150000_restore_seeds_pos_limpeza.sql` se truncar acidentalmente |
+| Identidade | `usuario_papel`, `auth.users`, `vendedora` | só se for reset deliberado de acesso |
+
 ## Variáveis de ambiente
 
 | Variável | Onde | Quando |
