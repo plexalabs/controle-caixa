@@ -3,6 +3,8 @@
 // críticas, botão grande para o caixa do dia.
 
 import { supabase, pegarSessao } from '../supabase.js';
+import { destinoNotificacao, enriquecerNotificacoes } from '../notificacao-router.js';
+import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { saudacaoPorHora, dataLonga, isoData, LABEL_CATEGORIA, CATEGORIAS } from '../dominio.js';
 import { formatBRL } from '../utils.js';
@@ -477,11 +479,18 @@ async function carregarNotificacoes() {
       ? `mostrando 3 de ${total}`
       : `${total} aviso${total > 1 ? 's' : ''}`;
   }
-  lista.innerHTML = data.map(n => itemNotif(n)).join('');
 
-  // Click → marca como lida + navega.
+  // Enriquece com caixa.data e numero_nf via batch (CP-PRE-DEPLOY-1 e6).
+  // Sem isso, click usaria UUID na URL e quebraria o roteador.
+  const enriquecidas = await enriquecerNotificacoes(data, supabase);
+  lista.innerHTML = enriquecidas.map(n => itemNotif(n)).join('');
+
   lista.querySelectorAll('[data-notif-id]').forEach(el => {
-    el.addEventListener('click', () => marcarENavegar(el.dataset.notifId, el.dataset.alvo));
+    el.addEventListener('click', () => {
+      const id = el.dataset.notifId;
+      const notif = enriquecidas.find(n => n.id === id);
+      if (notif) marcarENavegar(notif);
+    });
   });
 }
 
@@ -489,12 +498,8 @@ function itemNotif(n) {
   const tom = n.severidade === 'urgente' ? 'urgente'
            : n.severidade === 'aviso'   ? 'aviso'
            : 'info';
-
-  let alvo = '/dashboard';
-  if (n.caixa_id) alvo = `/caixa/${n.caixa_id}`;
   return `
-    <button data-notif-id="${esc(n.id)}" data-alvo="${esc(alvo)}"
-            class="dash-aviso" data-tom="${tom}">
+    <button data-notif-id="${esc(n.id)}" class="dash-aviso" data-tom="${tom}">
       <div class="dash-aviso-cabec">
         <strong class="dash-aviso-titulo">${esc(n.titulo)}</strong>
         <time class="dash-aviso-tempo">${tempoRelativo(n.criada_em)}</time>
@@ -503,10 +508,20 @@ function itemNotif(n) {
     </button>`;
 }
 
-async function marcarENavegar(id, alvo) {
+async function marcarENavegar(notif) {
   // Marca lida em background, sem aguardar — UX prioriza navegação.
-  supabase.from('notificacao').update({ lida_em: new Date().toISOString() }).eq('id', id);
-  navegar(alvo || '/dashboard');
+  supabase.from('notificacao').update({ lida_em: new Date().toISOString() }).eq('id', notif.id);
+
+  const { url, motivo, erro } = destinoNotificacao(notif);
+  if (motivo === 'ok') {
+    navegar(url);
+  } else if (motivo === 'invalida') {
+    log.warn(`notificação ${notif.id} (${notif.tipo}) com payload inválido`,
+             { tipo: notif.tipo, caixa_id: notif.caixa_id, lancamento_id: notif.lancamento_id, erro });
+    mostrarToast('Esta notificação não tem destino válido.', 'erro', 3500);
+  } else {
+    mostrarToast('Aviso informativo, sem ação direta.', 'info', 2200);
+  }
 }
 
 function tempoRelativo(ts) {
