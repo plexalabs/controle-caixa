@@ -76,9 +76,41 @@ export async function renderCaixa({ params }) {
         <button id="btn-novo" class="btn-primary" disabled>
           + Novo lançamento
         </button>
-        <a id="btn-fechar-dia" class="btn-link hidden" href="#" data-link
-           style="font-size:0.92rem;font-weight:600">
-          Fechar este caixa →
+
+        <!-- CTA "Fechar caixa" — só aparece quando total_pendentes === 0 -->
+        <a id="btn-fechar-dia" class="btn-fechar-caixa hidden" href="#" data-link
+           aria-label="Fechar este caixa">
+          <span class="btn-fechar-caixa-icone" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12.5 L10 17.5 L19 7.5"/>
+            </svg>
+          </span>
+          <span class="btn-fechar-caixa-texto">
+            <span class="btn-fechar-caixa-titulo">Fechar este caixa</span>
+            <span class="btn-fechar-caixa-sub">tudo conferido · pronto para fechar</span>
+          </span>
+          <span class="btn-fechar-caixa-seta" aria-hidden="true">
+            <svg width="14" height="10" viewBox="0 0 16 10" fill="none">
+              <path d="M1 5 H14 M10 1 L14 5 L10 9" stroke="currentColor"
+                    stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+
+        <!-- Hint quando há pendências — só aparece se total_pendentes > 0 -->
+        <a id="hint-pendencias" class="hint-pendencias hidden" href="#" data-link>
+          <span class="hint-pendencias-icone" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7.5 V12 L15 14"/>
+            </svg>
+          </span>
+          <span id="hint-pendencias-texto"></span>
+          <span class="hint-pendencias-seta" aria-hidden="true">→</span>
         </a>
       </div>
 
@@ -145,14 +177,32 @@ async function carregarCaixa(dataAlvo) {
   btnNov.onclick = () =>
     abrirModalAdicionarNF({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });
 
-  // CP6.2 + FIX: Banner fechado + botão "Fechar este caixa" (qualquer data)
-  const banner = document.querySelector('#banner-fechado');
+  // CP6.2 + FIX: Banner fechado / CTA fechar (só sem pendências) / hint pendências
+  const banner    = document.querySelector('#banner-fechado');
   const btnFechar = document.querySelector('#btn-fechar-dia');
+  const hintPend  = document.querySelector('#hint-pendencias');
+  const hintTxt   = document.querySelector('#hint-pendencias-texto');
+
+  banner?.classList.add('hidden');
+  btnFechar?.classList.add('hidden');
+  hintPend?.classList.add('hidden');
+
   if (caixa.estado === 'fechado' || caixa.estado === 'arquivado') {
     banner?.classList.remove('hidden');
   } else if (['aberto', 'em_conferencia'].includes(caixa.estado)) {
-    btnFechar?.classList.remove('hidden');
-    btnFechar?.setAttribute('href', `/caixa/${dataAlvo}/fechar`);
+    if ((caixa.total_pendentes ?? 0) === 0) {
+      // Tudo resolvido — CTA fechar liberado
+      btnFechar?.setAttribute('href', `/caixa/${dataAlvo}/fechar`);
+      btnFechar?.classList.remove('hidden');
+    } else {
+      // Há pendências — hint editorial em vez do CTA
+      const n = caixa.total_pendentes;
+      if (hintTxt) {
+        hintTxt.innerHTML = `Resolva ${n === 1 ? 'a pendência' : 'as <strong>' + n + '</strong> pendências'} antes de fechar`;
+      }
+      hintPend?.setAttribute('href', `/pendencias?busca=${dataAlvo}`);
+      hintPend?.classList.remove('hidden');
+    }
   }
 
   await carregarLancamentos(caixa.id);
