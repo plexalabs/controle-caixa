@@ -3741,15 +3741,12 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     opacity: 0.65;
 }
 
-.lanc-row[data-cat=""]::after,
-.lanc-row[data-em-analise="true"]::after {
-    color: var(--c-tinta);
-    font-weight: 800;
-    letter-spacing: 0.18em;
-    z-index: 3;
-    text-shadow: 0 0 1px rgba(245, 239, 230, 0.85),
-                 0 0 2px rgba(245, 239, 230, 0.6);
-}
+/* Em análise: o texto vertical "EM ANÁLISE" segue a regra geral
+   das outras categorias — só aparece no hover. A diferenciação
+   visual de "lançamento em análise" continua vindo da tira listrada
+   do ::before (4 linhas acima) e do background pendente. Antes
+   (CP5-AJUSTES) o texto ficava sempre visível, mas isso destoava
+   do hover-reveal das demais categorias e parecia bug. */
 
 
 /* ============================================================
