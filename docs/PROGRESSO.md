@@ -1,7 +1,53 @@
 # PROGRESSO — Sistema de Controle de Caixa
 
-> Estado do projeto após a conclusão da Fase 2 na `main` (2026-05-02).
+> Estado do projeto após o merge do CP-PRE-DEPLOY-1 na `main` (2026-05-02).
 > Stack canônica documentada em `docs/STACK.md`.
+
+## Status — fim do CP-PRE-DEPLOY-1 (2026-05-02)
+
+### Concluído (adições)
+
+- [x] **Pré-Deploy 1: Bugs críticos e infraestrutura de produção**
+  - Bug do F5 corrigido: sessão persiste em IndexedDB + boot aguarda
+    `getSession()` antes de redirecionar; restore de rota via query `?next=`
+  - Tela 404 editorial com etiqueta lateral âmbar e shell respirado
+  - Tela "Lançamento não encontrado" contextual (etiqueta "NF", mesmo shell)
+  - Catch-all no router para qualquer rota inexistente
+  - `supabase-wrapper.js` com `comRetry` (backoff 1s/2s/4s, 3 tentativas)
+    distinguindo erros de rede (retry) de validação (falha imediata)
+  - `saude-supabase.js`: detector global + banner instabilidade + ping de
+    recuperação a cada 5s
+  - `log.js`: console.error sempre em dev, Sentry só em prod com DSN setado
+  - Migrations: `dias_retencao_arquivamento` (1 ano padrão) + tabela
+    `lancamento_arquivado` com RLS read-only
+  - RPC `arquivar_antigos` move lançamentos finalizados/cancelados antigos
+    preservando observações vivas (auditoria intacta)
+  - Edge function `arquivar-mensal` (cron `0 3 1 * *` pendente de configuração)
+  - `notificacao-router.js`: mapeamento tipo → destino correto
+    - `pendencia_aberta` → `/caixa/:data?nf=NUMERO` com destaque visual
+    - `caixa_nao_fechado` → `/caixa/:data`
+    - `bom_dia_resumo` → `/dashboard` (TODO: `/caderno-do-dia`)
+  - Enriquecedor batch: 2 queries paralelas resolvem `caixa_id → data`
+    e `lancamento_id → numero_nf` antes de renderizar lista
+  - Destaque visual de NF com animação `pulso-destaque` 4s + scrollIntoView
+    (respeita `prefers-reduced-motion`)
+  - Hotfix de seeds: migration `restore_seeds_pos_limpeza.sql` repopula
+    `config` (9 chaves) e mantém os 15 feriados após limpeza acidental
+  - `docs/INFRA.md` documenta setup Sentry + cron Supabase + backup PITR
+
+### Pendências CP-PRE-DEPLOY-1 (registradas)
+
+- DSN do Sentry pendente: `VITE_SENTRY_DSN` precisa ser setado em
+  `.env.production` antes do deploy. Sem isso, `Sentry.init()` é pulado
+  e erros viram só `console.error`.
+- Cron mensal do arquivamento pendente: `0 3 1 * *` precisa ser configurado
+  manualmente no Dashboard Supabase → Edge Functions → Schedules.
+- Tela `/caderno-do-dia` (sub-rodada futura): substituirá o destino temporário
+  `/dashboard` para notificação `bom_dia_resumo`.
+- Backup Supabase Pro: confirmar manualmente no Dashboard que Daily Backups
+  está ativo e considerar habilitar PITR antes do deploy.
+- Lição aprendida sobre limpeza de banco: distinguir dados operacionais
+  (truncáveis) de dados de seed (config, feriado — NÃO truncar).
 
 ## Status — Fase 2 concluída (2026-05-02)
 
@@ -188,6 +234,9 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+c33edb5  [F3-PRE-1] merge: bugs criticos e infra de producao
+         (engloba CP-PRE-DEPLOY-1 + hotfix seeds: F5, 404,
+          retry, Sentry, retencao, notificacao-router)
 4665a3a  [F2-CP7] merge: admin e relatorios
          (engloba CP7 + CP7-FIX: telas admin /usuarios /feriados
           /sistema, relatorios com export CSV/PDF, RPCs novas)
