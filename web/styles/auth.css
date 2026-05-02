@@ -8,17 +8,14 @@
 
 .auth-shell {
     min-height: 100vh;
-    /* Fundo clean: gradiente radial papel → papel-2, com grão SVG sutil
-       sobreposto (8% opacity) que dá textura editorial sem poluir. */
-    background-color: var(--c-papel-2);
+    /* Fundo alinhado ao resto do app: papel cru (--c-papel #F5EFE6),
+       a mesma cor do dashboard / sidebar / cards. Mantém o grão editorial
+       bem sutil (4%) pra dar textura sem destoar do tom claro. */
+    background-color: var(--c-papel);
     background-image:
-        radial-gradient(ellipse 80% 60% at 50% 0%,
-            rgba(245, 239, 230, 0.95) 0%,
-            rgba(237, 229, 214, 0.6) 60%,
-            rgba(237, 229, 214, 0) 100%),
-        url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.30 0 0 0 0 0.23 0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-    background-repeat: no-repeat, repeat;
-    background-size: 100% 100%, 200px 200px;
+        url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.30 0 0 0 0 0.23 0 0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-repeat: repeat;
+    background-size: 200px 200px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -63,13 +60,14 @@
 /* Auth foge da regra flat-left/round-right do resto do sistema:
    aqui é foco em foco único (um campo, uma decisão), e o filete reto
    à esquerda destoa do tom minimal. Bordas totalmente arredondadas.
-   Card mais claro que o fundo (papel) — destaca-se da textura. */
+   Card branco-quente sutil — mais claro que o fundo papel pra continuar
+   se destacando, sem virar branco genérico (#FFFCF7 mantém aquecimento). */
 .auth-card {
-    background: var(--c-papel);
+    background: #FFFCF7;
     border: 1px solid var(--c-papel-3);
     border-radius: 18px;
     box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.03),
-                0 18px 44px -22px rgba(15, 76, 58, 0.28);
+                0 20px 48px -24px rgba(15, 76, 58, 0.22);
     width: 100%;
     max-width: 420px;
     padding: 2rem;
