@@ -3256,10 +3256,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 /* Colapsada: chevron aponta `>` (vai expandir) — gira 180° */
 .app-sidebar[data-estado="colapsada"] .sidebar-toggle svg { transform: rotate(180deg); }
 
-/* Nav itens */
+/* Nav itens.
+   Padding-left = 0 para que o item possa colar na borda esquerda da sidebar
+   e usar a identidade flat-left/round-right (mesma dos cards). O padding
+   esquerdo do item compensa o que era da nav. */
 .sidebar-nav {
     flex: 1 1 auto;
-    padding: 16px 12px;
+    padding: 16px 12px 16px 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -3273,30 +3276,39 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 10px 14px;
+    padding: 10px 14px 10px 26px;  /* esquerda 26 = 12 (era da nav) + 14 do item */
     text-decoration: none;
     color: var(--c-tinta-2);
     font-family: 'Manrope', sans-serif;
     font-weight: 500;
     font-size: 0.92rem;
-    border-radius: var(--r-sm);
-    border-left: 3px solid transparent;
-    margin-left: -3px;
-    transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+    border-radius: 0 var(--r-md) var(--r-md) 0;  /* identidade do sistema */
+    transition: background 200ms var(--ease-out), color 200ms var(--ease-out);
     position: relative;
     white-space: nowrap;
     min-height: 42px;
+    overflow: hidden;  /* contém o ::before na arredondada */
+}
+/* Filete musgo na esquerda — pintado pelo ::before, anima no hover/active */
+.sidebar-link::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: transparent;
+    transition: background 220ms var(--ease-out);
 }
 .sidebar-link:hover {
     background: var(--c-papel-2);
     color: var(--c-musgo);
 }
+.sidebar-link:hover::before { background: var(--c-ambar); }
 .sidebar-link[aria-current="page"] {
     background: rgba(15, 76, 58, 0.08);
     color: var(--c-musgo);
-    border-left-color: var(--c-musgo);
     font-weight: 600;
 }
+.sidebar-link[aria-current="page"]::before { background: var(--c-musgo); }
 .sidebar-link[aria-current="page"] .sidebar-link-icone { color: var(--c-musgo); }
 .sidebar-link-icone {
     flex-shrink: 0;
@@ -3354,17 +3366,25 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     transform: scale(0.6);
 }
 
-/* Item colapsado: centralizado, sem texto */
+/* Nav colapsada: zera padding-right pro item ocupar a sidebar inteira.
+   Sem isso, ícone centraliza na "área útil" (56px) em vez do centro real
+   da sidebar (68px), ficando 6px à esquerda do que se espera. */
+.app-sidebar[data-estado="colapsada"] .sidebar-nav {
+    padding: 16px 0;
+}
+
+/* Item colapsado: centralizado, sem texto, sem gap fantasma.
+   Gap=0 é essencial: mesmo com .sidebar-link-texto em max-width:0 + opacity:0,
+   o gap entre items flex (ícone + texto-invisível) ainda valeria 14px e
+   deslocaria o ícone ~7px à esquerda do centro. */
 .app-sidebar[data-estado="colapsada"] .sidebar-link {
     justify-content: center;
     padding: 10px 0;
-    margin-left: 0;
-    border-left: 0;  /* sem borda esquerda no colapsado, evita confusão visual */
+    gap: 0;
 }
-.app-sidebar[data-estado="colapsada"] .sidebar-link[aria-current="page"] {
-    background: rgba(15, 76, 58, 0.1);
-    border-radius: var(--r-sm);
-}
+/* Mantém a identidade flat-left/round-right no colapsado também — o filete
+   ::before continua na borda esquerda da sidebar; o item ocupa a largura
+   inteira (68px) e centraliza o ícone. */
 .app-sidebar[data-estado="colapsada"] .sidebar-link[aria-current="page"] .sidebar-link-icone {
     color: var(--c-musgo);
 }
