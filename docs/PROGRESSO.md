@@ -1,7 +1,42 @@
 # PROGRESSO — Sistema de Controle de Caixa
 
-> Estado do projeto após o merge do CP6 na `main` (2026-05-02).
+> Estado do projeto após o merge do CP7 na `main` (2026-05-02).
 > Stack canônica documentada em `docs/STACK.md`.
+
+## Status — fim do CP7 (2026-05-02)
+
+### Concluído (adições)
+
+- [x] **Fase 2 — CP7: Admin e relatórios**
+  - Migration: `usuario_papel.ativo` + `config.tipo`
+  - `/configuracoes/usuarios` (admin) — listagem com último acesso,
+    modal de promoção com confirmação por digitação ("promover"),
+    auto-proteção contra remoção do próprio papel admin
+  - `/configuracoes/feriados` (admin) — CRUD com filtro por ano,
+    soft-delete preserva histórico para cálculos retroativos
+  - `/configuracoes/sistema` (admin) — nomes amigáveis por chave,
+    toggle inline para boolean, modal interativo (stepper + sugestões
+    + slider) para number/time/date/text, validação client + backend
+  - `/relatorios` (admin + operador) — filtros por período, categoria
+    e estado, preview paginado, sumário no topo
+  - Export CSV com BOM UTF-8 (Excel pt-BR sem caracteres bagunçados)
+  - Export PDF lazy-loaded (jspdf + jspdf-autotable carregam só ao baixar)
+  - Hub `/configuracoes` ativa cards admin reais (CP5 deixou placeholder)
+  - Sidebar ganha link para `/relatorios`
+  - 5 RPCs novas: `listar_usuarios_papeis`, `definir_papeis_usuario`,
+    `atualizar_config`, `gerar_relatorio_periodo`, `exportar_relatorio_csv`
+
+### Pendências CP7 (registradas)
+
+- Trigger `trg_config_audit` removido (era pré-quebrado, assumia `id` UUID
+  mas `config` usa `chave` varchar como PK). Auditoria via `atualizado_em`
+  e `atualizado_por_email` é suficiente por ora.
+- Papéis `supervisor` e `auditor` aceitos pelo CHECK do banco mas UI/RPC
+  só expõem `admin` e `operador`. Reservados para futura expansão.
+- PDF em mobile pode demorar 5-10s para >1000 linhas. Spinner cobre.
+- Cache de papéis no client invalida em login/logout/user_updated mas
+  não em mudança de papel feita por outro admin com sessão ativa.
+  F5 corrige.
 
 ## Status — fim do CP6 (2026-05-02)
 
@@ -100,7 +135,6 @@
 
 ### Em andamento
 
-- [ ] **Fase 2 — CP7**: Admin e relatórios (Feriados, Usuários e papéis, Sistema, exportação para contação)
 - [ ] **Fase 2 — CP8**: PWA + offline-first (service worker funcional, fila de mutações, IndexedDB cache)
 - [ ] **Fase 3** — Excel/VBA + Apps Script (sincronia bidirecional)
 - [ ] **Fase 4** — Integração e operação (deploy Cloudflare Pages, UAT, alias prod)
@@ -131,6 +165,9 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+4665a3a  [F2-CP7] merge: admin e relatorios
+         (engloba CP7 + CP7-FIX: telas admin /usuarios /feriados
+          /sistema, relatorios com export CSV/PDF, RPCs novas)
 8a2cd99  [F2-CP6] merge: fechamento e metricas
          (engloba CP6 + CP6-FIX: fn_recalcular_caixa Escola 1, tela de
           fechamento, justificativas, /lancamento/:id, charts CSS)
