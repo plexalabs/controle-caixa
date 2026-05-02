@@ -55,11 +55,49 @@ export async function renderCaixa({ params }) {
       <!-- Resumo do dia: contexto antes da leitura linha-a-linha -->
       <aside id="rodape" class="resumo-dia hidden reveal reveal-3" aria-label="Resumo do dia"></aside>
 
-      <!-- Botão de ação principal — entre o resumo e a lista -->
+      <!-- Banner read-only quando caixa fechado (CP6.2) -->
+      <div id="banner-fechado" class="banner-fechado hidden reveal reveal-3" role="status">
+        <span class="banner-fechado-icone" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="11" width="16" height="10" rx="2" ry="2"/>
+            <path d="M8 11 V8 a4 4 0 0 1 8 0 v3"/>
+          </svg>
+        </span>
+        <div>
+          <p class="banner-fechado-titulo">Este caixa está fechado.</p>
+          <p class="banner-fechado-sub">Apenas leitura — não aceita novos lançamentos.</p>
+        </div>
+      </div>
+
+      <!-- Botões de ação principal — entre o resumo e a lista -->
       <div class="resumo-acao reveal reveal-3">
         <button id="btn-novo" class="btn-primary" disabled>
           + Novo lançamento
         </button>
+
+        <!-- CTA "Fechar caixa" — só aparece quando total_pendentes === 0 -->
+        <a id="btn-fechar-dia" class="btn-fechar-caixa hidden" href="#" data-link
+           aria-label="Fechar este caixa" title="Tudo conferido — pronto para fechar">
+          <svg class="btn-fechar-caixa-icone" width="14" height="14" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12.5 L10 17.5 L19 7.5"/>
+          </svg>
+          <span class="btn-fechar-caixa-titulo">Fechar caixa</span>
+        </a>
+
+        <!-- Hint quando há pendências — só aparece se total_pendentes > 0 -->
+        <a id="hint-pendencias" class="hint-pendencias hidden" href="#" data-link>
+          <svg class="hint-pendencias-icone" width="13" height="13" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7.5 V12 L15 14"/>
+          </svg>
+          <span id="hint-pendencias-texto"></span>
+        </a>
       </div>
 
       <!-- Filter-bar (CP5.5) — só aparece quando há lançamentos -->
@@ -124,6 +162,34 @@ async function carregarCaixa(dataAlvo) {
   btnNov.disabled = caixa.estado === 'fechado' || caixa.estado === 'arquivado';
   btnNov.onclick = () =>
     abrirModalAdicionarNF({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });
+
+  // CP6.2 + FIX: Banner fechado / CTA fechar (só sem pendências) / hint pendências
+  const banner    = document.querySelector('#banner-fechado');
+  const btnFechar = document.querySelector('#btn-fechar-dia');
+  const hintPend  = document.querySelector('#hint-pendencias');
+  const hintTxt   = document.querySelector('#hint-pendencias-texto');
+
+  banner?.classList.add('hidden');
+  btnFechar?.classList.add('hidden');
+  hintPend?.classList.add('hidden');
+
+  if (caixa.estado === 'fechado' || caixa.estado === 'arquivado') {
+    banner?.classList.remove('hidden');
+  } else if (['aberto', 'em_conferencia'].includes(caixa.estado)) {
+    if ((caixa.total_pendentes ?? 0) === 0) {
+      // Tudo resolvido — CTA fechar liberado
+      btnFechar?.setAttribute('href', `/caixa/${dataAlvo}/fechar`);
+      btnFechar?.classList.remove('hidden');
+    } else {
+      // Há pendências — hint editorial em vez do CTA
+      const n = caixa.total_pendentes;
+      if (hintTxt) {
+        hintTxt.innerHTML = `Resolva ${n === 1 ? 'a pendência' : 'as <strong>' + n + '</strong> pendências'} antes de fechar`;
+      }
+      hintPend?.setAttribute('href', `/pendencias?busca=${dataAlvo}`);
+      hintPend?.classList.remove('hidden');
+    }
+  }
 
   await carregarLancamentos(caixa.id);
   ligarRealtime(caixa.id);

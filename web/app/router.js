@@ -9,11 +9,13 @@ import { renderRedefinir }  from './pages/redefinir.js';
 import { renderDashboard }     from './pages/dashboard.js';
 import { renderCaixa }         from './pages/caixa.js';
 import { renderCaixas }        from './pages/caixas.js';
+import { renderCaixaFechar }   from './pages/caixa-fechar.js';
 import { renderConfiguracoes } from './pages/configuracoes.js';
 import { renderVendedoras }    from './pages/configuracoes-vendedoras.js';
 import { renderPendencias }    from './pages/pendencias.js';
 import { renderNotificacoes }  from './pages/notificacoes.js';
 import { renderPerfil }        from './pages/perfil.js';
+import { renderLancamento }    from './pages/lancamento.js';
 import { pegarSessao }         from './supabase.js';
 
 // Lista de rotas, em ordem. `aberta: true` = não exige sessão.
@@ -29,7 +31,9 @@ const rotas = [
   { padrao: /^\/redefinir$/,         handler: renderRedefinir,             aberta: true },
   { padrao: /^\/dashboard$/,                  handler: renderDashboard },
   { padrao: /^\/caixas$/,                     handler: renderCaixas },
+  { padrao: /^\/caixa\/([\w-]+)\/fechar$/,    handler: renderCaixaFechar },
   { padrao: /^\/caixa\/([\w-]+)$/,            handler: renderCaixa },
+  { padrao: /^\/lancamento\/([\w-]+)$/,       handler: renderLancamento },
   { padrao: /^\/configuracoes$/,              handler: renderConfiguracoes },
   { padrao: /^\/configuracoes\/vendedoras$/,  handler: renderVendedoras },
   { padrao: /^\/pendencias$/,                 handler: renderPendencias },

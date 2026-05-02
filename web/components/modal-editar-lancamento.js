@@ -494,6 +494,14 @@ function corpoGerenciar() {
   const tsFinal = l.resolvido_em || l.atualizado_em;
 
   return `
+    <a href="/lancamento/${esc(l.id)}" data-link id="link-historico-completo"
+       class="lanc-link-historico" style="display:inline-flex;align-items:center;gap:0.4rem;font-family:'Manrope',sans-serif;font-size:0.85rem;font-weight:500;color:var(--c-musgo);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(15,76,58,0.35);margin-bottom:1.1rem">
+      Ver histórico completo
+      <svg width="13" height="9" viewBox="0 0 16 10" fill="none" aria-hidden="true">
+        <path d="M1 5 H14 M10 1 L14 5 L10 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+
     ${finalizadoOuCancelado ? bannerFinal(ehCancelado, tsFinal) : ''}
 
     <section class="lanc-leitura">
@@ -695,6 +703,15 @@ function desligarRealtimeObs() {
 function ligarGerenciar() {
   const l = estado.lancamento;
   const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
+
+  // Link "Ver histórico completo" — fecha drawer antes da navegação client-side
+  const linkHist = document.querySelector('#link-historico-completo');
+  if (linkHist) {
+    linkHist.addEventListener('click', () => {
+      desligarRealtimeObs();
+      fecharModal(true);
+    });
+  }
 
   // Sempre liga: textarea de adicionar observacao.
   const tx = document.querySelector('#nova-obs');
