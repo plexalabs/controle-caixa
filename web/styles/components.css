@@ -831,43 +831,22 @@
 .lanc-row[data-estado-final="finalizado"] {
     background: linear-gradient(180deg, rgba(16, 185, 129, 0.04), transparent 60%), var(--c-papel);
 }
-.lanc-row[data-estado-final="cancelado"] .lanc-cliente,
-.lanc-row[data-estado-final="cancelado"] .lanc-valor {
-    text-decoration: line-through;
-    opacity: 0.65;
+.lanc-row[data-estado-final="finalizado"]::after {
+    /* Marcador de "OK" sobreposto ao texto da etiqueta */
+    background: linear-gradient(transparent, rgba(15, 76, 58, 0.08));
 }
 .lanc-row[data-estado-final="finalizado"] .lanc-categoria {
     background: rgba(16, 185, 129, 0.16) !important;
     color: #064e3b !important;
 }
+.lanc-row[data-estado-final="cancelado"] .lanc-cliente,
+.lanc-row[data-estado-final="cancelado"] .lanc-valor {
+    text-decoration: line-through;
+    opacity: 0.65;
+}
 .lanc-row[data-estado-final="cancelado"] .lanc-categoria {
     background: rgba(239, 68, 68, 0.16) !important;
     color: #7f1d1d !important;
-}
-
-/* Em itens com desfecho final (finalizado/cancelado), a bandeira lateral
-   fica permanentemente expandida com o texto vertical visível, sem precisar
-   de hover. Operador escaneia a lista e identifica de imediato o estado. */
-.lanc-row[data-estado-final="finalizado"],
-.lanc-row[data-estado-final="cancelado"] {
-    padding-left: calc(var(--tira-w-hover) + 1.1rem);
-}
-.lanc-row[data-estado-final="finalizado"]::before,
-.lanc-row[data-estado-final="cancelado"]::before {
-    width: var(--tira-w-hover);
-}
-.lanc-row[data-estado-final="finalizado"]::after,
-.lanc-row[data-estado-final="cancelado"]::after {
-    color: var(--tira-texto);
-    transition-delay: 0ms;
-}
-/* Cores específicas dos desfechos */
-.lanc-row[data-estado-final="finalizado"] {
-    --tira-cor: var(--cat-resolvido);
-}
-.lanc-row[data-estado-final="cancelado"] {
-    --tira-cor: var(--cat-cancelado-border);
-    --tira-texto: var(--c-papel);
 }
 .lanc-row[data-estado-final] .lanc-detalhes::before {
     content: '';
