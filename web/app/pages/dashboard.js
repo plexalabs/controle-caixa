@@ -98,12 +98,12 @@ export async function renderDashboard() {
         <div id="lista-criticas" class="space-y-2"></div>
       </section>
 
-      <!-- Linha 2: Movimento 30 dias (largura inteira) -->
+      <!-- Linha 2: Movimento do mês corrente (largura inteira) -->
       <article id="bloco-movimento" class="dash-quadro dash-quadro--full mt-8 reveal reveal-6" aria-labelledby="h-mov">
         <header class="dash-quadro-cabec">
           <div>
             <p class="h-eyebrow">Movimento</p>
-            <h2 id="h-mov" class="dash-quadro-titulo">Últimos 30 dias</h2>
+            <h2 id="h-mov" class="dash-quadro-titulo">Carregando…</h2>
           </div>
           <span id="mov-resumo" class="dash-quadro-meta"></span>
         </header>
@@ -120,7 +120,7 @@ export async function renderDashboard() {
   await carregarNotificacoes();
   await carregarCriticas();
   await carregarDistribuicaoCategoria();
-  await carregarMovimento30d();
+  await carregarMovimentoMes();
   ligarRealtime();
 }
 
@@ -215,71 +215,90 @@ async function carregarDistribuicaoCategoria() {
   });
 }
 
-// ─── CP6.4: Movimento dos últimos 30 dias ──────────────────────────────
-async function carregarMovimento30d() {
-  const cont = document.querySelector('#mov-conteudo');
+// ─── Movimento do mês corrente (CP7-FIX-DASH) ──────────────────────────
+// Mostra TODOS os dias do mês atual (1 até último dia), não 30 dias atrás.
+// A cada virada de mês, ajusta automaticamente. Dias futuros aparecem
+// vazios. Feriados (tabela `feriado`) ganham etiqueta vertical no lugar
+// da barra, com o nome escrito de baixo pra cima (sentido natural de chart).
+async function carregarMovimentoMes() {
+  const cont   = document.querySelector('#mov-conteudo');
   const resumo = document.querySelector('#mov-resumo');
+  const titulo = document.querySelector('#h-mov');
   if (!cont) return;
 
-  const { data, error } = await supabase.rpc('serie_diaria_caixa', { p_dias_atras: 30 });
-  if (error) {
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth();             // 0-11
+  const primeiroDia = new Date(ano, mes, 1);
+  const ultimoDia   = new Date(ano, mes + 1, 0);  // dia 0 do mês seguinte = último do atual
+  const isoIni = isoData(primeiroDia);
+  const isoFim = isoData(ultimoDia);
+
+  // Título dinâmico — "Maio 2026"
+  if (titulo) {
+    titulo.textContent = new Intl.DateTimeFormat('pt-BR', {
+      month: 'long', year: 'numeric',
+    }).format(primeiroDia).replace(/^./, c => c.toUpperCase());
+  }
+
+  // Busca caixas do mês + feriados do mês em paralelo
+  const [resCaixas, resFeriados] = await Promise.all([
+    supabase
+      .from('caixa')
+      .select('data, total_valor, total_lancamentos, estado')
+      .gte('data', isoIni)
+      .lte('data', isoFim)
+      .order('data', { ascending: true }),
+    supabase
+      .from('feriado')
+      .select('data, descricao, tipo')
+      .eq('ativo', true)
+      .gte('data', isoIni)
+      .lte('data', isoFim),
+  ]);
+
+  if (resCaixas.error) {
     cont.innerHTML = `<p class="alert">Não foi possível carregar o movimento.</p>`;
     return;
   }
 
-  if (!data || data.length === 0) {
-    cont.innerHTML = `
-      <div class="vazio" style="padding:2rem 1.5rem">
-        <p class="vazio-titulo" style="font-size:1.05rem">Sem caixas registrados nos últimos 30 dias.</p>
-      </div>`;
-    return;
-  }
+  const caixaIndex   = Object.fromEntries((resCaixas.data || []).map(r => [r.data, r]));
+  const feriadoIndex = Object.fromEntries((resFeriados.data || []).map(r => [r.data, r]));
 
-  // Garante range completo de 30 dias (preenche dias faltantes com null)
-  const hoje = new Date();
-  const inicio = new Date(hoje); inicio.setDate(hoje.getDate() - 29);
-  const dataIndex = Object.fromEntries(data.map(r => [r.data, r]));
+  // Monta range completo do mês (dia 1 até último), independente de ter caixa
   const dias = [];
-  for (let d = new Date(inicio); d <= hoje; d.setDate(d.getDate() + 1)) {
+  for (let d = new Date(primeiroDia); d <= ultimoDia; d.setDate(d.getDate() + 1)) {
     const iso = isoData(new Date(d));
-    dias.push(dataIndex[iso] || { data: iso, total_valor: 0, total_lancamentos: 0, estado: null });
+    const c = caixaIndex[iso];
+    dias.push({
+      data: iso,
+      total_valor:       Number(c?.total_valor ?? 0),
+      total_lancamentos: Number(c?.total_lancamentos ?? 0),
+      estado:            c?.estado ?? null,
+      feriado:           feriadoIndex[iso] || null,
+    });
   }
 
-  const valores = dias.map(d => Number(d.total_valor || 0));
+  const hojeISO = isoData(hoje);
+  const valores = dias.map(d => d.total_valor);
   const maxValor = Math.max(...valores, 1);
   const totalPeriodo = valores.reduce((s, v) => s + v, 0);
-  const totalLanc = dias.reduce((s, d) => s + Number(d.total_lancamentos || 0), 0);
+  const totalLanc = dias.reduce((s, d) => s + d.total_lancamentos, 0);
 
   if (resumo) {
     resumo.textContent = `${formatBRL(totalPeriodo)} · ${totalLanc} ${totalLanc === 1 ? 'lançamento' : 'lançamentos'}`;
   }
 
+  // CSS-var pra grid usar exatamente o número de dias do mês (28-31)
   cont.innerHTML = `
-    <div class="chart-mov">
-      <div class="chart-mov-barras" role="list" aria-label="Movimento diário">
-        ${dias.map((d, i) => {
-          const v = Number(d.total_valor || 0);
-          const altura = maxValor > 0 ? Math.round((v / maxValor) * 100) : 0;
-          const dt = new Date(d.data + 'T00:00:00');
-          const ehHoje = d.data === isoData(new Date());
-          const fim = dt.getDay() === 0 || dt.getDay() === 6;
-          const titulo = `${dataLonga(d.data)} — ${formatBRL(v)} · ${d.total_lancamentos} ${d.total_lancamentos === 1 ? 'lançamento' : 'lançamentos'}${d.estado ? ' (' + d.estado + ')' : ' (sem caixa)'}`;
-          return `
-            <a class="chart-mov-coluna" data-link
-               role="listitem"
-               href="/caixa/${esc(d.data)}"
-               title="${esc(titulo)}"
-               data-fim="${fim}"
-               data-hoje="${ehHoje}"
-               data-vazio="${v === 0}"
-               style="animation-delay:${i * 18}ms">
-              <span class="chart-mov-barra" style="--alvo:${altura}%"></span>
-              <span class="chart-mov-rot">${dt.getDate()}</span>
-            </a>`;
-        }).join('')}
+    <div class="chart-mov" style="--mov-cols:${dias.length}">
+      <div class="chart-mov-barras" role="list" aria-label="Movimento diário do mês">
+        ${dias.map((d, i) => colunaMov(d, i, hojeISO, maxValor)).join('')}
       </div>
       <div class="chart-mov-base" aria-hidden="true"></div>
-      <div class="chart-mov-eixo">${esc(rotuloEixoMov(dias))}</div>
+      <div class="chart-mov-eixo">${esc(new Intl.DateTimeFormat('pt-BR', {
+        month: 'long', year: 'numeric',
+      }).format(primeiroDia))}</div>
     </div>`;
 
   requestAnimationFrame(() => {
@@ -287,16 +306,42 @@ async function carregarMovimento30d() {
   });
 }
 
-// Eixo: se o intervalo cai num único mês, mostra "abril 2026". Se atravessa
-// dois meses, mostra "abril → maio 2026" (ou anos diferentes se aplicável).
-function rotuloEixoMov(dias) {
-  if (!dias.length) return '';
-  const fmt = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
-  const ini = new Date(dias[0].data + 'T00:00:00');
-  const fim = new Date(dias[dias.length - 1].data + 'T00:00:00');
-  const labIni = fmt.format(ini);
-  const labFim = fmt.format(fim);
-  return labIni === labFim ? labIni : `${labIni}  →  ${labFim}`;
+function colunaMov(d, i, hojeISO, maxValor) {
+  const dt = new Date(d.data + 'T00:00:00');
+  const v  = d.total_valor;
+  const altura = maxValor > 0 ? Math.round((v / maxValor) * 100) : 0;
+  const ehHoje  = d.data === hojeISO;
+  const ehFuturo = d.data > hojeISO;
+  const fim     = dt.getDay() === 0 || dt.getDay() === 6;
+  const ehFer   = !!d.feriado;
+
+  let titulo = `${dataLonga(d.data)} — ${formatBRL(v)} · ${d.total_lancamentos} ${d.total_lancamentos === 1 ? 'lançamento' : 'lançamentos'}`;
+  if (ehFer)    titulo += ` · feriado: ${d.feriado.descricao}`;
+  else if (ehFuturo) titulo += ' · ainda não chegou';
+  else if (!d.estado) titulo += ' · sem caixa';
+  else titulo += ` (${d.estado})`;
+
+  // Coluna de feriado: substitui a barra por uma etiqueta vertical com o
+  // nome do feriado, sentido leitura de baixo pra cima (vertical-rl + rotate
+  // 180 dá esse sentido natural de chart).
+  const conteudoColuna = ehFer
+    ? `<span class="chart-mov-feriado" title="${esc(d.feriado.descricao)}">${esc(d.feriado.descricao)}</span>`
+    : `<span class="chart-mov-barra" style="--alvo:${altura}%"></span>`;
+
+  return `
+    <a class="chart-mov-coluna" data-link
+       role="listitem"
+       href="/caixa/${esc(d.data)}"
+       title="${esc(titulo)}"
+       data-fim="${fim}"
+       data-hoje="${ehHoje}"
+       data-vazio="${v === 0 && !ehFer}"
+       data-feriado="${ehFer}"
+       data-futuro="${ehFuturo}"
+       style="animation-delay:${i * 18}ms">
+      ${conteudoColuna}
+      <span class="chart-mov-rot">${dt.getDate()}</span>
+    </a>`;
 }
 
 // ─── Cards de resumo via dashboard_resumo + queries auxiliares ────────────

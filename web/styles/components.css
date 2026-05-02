@@ -4355,7 +4355,9 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 .chart-mov-barras {
     display: grid;
-    grid-template-columns: repeat(30, minmax(0, 1fr));
+    /* --mov-cols vem do JS conforme a quantidade de dias do mês (28-31).
+       Fallback 31 caso não esteja setado. */
+    grid-template-columns: repeat(var(--mov-cols, 31), minmax(0, 1fr));
     gap: 5px;
     align-items: end;
     height: 130px;
@@ -4365,7 +4367,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 @media (max-width: 640px) {
     /* Mobile: scroll horizontal preservando legibilidade dos labels. */
     .chart-mov-barras {
-        grid-template-columns: repeat(30, minmax(18px, 1fr));
+        grid-template-columns: repeat(var(--mov-cols, 31), minmax(18px, 1fr));
         overflow-x: auto;
         padding: 0 0.2rem 0.5rem;
         scrollbar-width: thin;
@@ -4414,6 +4416,57 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .chart-mov-coluna[data-hoje="true"] .chart-mov-barra {
     background: var(--c-ambar);
     box-shadow: 0 -2px 0 0 var(--c-ambar-2) inset;
+}
+/* Dia futuro (ainda não chegou): traço quase invisível, sem ação */
+.chart-mov-coluna[data-futuro="true"] .chart-mov-barra {
+    background: transparent;
+    border-left: 1px dashed var(--c-papel-3);
+    border-right: 1px dashed var(--c-papel-3);
+    border-top: 1px dashed var(--c-papel-3);
+    border-radius: 4px 4px 0 0;
+    height: 100%;
+    opacity: 0.35;
+    min-height: 0;
+}
+.chart-mov-coluna[data-futuro="true"] { cursor: default; }
+
+/* ─── Coluna de feriado ─────────────────────────────────────────────
+   Substitui a barra por uma etiqueta vertical com o nome do feriado.
+   writing-mode + transform=180 fazem o texto subir do chão (sentido
+   natural de leitura em chart). max-height = 100% da coluna (130px),
+   overflow ellipsis pra não estourar nomes longos. */
+.chart-mov-feriado {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    background: rgba(199, 122, 63, 0.10);
+    border: 1px dashed rgba(199, 122, 63, 0.45);
+    border-radius: 4px 4px 0 0;
+    padding: 0.4rem 0;
+    box-sizing: border-box;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--c-ambar-2);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-height: 100%;
+    transition: background 180ms var(--ease-out), color 180ms var(--ease-out);
+}
+.chart-mov-coluna[data-feriado="true"] .chart-mov-rot {
+    color: var(--c-ambar-2);
+    font-weight: 700;
+}
+.chart-mov-coluna[data-feriado="true"]:hover .chart-mov-feriado {
+    background: rgba(199, 122, 63, 0.18);
+    color: var(--c-ambar-2);
 }
 
 /* Label do dia do mês (1-31) embaixo de cada barra */
