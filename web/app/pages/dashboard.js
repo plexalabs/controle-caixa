@@ -48,21 +48,47 @@ export async function renderDashboard() {
         <a href="/pendencias" data-link class="btn-link">Ver pendências</a>
       </section>
 
-      <!-- Notificações ativas -->
-      <section class="mt-12 reveal reveal-4" aria-labelledby="h-notif">
-        <header class="flex items-baseline justify-between mb-4">
-          <h2 id="h-notif" class="h-display text-2xl" style="font-style:normal;font-weight:500">
-            Avisos
-          </h2>
-          <span id="contagem-notif" class="h-meta text-sm" style="font-style:italic"></span>
-        </header>
-        <div id="lista-notif" class="space-y-2">
-          ${blocoSkel()}
-        </div>
-      </section>
+      <!-- Linha 1: dois quadros lado a lado — Avisos + Por categoria -->
+      <div class="dash-grid mt-12 reveal reveal-4">
+        <!-- Quadro: Avisos (5 últimos + ver todos) -->
+        <article id="bloco-avisos" class="dash-quadro" aria-labelledby="h-notif">
+          <header class="dash-quadro-cabec">
+            <div>
+              <p class="h-eyebrow">Atenção</p>
+              <h2 id="h-notif" class="dash-quadro-titulo">Avisos</h2>
+            </div>
+            <span id="contagem-notif" class="dash-quadro-meta"></span>
+          </header>
+          <div id="lista-notif" class="dash-quadro-corpo">
+            ${blocoSkel()}
+          </div>
+          <footer class="dash-quadro-rodape">
+            <a href="/notificacoes" data-link class="dash-quadro-cta">
+              Ver todos os avisos
+              <svg width="14" height="10" viewBox="0 0 14 10" fill="none" aria-hidden="true">
+                <path d="M1 5 H12 M8 1 L12 5 L8 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </footer>
+        </article>
+
+        <!-- Quadro: Distribuição por categoria -->
+        <article id="bloco-distribuicao" class="dash-quadro" aria-labelledby="h-dist">
+          <header class="dash-quadro-cabec">
+            <div>
+              <p class="h-eyebrow">Distribuição</p>
+              <h2 id="h-dist" class="dash-quadro-titulo">Por categoria</h2>
+            </div>
+            <span id="dist-mes-rotulo" class="dash-quadro-meta"></span>
+          </header>
+          <div id="dist-conteudo" class="dash-quadro-corpo">
+            <div class="skel" style="height:8rem"></div>
+          </div>
+        </article>
+      </div>
 
       <!-- Pendências críticas (>3 dias úteis) — só renderiza se houver -->
-      <section id="bloco-criticas" class="mt-10 hidden reveal reveal-5" aria-labelledby="h-crit">
+      <section id="bloco-criticas" class="mt-8 hidden reveal reveal-5" aria-labelledby="h-crit">
         <header class="flex items-baseline justify-between mb-4">
           <h2 id="h-crit" class="h-display text-2xl" style="font-style:normal;font-weight:500">
             Pendências críticas
@@ -72,37 +98,19 @@ export async function renderDashboard() {
         <div id="lista-criticas" class="space-y-2"></div>
       </section>
 
-      <!-- Distribuição por categoria do mês (CP6.4) -->
-      <section id="bloco-distribuicao" class="mt-12 reveal reveal-6" aria-labelledby="h-dist">
-        <header class="flex items-baseline justify-between mb-4">
-          <div>
-            <p class="h-eyebrow">Distribuição</p>
-            <h2 id="h-dist" class="h-display text-2xl" style="font-style:normal;font-weight:500;margin-top:0.2rem">
-              Por categoria
-            </h2>
-          </div>
-          <span id="dist-mes-rotulo" class="h-meta text-sm" style="font-style:italic;color:var(--c-tinta-3)"></span>
-        </header>
-        <div id="dist-conteudo">
-          <div class="skel" style="height:8rem"></div>
-        </div>
-      </section>
-
-      <!-- Movimento dos últimos 30 dias (CP6.4) -->
-      <section id="bloco-movimento" class="mt-12 reveal reveal-6" aria-labelledby="h-mov">
-        <header class="flex items-baseline justify-between mb-4">
+      <!-- Linha 2: Movimento 30 dias (largura inteira) -->
+      <article id="bloco-movimento" class="dash-quadro dash-quadro--full mt-8 reveal reveal-6" aria-labelledby="h-mov">
+        <header class="dash-quadro-cabec">
           <div>
             <p class="h-eyebrow">Movimento</p>
-            <h2 id="h-mov" class="h-display text-2xl" style="font-style:normal;font-weight:500;margin-top:0.2rem">
-              Últimos 30 dias
-            </h2>
+            <h2 id="h-mov" class="dash-quadro-titulo">Últimos 30 dias</h2>
           </div>
-          <span id="mov-resumo" class="h-meta text-sm" style="font-style:italic;color:var(--c-tinta-3)"></span>
+          <span id="mov-resumo" class="dash-quadro-meta"></span>
         </header>
-        <div id="mov-conteudo">
+        <div id="mov-conteudo" class="dash-quadro-corpo">
           <div class="skel" style="height:6rem"></div>
         </div>
-      </section>
+      </article>
     </main>
   `,
   });
@@ -361,41 +369,49 @@ function blocoSkel() {
     <div class="skel" style="height:3.2rem;border-radius:2px"></div>`;
 }
 
-// ─── Notificações ativas (não-lidas) ──────────────────────────────────────
+// ─── Notificações ativas (não-lidas) — quadro do dashboard ──────────────
+// Mostra os 5 mais recentes; conta o total real (até 100) pra exibir
+// "5 de N" no meta-rotulo. "Ver todos os avisos" leva pra /notificacoes.
 async function carregarNotificacoes() {
   const sessao = await pegarSessao();
   const uid = sessao?.user?.id;
 
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('notificacao')
-    .select('id, tipo, severidade, titulo, mensagem, lancamento_id, caixa_id, criada_em, lida_em')
+    .select('id, tipo, severidade, titulo, mensagem, lancamento_id, caixa_id, criada_em, lida_em',
+            { count: 'exact' })
     .or(`usuario_destino.eq.${uid},usuario_destino.is.null`)
     .is('lida_em', null)
     .is('descartada_em', null)
     .order('criada_em', { ascending: false })
-    .limit(20);
+    .limit(5);
 
   const lista = document.querySelector('#lista-notif');
   const cont  = document.querySelector('#contagem-notif');
   if (!lista) return;
 
   if (error) {
-    lista.innerHTML = `<p class="text-sm" style="color:var(--c-tinta-3)">
+    lista.innerHTML = `<p class="text-sm" style="color:var(--c-tinta-3);padding:0.5rem 0">
       Não conseguimos carregar os avisos agora.</p>`;
     return;
   }
 
   if (!data || data.length === 0) {
     lista.innerHTML = `
-      <div class="vazio" style="padding:1.5rem">
-        <p class="vazio-titulo" style="font-size:1.05rem">Sem avisos no momento.</p>
-        <p class="vazio-desc">Quando algo precisar de atenção, aparece aqui.</p>
+      <div class="dash-quadro-vazio">
+        <p class="dash-quadro-vazio-titulo">Sem avisos no momento.</p>
+        <p class="dash-quadro-vazio-desc">Quando algo precisar de atenção, aparece aqui.</p>
       </div>`;
-    cont.textContent = '';
+    if (cont) cont.textContent = '';
     return;
   }
 
-  cont.textContent = `${data.length} aviso${data.length > 1 ? 's' : ''}`;
+  if (cont) {
+    const total = count ?? data.length;
+    cont.textContent = total > 5
+      ? `mostrando 5 de ${total}`
+      : `${total} aviso${total > 1 ? 's' : ''}`;
+  }
   lista.innerHTML = data.map(n => itemNotif(n)).join('');
 
   // Click → marca como lida + navega.
@@ -405,24 +421,20 @@ async function carregarNotificacoes() {
 }
 
 function itemNotif(n) {
-  const cor = n.severidade === 'urgente' ? 'var(--c-alerta)'
-           : n.severidade === 'aviso'   ? 'var(--c-ambar-2)'
-           : 'var(--c-musgo)';
+  const tom = n.severidade === 'urgente' ? 'urgente'
+           : n.severidade === 'aviso'   ? 'aviso'
+           : 'info';
 
   let alvo = '/dashboard';
-  if (n.caixa_id)      alvo = `/caixa/${n.caixa_id}`;       // caixa_id pode ser uuid; resolvemos no caixa.js se vier UUID.
-  // Para casos de lancamento_id sozinho, mandamos o operador para pendências (CP4 melhora isso).
+  if (n.caixa_id) alvo = `/caixa/${n.caixa_id}`;
   return `
     <button data-notif-id="${esc(n.id)}" data-alvo="${esc(alvo)}"
-            style="text-align:left;display:block;width:100%;background:var(--c-papel);
-                   border:1px solid var(--c-papel-3);border-left:3px solid ${cor};
-                   padding:0.85rem 1rem;cursor:pointer;font-family:'Manrope',sans-serif;
-                   transition:border-color 180ms">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem">
-        <strong style="color:var(--c-tinta);font-size:0.95rem;font-weight:600">${esc(n.titulo)}</strong>
-        <time class="h-meta text-xs" style="color:var(--c-tinta-3)">${tempoRelativo(n.criada_em)}</time>
+            class="dash-aviso" data-tom="${tom}">
+      <div class="dash-aviso-cabec">
+        <strong class="dash-aviso-titulo">${esc(n.titulo)}</strong>
+        <time class="dash-aviso-tempo">${tempoRelativo(n.criada_em)}</time>
       </div>
-      <p style="color:var(--c-tinta-2);font-size:0.875rem;margin-top:0.2rem;line-height:1.4">${esc(n.mensagem)}</p>
+      <p class="dash-aviso-msg">${esc(n.mensagem)}</p>
     </button>`;
 }
 

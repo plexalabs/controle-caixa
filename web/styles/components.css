@@ -5776,3 +5776,202 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     font-variant-numeric: tabular-nums;
 }
 
+
+/* ============================================================
+   Dashboard quadros (CP7-FIX-DASH)
+   Reorganização: 2 quadros lado a lado em cima (Avisos + Por categoria)
+   + Movimento 30 dias largura inteira embaixo. Identidade flat-left/round-right.
+   ============================================================ */
+
+.dash-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+@media (min-width: 880px) {
+    .dash-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.dash-quadro {
+    position: relative;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-md) var(--r-md) 0;  /* identidade do sistema */
+    padding: 1.25rem 1.4rem 1rem 1.65rem;
+    overflow: hidden;
+    transition: border-color 220ms var(--ease-out);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    animation: fade-up 600ms var(--ease-out) backwards;
+}
+.dash-quadro::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--c-musgo);
+    transition: background 220ms var(--ease-out);
+}
+.dash-quadro:hover { border-color: var(--c-musgo-2); }
+
+.dash-quadro--full { grid-column: 1 / -1; }
+
+.dash-quadro-cabec {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.85rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--c-papel-2);
+    margin-bottom: 0.95rem;
+}
+.dash-quadro-cabec .h-eyebrow { margin-bottom: 0.25rem; }
+
+.dash-quadro-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    font-size: 1.55rem;
+    color: var(--c-tinta);
+    line-height: 1.1;
+    margin: 0;
+}
+
+.dash-quadro-meta {
+    font-family: 'Manrope', sans-serif;
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--c-tinta-3);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.dash-quadro-corpo {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.dash-quadro-rodape {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--c-papel-3);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.dash-quadro-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--c-musgo);
+    text-decoration: none;
+    padding: 0.4rem 0.7rem;
+    border-radius: var(--r-sm);
+    transition: all 180ms var(--ease-out);
+}
+.dash-quadro-cta:hover {
+    background: rgba(15, 76, 58, 0.08);
+    transform: translateX(2px);
+}
+.dash-quadro-cta svg { transition: transform 200ms var(--ease-out); }
+.dash-quadro-cta:hover svg { transform: translateX(2px); }
+
+/* Estado vazio dentro do quadro */
+.dash-quadro-vazio {
+    padding: 1.5rem 0.5rem;
+    text-align: center;
+    color: var(--c-tinta-3);
+}
+.dash-quadro-vazio-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--c-tinta-2);
+    margin-bottom: 0.3rem;
+}
+.dash-quadro-vazio-desc {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+/* ─── Item de aviso dentro do quadro Avisos ─── */
+.dash-aviso {
+    appearance: none;
+    text-align: left;
+    display: block;
+    width: 100%;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    padding: 0.7rem 0.85rem 0.7rem 0.95rem;
+    cursor: pointer;
+    font-family: 'Manrope', sans-serif;
+    transition: all 180ms var(--ease-out);
+    position: relative;
+    overflow: hidden;
+}
+.dash-aviso::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--c-musgo);
+    transition: background 180ms var(--ease-out);
+}
+.dash-aviso[data-tom="urgente"]::before { background: var(--c-alerta); }
+.dash-aviso[data-tom="aviso"]::before   { background: var(--c-ambar-2); }
+.dash-aviso[data-tom="info"]::before    { background: var(--c-musgo); }
+.dash-aviso:hover {
+    border-color: var(--c-musgo);
+    transform: translateX(2px);
+}
+.dash-aviso[data-tom="urgente"]:hover { border-color: var(--c-alerta); }
+.dash-aviso[data-tom="aviso"]:hover   { border-color: var(--c-ambar-2); }
+
+.dash-aviso-cabec {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.85rem;
+    margin-bottom: 0.18rem;
+}
+.dash-aviso-titulo {
+    color: var(--c-tinta);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dash-aviso-tempo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 0.72rem;
+    color: var(--c-tinta-3);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.dash-aviso-msg {
+    color: var(--c-tinta-2);
+    font-size: 0.82rem;
+    line-height: 1.42;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dash-quadro, .dash-aviso { animation: none; transition: none; }
+    .dash-quadro-cta:hover, .dash-aviso:hover { transform: none; }
+}
