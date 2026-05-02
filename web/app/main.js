@@ -8,6 +8,7 @@
 import '../styles/tailwind.css';
 import '../styles/tokens.css';
 import '../styles/components.css';
+import '../styles/auth.css';
 
 import { despachar }         from './router.js';
 import { supabase }          from './supabase.js';
