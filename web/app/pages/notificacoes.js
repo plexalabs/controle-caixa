@@ -8,6 +8,8 @@ import { renderShell, ligarShell } from '../shell.js';
 import { instalarFilterBar } from '../../components/filter-bar.js';
 import { mostrarToast } from '../notifications.js';
 import { navegar } from '../router.js';
+import { destinoNotificacao, enriquecerNotificacoes } from '../notificacao-router.js';
+import { log } from '../log.js';
 
 const POR_PAGINA = 20;
 let fbCtrl = null;
@@ -133,19 +135,38 @@ async function carregar() {
     return;
   }
 
+  // Enriquece com caixa.data e lancamento.numero_nf via 2 batch queries
+  // paralelas. Sem isso, a navegação usaria UUIDs nas URLs e quebraria
+  // o roteador (/caixa espera data ISO, não UUID).
+  const enriquecidas = await enriquecerNotificacoes(data, supabase);
+
   lista.innerHTML = `
     <ul class="notif-lista" role="list">
-      ${data.map(itemHtml).join('')}
+      ${enriquecidas.map(itemHtml).join('')}
     </ul>`;
 
-  // Navegação ao item
+  // Navegação ao item: router decide destino com base no tipo + payload
+  // resolvido. Marca como lida automaticamente antes de navegar.
   lista.querySelectorAll('[data-notif-id]').forEach(el => {
-    el.addEventListener('click', (e) => {
+    el.addEventListener('click', async (e) => {
       if (e.target.closest('[data-acao]')) return;
-      const alvo = el.dataset.alvo;
       const id = el.dataset.notifId;
+      const notif = enriquecidas.find(n => n.id === id);
+      if (!notif) return;
+
       if (el.dataset.lida === 'false') marcarLida(id);
-      if (alvo && alvo !== 'none') navegar(alvo);
+
+      const { url, motivo, erro } = destinoNotificacao(notif);
+      if (motivo === 'ok') {
+        navegar(url);
+      } else if (motivo === 'invalida') {
+        log.warn(`notificação ${id} (${notif.tipo}) com payload inválido`,
+                 { tipo: notif.tipo, caixa_id: notif.caixa_id, lancamento_id: notif.lancamento_id, erro });
+        mostrarToast('Esta notificação não tem destino válido.', 'erro', 3500);
+      } else {
+        // 'sem_destino' — informativa, não navega.
+        mostrarToast('Aviso informativo, sem ação direta.', 'info', 2200);
+      }
     });
   });
 
@@ -172,13 +193,12 @@ async function carregar() {
 function itemHtml(n) {
   const lida = !!n.lida_em;
   const descartada = !!n.descartada_em;
-  let alvo = 'none';
-  if (n.caixa_id) alvo = `/caixa/${n.caixa_id}`;
-  else if (n.lancamento_id) alvo = '/pendencias';
+  // Destino é resolvido no momento do click via destinoNotificacao() —
+  // não há mais data-alvo precomputado (legado bugado: usava caixa_id UUID).
 
   return `
     <li>
-      <button class="notif-item" data-notif-id="${esc(n.id)}" data-alvo="${esc(alvo)}"
+      <button class="notif-item" data-notif-id="${esc(n.id)}"
               data-severidade="${esc(n.severidade)}" data-lida="${lida}">
         <div class="notif-item-cabec">
           <strong class="notif-item-titulo">${esc(n.titulo)}</strong>

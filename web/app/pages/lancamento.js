@@ -3,6 +3,7 @@
 // cronológica reversa abaixo, ações conforme estado no rodapé.
 
 import { supabase } from '../supabase.js';
+import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
 import { LABEL_CATEGORIA, dataLonga, resumoDetalhes } from '../dominio.js';
@@ -26,8 +27,11 @@ export async function renderLancamento({ params }) {
     .eq('id', lancId)
     .maybeSingle();
 
-  if (error) return mostrarErro('Não foi possível carregar: ' + error.message);
-  if (!lanc)  return mostrarErro('Lançamento não encontrado.');
+  if (error) {
+    log.erro('falha ao carregar lançamento', error, { lancId });
+    return mostrarErro('Não foi possível carregar: ' + error.message);
+  }
+  if (!lanc) return mostrarErro('Lançamento não encontrado.');
 
   const { data: cx } = await supabase
     .from('caixa').select('id, data, estado').eq('id', lanc.caixa_id).maybeSingle();
@@ -253,13 +257,29 @@ function formatarTimestampLongo(ts) {
 }
 
 function mostrarErro(msg) {
+  // Usa o shell editorial da 404 com etiqueta âmbar lateral. Texto e CTAs
+  // contextuais a "Lançamento não encontrado / inválido", em vez do 404
+  // genérico — guia o operador de volta pra /caixas (lugar natural pra
+  // procurar uma NF, não pra /dashboard).
   document.querySelector('#app').innerHTML = `
-    <main class="min-h-screen flex items-center justify-center p-8 text-center">
-      <div>
-        <p class="h-eyebrow" style="color:var(--c-alerta)">Erro</p>
-        <h1 class="h-display text-4xl mt-1 mb-4">${esc(msg)}</h1>
-        <a href="/dashboard" data-link class="btn-link">Voltar ao painel</a>
-      </div>
+    <main id="main" class="erro-shell" role="main">
+      <aside class="erro-etiqueta" aria-hidden="true">NF</aside>
+
+      <section class="erro-conteudo">
+        <p class="h-eyebrow">Lançamento não encontrado</p>
+        <h1 class="erro-titulo">
+          Esta nota fiscal<br>
+          <em>não está no caderno.</em>
+        </h1>
+        <p class="erro-texto">
+          ${esc(msg)} Pode ter sido excluído, arquivado ou o link veio com
+          o identificador errado. Confira a lista de caixas pra encontrá-lo.
+        </p>
+        <div class="erro-acoes">
+          <a href="/caixas" data-link class="btn-primary">Ver todos os caixas</a>
+          <a href="/dashboard" data-link class="btn-link">Ir para o início</a>
+        </div>
+      </section>
     </main>`;
 }
 

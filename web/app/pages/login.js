@@ -9,7 +9,10 @@ import { validarEmail }   from '../utils.js';
 
 export function renderLogin() {
   const params      = new URLSearchParams(location.search);
-  const proximo     = params.get('proximo') || '/dashboard';
+  // Preserva ?next= (CP-PRE-DEPLOY-1) e tolera o legado ?proximo=.
+  // Aceita só caminhos relativos começando em "/" — bloqueia open redirect.
+  const nextRaw = params.get('next') || params.get('proximo') || '';
+  const proximo = nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : '/dashboard';
   const emailInicio = params.get('email')   || '';
 
   document.querySelector('#app').innerHTML = `

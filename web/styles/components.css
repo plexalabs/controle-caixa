@@ -3741,15 +3741,12 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     opacity: 0.65;
 }
 
-.lanc-row[data-cat=""]::after,
-.lanc-row[data-em-analise="true"]::after {
-    color: var(--c-tinta);
-    font-weight: 800;
-    letter-spacing: 0.18em;
-    z-index: 3;
-    text-shadow: 0 0 1px rgba(245, 239, 230, 0.85),
-                 0 0 2px rgba(245, 239, 230, 0.6);
-}
+/* Em análise: o texto vertical "EM ANÁLISE" segue a regra geral
+   das outras categorias — só aparece no hover. A diferenciação
+   visual de "lançamento em análise" continua vindo da tira listrada
+   do ::before (4 linhas acima) e do background pendente. Antes
+   (CP5-AJUSTES) o texto ficava sempre visível, mas isso destoava
+   do hover-reveal das demais categorias e parecia bug. */
 
 
 /* ============================================================
@@ -6082,4 +6079,182 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 @media (prefers-reduced-motion: reduce) {
     .dash-quadro, .dash-aviso { animation: none; transition: none; }
     .dash-quadro-cta:hover, .dash-aviso:hover { transform: none; }
+}
+
+
+/* ============================================================
+   Tela 404 editorial (CP-PRE-DEPLOY-1)
+   Etiqueta lateral âmbar com "404" vertical + título Fraunces
+   + texto Manrope + ações editorial.
+   ============================================================ */
+
+.erro-shell {
+    min-height: 80vh;
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 2rem;
+    padding: 3rem 2rem;
+    max-width: 720px;
+    margin: 0 auto;
+    align-items: start;
+    animation: fade-up 600ms var(--ease-out) backwards;
+}
+
+.erro-etiqueta {
+    background: var(--c-ambar);
+    color: var(--c-papel);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 2rem;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    padding: 1.5rem 0.5rem;
+    /* Etiqueta inverte a regra do projeto: aqui é round-LEFT/flat-RIGHT
+       porque a etiqueta "abraça" o conteúdo pela direita. */
+    border-radius: 12px 0 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.08em;
+    height: fit-content;
+    min-height: 8rem;
+    box-shadow: 0 8px 24px -16px rgba(199, 122, 63, 0.4);
+}
+
+.erro-conteudo .h-eyebrow {
+    margin-bottom: 0.4rem;
+}
+
+.erro-titulo {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-style: normal;
+    font-variation-settings: "opsz" 144;
+    font-size: clamp(1.85rem, 4vw, 2.6rem);
+    line-height: 1.15;
+    color: var(--c-tinta);
+    margin: 0.5rem 0 1.5rem;
+    letter-spacing: -0.01em;
+}
+.erro-titulo em {
+    font-style: italic;
+    color: var(--c-musgo);
+    font-weight: 400;
+}
+
+.erro-texto {
+    font-family: 'Manrope', sans-serif;
+    font-size: 1rem;
+    color: var(--c-tinta-2);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    max-width: 480px;
+}
+
+.erro-acoes {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .erro-shell { grid-template-columns: 40px 1fr; padding: 2rem 1rem; gap: 1.25rem; }
+    .erro-etiqueta { font-size: 1.4rem; padding: 1rem 0.3rem; min-height: 6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .erro-shell { animation: none; }
+}
+
+
+/* ============================================================
+   Banner global de instabilidade Supabase (CP-PRE-DEPLOY-1)
+   Mostrado quando 3 tentativas falhadas; some em até 5s após volta.
+   ============================================================ */
+
+.banner-instabilidade {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-left: 3px solid var(--c-ambar);
+    border-radius: 0 12px 12px 0;
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    gap: 0.85rem;
+    align-items: center;
+    box-shadow: 0 1px 0 0 rgba(26,26,26,0.04),
+                0 14px 36px -16px rgba(199, 122, 63, 0.3);
+    z-index: 1000;
+    max-width: 380px;
+    font-family: 'Manrope', sans-serif;
+    animation: banner-deslizar 320ms var(--ease-spring);
+}
+.banner-instabilidade.hidden { display: none; }
+.banner-icone { color: var(--c-ambar); flex-shrink: 0; display: inline-flex; }
+
+.banner-titulo {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--c-tinta);
+    margin: 0;
+    line-height: 1.2;
+}
+.banner-sub {
+    font-size: 0.8rem;
+    color: var(--c-tinta-3);
+    margin: 0.15rem 0 0;
+    line-height: 1.35;
+}
+
+/* Estado global: desabilita CTAs críticos enquanto Supabase está fora.
+   Botões marcados com [data-acao=critica] ficam não-clicáveis. Submit
+   de forms também — evita pressionar Enter pra "tentar de novo" em
+   loop. Botões de navegação seguem funcionando. */
+body.supabase-down .btn-primary[type="submit"],
+body.supabase-down [data-acao="critica"] {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+@keyframes banner-deslizar {
+    from { transform: translate(-50%, -120%); opacity: 0; }
+    to   { transform: translate(-50%, 0);     opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .banner-instabilidade { animation: none; }
+}
+
+
+/* ============================================================
+   Destaque de NF em /caixa via ?nf=NUMERO
+   Usado quando notificação `pendencia_aberta` leva o operador
+   pra um caixa específico e queremos chamar atenção pra a NF.
+   ============================================================ */
+.lanc-row--destacado {
+    animation: pulso-destaque 4s var(--ease-out) forwards;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes pulso-destaque {
+    0%, 100% {
+        background: var(--c-papel);
+        box-shadow: none;
+    }
+    20%, 60% {
+        background: rgba(199, 122, 63, 0.14);
+        box-shadow: 0 0 0 2px var(--c-ambar),
+                    0 8px 24px -10px rgba(199, 122, 63, 0.4);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lanc-row--destacado { animation: none; background: rgba(199, 122, 63, 0.12); }
 }
