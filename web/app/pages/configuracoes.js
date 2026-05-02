@@ -64,8 +64,7 @@ function itens(ehAdmin) {
       titulo: 'Feriados',
       desc: 'Define quais datas são feriado bancário. Afeta o cálculo de dias úteis nas pendências.',
       href: '/configuracoes/feriados',
-      ativo: false,
-      pendente: 'CP7',
+      ativo: true,
       adminOnly: true,
     },
     {
@@ -74,8 +73,7 @@ function itens(ehAdmin) {
       titulo: 'Usuários e papéis',
       desc: 'Quem entra no sistema e em que papel — operador, admin, ou ambos.',
       href: '/configuracoes/usuarios',
-      ativo: false,
-      pendente: 'CP7',
+      ativo: true,
       adminOnly: true,
     },
     {
@@ -84,8 +82,7 @@ function itens(ehAdmin) {
       titulo: 'Sistema',
       desc: 'Configurações globais do banco — limites, alertas, integrações com Excel e Apps Script.',
       href: '/configuracoes/sistema',
-      ativo: false,
-      pendente: 'CP7',
+      ativo: true,
       adminOnly: true,
     },
   ].filter(it => !it.adminOnly || ehAdmin);

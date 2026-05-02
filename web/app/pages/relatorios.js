@@ -47,7 +47,7 @@ export async function renderRelatorios() {
   const papeis = await pegarPapeis();
   if (!papeis.includes('admin') && !papeis.includes('operador')) {
     document.querySelector('#app').innerHTML = await renderShell({
-      rotaAtiva: '',
+      rotaAtiva: 'relatorios',
       conteudo: `
         <main class="max-w-3xl mx-auto px-5 sm:px-8 py-12">
           <div class="alert mt-6">Acesso restrito.</div>
@@ -60,7 +60,7 @@ export async function renderRelatorios() {
   estado = lerEstadoDaURL();
 
   document.querySelector('#app').innerHTML = await renderShell({
-    rotaAtiva: '',
+    rotaAtiva: 'relatorios',
     conteudo: `
     <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
       <header class="tela-cabec reveal reveal-1" data-etiqueta="RELATÓRIOS">
