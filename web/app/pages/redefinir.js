@@ -9,7 +9,6 @@ import { navegar }              from '../router.js';
 import { mostrarToast }         from '../notifications.js';
 import { pegarSessao }          from '../supabase.js';
 import { validarSenha }         from '../utils.js';
-import { renderLogo }           from '../../components/logo.js';
 
 export async function renderRedefinir() {
   // Confere se há sessão recovery — sem ela, manda para /recuperar.
@@ -21,35 +20,40 @@ export async function renderRedefinir() {
 
   if (!sessao) {
     document.querySelector('#app').innerHTML = `
-      <main id="main" class="min-h-screen flex items-center justify-center p-8">
-        <div class="max-w-sm text-center">
-          <p class="h-eyebrow" style="color:var(--c-alerta)">Link inválido</p>
-          <h1 class="h-display text-4xl mt-1 mb-4">Sessão não encontrada.</h1>
-          <p class="text-body text-sm mb-6">
-            Use o link enviado por email — ele só funciona uma vez e expira em 1 hora.
-            Se já usou ou expirou, peça um novo abaixo.
+      <div id="main" class="auth-shell">
+        <header class="auth-marca">
+          <span class="auth-marca-simbolo" aria-hidden="true"></span>
+          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+        </header>
+        <main class="auth-card">
+          <h2 class="auth-titulo" style="color:var(--c-alerta)">Link inválido</h2>
+          <p class="auth-subtitulo">
+            Sessão não encontrada. Use o link enviado por email — ele só funciona uma vez
+            e expira em 1 hora. Se já usou ou expirou, peça um novo.
           </p>
-          <a href="/recuperar" data-link class="btn-link">Pedir novo link</a>
-        </div>
-      </main>`;
+          <a href="/recuperar" data-link class="btn-primary" style="text-align:center;text-decoration:none">
+            Pedir novo link
+          </a>
+        </main>
+        <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Caixa Boti</footer>
+      </div>`;
     return;
   }
 
   document.querySelector('#app').innerHTML = `
-    <main id="main" class="min-h-screen flex items-center justify-center p-6 sm:p-12 bg-papel">
-      <div class="w-full max-w-sm">
-        <div class="flex items-center gap-3 mb-8 reveal reveal-1">
-          ${renderLogo({ size: 36, cor: 'var(--c-musgo)', titulo: 'Caixa Boti' })}
-          <span class="h-eyebrow" style="color:var(--c-tinta-3)">Caixa Boti</span>
-        </div>
+    <div id="main" class="auth-shell">
+      <header class="auth-marca">
+        <span class="auth-marca-simbolo" aria-hidden="true"></span>
+        <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+      </header>
 
-        <p class="h-eyebrow reveal reveal-2">Recuperação confirmada</p>
-        <h2 class="h-display text-4xl mt-1 mb-2 reveal reveal-3">Defina a nova senha.</h2>
-        <p class="text-body text-sm mb-8 reveal reveal-4">
-          Mínimo 8 caracteres, com pelo menos 1 letra e 1 número.
+      <main class="auth-card" aria-labelledby="auth-titulo">
+        <h2 id="auth-titulo" class="auth-titulo">Redefinir senha</h2>
+        <p class="auth-subtitulo">
+          Defina uma nova senha para sua conta. Mínimo 8 caracteres, com letra e número.
         </p>
 
-        <form id="form-redefinir" novalidate class="reveal reveal-5">
+        <form id="form-redefinir" novalidate>
           <div class="field">
             <label class="field-label" for="senha">Nova senha</label>
             <input id="senha" name="senha" type="password" autocomplete="new-password"
@@ -75,12 +79,14 @@ export async function renderRedefinir() {
 
           <div id="erro-form" role="alert" aria-live="polite" class="hidden alert"></div>
 
-          <button id="btn-redefinir" type="submit" class="btn-primary w-full mt-2" disabled>
+          <button id="btn-redefinir" type="submit" class="btn-primary" disabled>
             Redefinir senha
           </button>
         </form>
-      </div>
-    </main>
+      </main>
+
+      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Caixa Boti</footer>
+    </div>
   `;
 
   // ─── Mesma lógica do cadastro: força + match em tempo real ──────────
