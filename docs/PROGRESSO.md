@@ -1,7 +1,30 @@
 # PROGRESSO — Sistema de Controle de Caixa
 
-> Estado do projeto após o merge do CP5 + CP5-AJUSTES na `main` (2026-05-01).
+> Estado do projeto após o merge do CP6 na `main` (2026-05-02).
 > Stack canônica documentada em `docs/STACK.md`.
+
+## Status — fim do CP6 (2026-05-02)
+
+### Concluído (adições)
+
+- [x] **Fase 2 — CP6: Fechamento e métricas**
+  - `fn_recalcular_caixa` atualizado para Escola 1 + coluna auxiliar
+    (cancelado_pos sai do total_valor e ganha registro próprio)
+  - Migration: `caixa.total_cancelado_pos`, `valor_cancelado_pos`,
+    `total_finalizado`, `valor_finalizado`, `observacao_fechamento`
+  - Recálculo idempotente de todos os caixas históricos
+  - `dashboard_resumo` com novos campos de auditoria
+  - Tela `/caixa/:data/fechar` editorial com checklist 4 itens
+  - Aviso musgo de fechamento retroativo + aviso âmbar de pendências
+  - Justificativa obrigatória em retroativo (≥10 chars) e pendências (≥20 chars)
+  - Banner read-only de caixa fechado com SVG cadeado outline
+  - Tela `/lancamento/:id` com timeline editorial cronológica reversa
+  - RPC `linha_do_tempo_lancamento` consolidando criação + observações
+  - Charts CSS no Dashboard: barras horizontais por categoria + movimento 30d
+  - RPCs `serie_diaria_caixa` e `distribuicao_categoria_mes`
+  - Link "Ver histórico completo" no drawer (modos gerenciar/finalizado)
+  - Auditoria de emojis: ✓ ✕ ○ mantidos (Unicode tipográfico),
+    🔒 substituído por SVG outline
 
 ## Status — fim do CP5 (2026-05-01)
 
@@ -77,7 +100,6 @@
 
 ### Em andamento
 
-- [ ] **Fase 2 — CP6**: Fechamento e métricas (`fn_recalcular_caixa` + tela de fechamento `/caixa/:data/fechar` + histórico individual de NF + charts mensais)
 - [ ] **Fase 2 — CP7**: Admin e relatórios (Feriados, Usuários e papéis, Sistema, exportação para contação)
 - [ ] **Fase 2 — CP8**: PWA + offline-first (service worker funcional, fila de mutações, IndexedDB cache)
 - [ ] **Fase 3** — Excel/VBA + Apps Script (sincronia bidirecional)
@@ -109,6 +131,9 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+8a2cd99  [F2-CP6] merge: fechamento e metricas
+         (engloba CP6 + CP6-FIX: fn_recalcular_caixa Escola 1, tela de
+          fechamento, justificativas, /lancamento/:id, charts CSS)
 6a11814  [F2-CP5] merge: operacao minima viavel + ajustes pos-CP5
          (engloba CP5 + CP5-AJUSTES + CP5-FIX: telas de operação,
           refactor sidebar, identidade flat-left/round-right)
