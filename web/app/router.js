@@ -13,6 +13,7 @@ import { renderCaixaFechar }   from './pages/caixa-fechar.js';
 import { renderConfiguracoes } from './pages/configuracoes.js';
 import { renderVendedoras }    from './pages/configuracoes-vendedoras.js';
 import { renderUsuarios }      from './pages/configuracoes-usuarios.js';
+import { renderPermissoes }    from './pages/configuracoes-permissoes.js';
 import { renderFeriados }      from './pages/configuracoes-feriados.js';
 import { renderSistema }       from './pages/configuracoes-sistema.js';
 import { renderRelatorios }    from './pages/relatorios.js';
@@ -42,6 +43,7 @@ const rotas = [
   { padrao: /^\/configuracoes$/,              handler: renderConfiguracoes },
   { padrao: /^\/configuracoes\/vendedoras$/,  handler: renderVendedoras },
   { padrao: /^\/configuracoes\/usuarios$/,    handler: renderUsuarios },
+  { padrao: /^\/configuracoes\/permissoes$/,  handler: renderPermissoes },
   { padrao: /^\/configuracoes\/feriados$/,    handler: renderFeriados },
   { padrao: /^\/configuracoes\/sistema$/,     handler: renderSistema },
   { padrao: /^\/relatorios$/,                 handler: renderRelatorios },
