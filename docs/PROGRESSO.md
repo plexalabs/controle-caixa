@@ -1,9 +1,40 @@
 # PROGRESSO — Sistema de Controle de Caixa
 
-> Estado do projeto após o CP-DEPLOY-LOCAL §3 (NSSM) na `main` (2026-05-03).
+> Sistema em produção em https://caixa-boti.plexalabs.com via Cloudflare Pages (2026-05-03).
 > Stack canônica documentada em `docs/STACK.md`.
 
-## Status — fim do CP-DEPLOY-LOCAL (2026-05-03)
+## Status — Sistema em produção (2026-05-03)
+
+### Deploy realizado
+
+Sistema rodando em `https://caixa-boti.plexalabs.com` via:
+- **Cloudflare Pages** servindo o build estático (`dist/`)
+- **Custom domain** em zona Cloudflare com SSL automático
+- **Supabase** continua hospedado em `shjtwrojdgotmxdbpbta.supabase.co`
+- **Variáveis de ambiente** em prod: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SENTRY_DSN`, `NODE_VERSION=20`
+
+### Decisões arquiteturais finais
+
+- **Cloudflare Pages como host** (não localhost via Tunnel) — escolha consciente após avaliar trade-offs
+- **Web Analytics do Cloudflare desabilitado** no Dashboard para evitar conflito com CSP estrita
+- **CSP do `_headers`** permite explicitamente `static.cloudflareinsights.com` (script-src + hash sha256) e `cloudflareinsights.com` (connect-src) como fallback
+- **Build automático**: cada push em `main` dispara deploy automático via integração Cloudflare-GitHub
+
+### Pendências pós-deploy
+
+- **Sentry DSN configurado**: erros de produção começam a ser capturados a partir deste deploy
+- **Cron mensal arquivamento**: ainda manual no Dashboard Supabase (Operador descartou no momento)
+- **PITR Supabase**: pendente de ativação manual
+- **Onboarding (CP-PRE-DEPLOY-3)**: tutorial guiado in-app + revisão final de copy ainda não foi feito
+- **Tela `/caderno-do-dia`**: notificação `bom_dia_resumo` ainda redireciona para `/dashboard` como solução temporária
+
+### Lições aprendidas
+
+- **CSP estrita conflita com Web Analytics injection**: descoberto durante deploy. Resolvido por desabilitar Analytics no Dashboard + permitir `static.cloudflareinsights.com` no CSP.
+- **Tunnel + localhost descartado**: foi avaliado como alternativa (CP-DEPLOY-LOCAL Sessões 1-3) mas trade-offs operacionais (PC ligado 24/7, internet do trabalho como SLA, manutenção contínua) não compensaram. Toda a infra `infra/instalador/` + `infra/tunnel/` + `docs/DEPLOY_LOCAL.md` foi removida da `main` no deploy final.
+- **Validação real só no ambiente real**: agente headless não consegue testar `.bat` Windows. Validação visual deve ser sempre feita pelo Operador.
+
+## Status — fim do CP-DEPLOY-LOCAL (2026-05-03) [HISTÓRICO — abordagem descartada]
 
 ### Decisão arquitetural
 
