@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — CP-AUDIT-1 (CRÍTICO-001) mergeado pós-RBAC.
+> Última atualização: 2026-05-04 — CP-AUDIT-2 (CRÍTICO-002) mergeado; modelo legacy de papel eliminado das RLS.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -128,8 +128,33 @@ Operador notou que botao "reabrir caixa" nao aparece em caixas
 fechados. NAO eh bug do fix: feature ainda nao foi implementada
 (FEATURE-002 do relatorio, esforco G).
 
+## Status — CP-AUDIT-2 (CRITICO-002) (2026-05-04)
+
+### Concluído
+
+Auditoria externa identificou que `lancamento_observacao` ficou de fora
+da Sessao 6. As 2 policies usavam modelo legacy `papel IN ('admin','operador')`
+sem filtro `ativo=true`. Migradas para `tem_permissao()`.
+
+- [x] 1 permissao nova: `lancamento.visualizar_observacoes`
+      (admin, gerente, operador, contador)
+- [x] Policy `lanc_obs_select` migrada
+- [x] Policy `lanc_obs_insert` migrada
+- [x] 2 migrations reversas criadas
+- [x] docs/RBAC_SESSAO6_ROLLBACK.md atualizado com Bloco E
+- [x] Validado em PROD por Operador
+
+### Estado pos-fix
+
+- 42 → 43 permissoes catalogadas
+- 17 → 19 RLS policies usando `tem_permissao()`
+- **Modelo legacy de papel eliminado COMPLETAMENTE das RLS policies**
+- (Restam apenas refs legacy em `usuario_papel` para deteccao de
+  super_admin, que é intencional)
+
 ### Histórico de merges (recentes)
 
+- `469d8ea` — `[AUDIT-FIX-2] merge: CRITICO-002 do relatorio de auditoria`
 - `e7573b2` — `[AUDIT-FIX-1] merge: CRITICO-001 do relatorio de auditoria`
 - `f082c19` — `[F3-RBAC-6] merge: Sessao 6 do RBAC + DROP fn_tem_papel`
 
