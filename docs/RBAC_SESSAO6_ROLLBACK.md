@@ -59,6 +59,27 @@ Sintomas que indicam quebra de policy:
 
 **Sessão 6 completa**: 17/17 policies migradas. Próxima etapa controlada é o DROP de `fn_tem_papel(varchar)` — só após smoke completo do Bloco D em PROD pelo Operador.
 
+## Bloco E — lancamento_observacao (CP-AUDIT-2, gap reconhecido)
+
+**Data**: 2026-05-04 (após auditoria externa)
+
+A tabela `lancamento_observacao` ficou de fora da Sessão 6. Auditoria
+externa identificou o gap. 2 policies migradas:
+
+| # | Bloco | Policy | Migration reversa |
+|---|---|---|---|
+| 18 | E | `lanc_obs_select` | `20260504600100_REVERSE_lanc_obs_select.sql` |
+| 19 | E | `lanc_obs_insert` | `20260504600200_REVERSE_lanc_obs_insert.sql` |
+
+Após CP-AUDIT-2: total de policies usando `tem_permissao` passa de 17 para 19.
+
+Nova permissão no catálogo: `lancamento.visualizar_observacoes`
+(admin, gerente, operador, contador).
+
+**Nota**: as reversas do Bloco E NÃO dependem de `fn_tem_papel` (já dropado),
+pois usam `EXISTS` direto contra `usuario_papel.papel`. Podem ser aplicadas
+sem pré-requisitos.
+
 ## DROP de fn_tem_papel aplicado
 
 **Data**: 2026-05-03
