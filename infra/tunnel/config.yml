@@ -1,0 +1,28 @@
+# Configuração do Cloudflare Tunnel para Caixa Boti
+# Aplica-se ao tunnel chamado "caixa-boti" (criado via cloudflared tunnel create)
+#
+# Antes de usar:
+#   1. cloudflared tunnel login
+#   2. cloudflared tunnel create caixa-boti
+#   3. Substituir TUNNEL_ID_AQUI abaixo pelo id retornado
+#   4. Substituir caminho do credentials-file pelo retornado
+#   5. cloudflared tunnel route dns caixa-boti caixa-boti.plexalabs.com
+#
+# Detalhes em docs/DEPLOY_LOCAL.md.
+
+tunnel: TUNNEL_ID_AQUI
+credentials-file: C:\Users\OPERADOR\.cloudflared\TUNNEL_ID_AQUI.json
+
+ingress:
+  # Roteia caixa-boti.plexalabs.com para o Vite preview local (porta 4173).
+  # Vite preview escuta em 127.0.0.1 (ver package.json: "preview"), por isso
+  # NÃO usar localhost — pode resolver pra ::1 (IPv6) e falhar.
+  - hostname: caixa-boti.plexalabs.com
+    service: http://127.0.0.1:4173
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+
+  # Catch-all obrigatório: rejeita qualquer outro hostname que aponte
+  # pro tunnel. Sem isso o cloudflared recusa a config.
+  - service: http_status:404
