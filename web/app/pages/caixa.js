@@ -8,12 +8,14 @@ import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalAdicionarNF }    from '../../components/modal-adicionar-nf.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
+import { abrirModalReabrirCaixa }   from '../../components/modal-reabrir-caixa.js';
 import { instalarFilterBar } from '../../components/filter-bar.js';
 import { dataLonga, dataCurta, isoData, hora,
          LABEL_CATEGORIA, LABEL_CATEGORIA_CURTA, ESTADO_CAIXA,
          CATEGORIAS, resumoDetalhes } from '../dominio.js';
 import { formatBRL } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
+import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
 
 let canalLanc = null;
 let caixaIdAtual = null;
@@ -125,12 +127,16 @@ async function carregarCaixa(dataAlvo) {
   const status = document.querySelector('#cab-status');
   const btnNov = document.querySelector('#btn-novo');
 
-  // 1. Busca caixa pela data.
-  const { data: caixa } = await supabase
-    .from('caixa')
-    .select('id, data, estado, total_lancamentos, total_pendentes, total_valor')
-    .eq('data', dataAlvo)
-    .maybeSingle();
+  // Garante cache de permissões populado antes do gating síncrono do botão.
+  // Cache TTL de 1min em papeis.js — geralmente já está warmed por main.js.
+  const [{ data: caixa }] = await Promise.all([
+    supabase
+      .from('caixa')
+      .select('id, data, estado, total_lancamentos, total_pendentes, total_valor')
+      .eq('data', dataAlvo)
+      .maybeSingle(),
+    carregarPermissoes(),
+  ]);
 
   // Se não existe → estado vazio com botão criar (apenas se for hoje ou passado).
   if (!caixa) {
@@ -161,9 +167,34 @@ async function carregarCaixa(dataAlvo) {
   dataAlvoAtual = dataAlvo;
   status.textContent = ESTADO_CAIXA[caixa.estado] || caixa.estado;
   status.dataset.estado = caixa.estado;
-  btnNov.disabled = caixa.estado === 'fechado' || caixa.estado === 'arquivado';
-  btnNov.onclick = () =>
-    abrirModalAdicionarNF({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });
+
+  // Botão de ação principal: comportamento depende do estado + permissão.
+  // - aberto/em_conferencia: "+ Novo lançamento" (padrão)
+  // - fechado + permissão caixa.reabrir_fechado: "Abrir caixa" (reabre)
+  // - fechado sem permissão OU arquivado: esconde (banner já comunica)
+  const ehFechado = caixa.estado === 'fechado';
+  const ehArquivado = caixa.estado === 'arquivado';
+  const podeReabrir = ehFechado && temPermissaoSync('caixa.reabrir_fechado');
+
+  if (ehArquivado || (ehFechado && !podeReabrir)) {
+    btnNov.classList.add('hidden');
+    btnNov.onclick = null;
+  } else if (podeReabrir) {
+    btnNov.classList.remove('hidden');
+    btnNov.disabled = false;
+    btnNov.textContent = 'Abrir caixa';
+    btnNov.onclick = () => abrirModalReabrirCaixa({
+      caixaId:    caixa.id,
+      dataCaixa:  dataAlvo,
+      aoConcluir: () => carregarCaixa(dataAlvo),
+    });
+  } else {
+    btnNov.classList.remove('hidden');
+    btnNov.disabled = false;
+    btnNov.textContent = '+ Novo lançamento';
+    btnNov.onclick = () =>
+      abrirModalAdicionarNF({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });
+  }
 
   // CP6.2 + FIX: Banner fechado / CTA fechar (só sem pendências) / hint pendências
   const banner    = document.querySelector('#banner-fechado');
