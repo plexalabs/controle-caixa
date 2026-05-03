@@ -1,25 +1,27 @@
-// papeis.js — helper centralizado para descobrir os papéis do usuário logado.
-// Cacheia o resultado por sessão (em memória apenas — limpo ao logout).
+// papeis.js — papéis (legacy) + permissões (RBAC) do usuário logado.
+// Cache em memória, invalidado em logout/login/USER_UPDATED.
 //
-// Uso:
-//   const papeis = await pegarPapeis();   // ['admin','operador'] | ['operador'] | []
-//   await temPapel('admin');              // boolean
-//   await temPermissao('caixa.abrir');    // boolean (RBAC novo, Sessao 1)
-//   limparCachePapeis();                  // chamado no logout
+// API pública:
+//   const papeis = await pegarPapeis();      // ['admin','operador',...] (legacy)
+//   await temPapel('admin');                 // boolean (legacy)
+//   await carregarPermissoes();              // pré-carrega cache RBAC
+//   temPermissaoSync('caixa.abrir');         // boolean síncrono (UI em loop)
+//   await temPermissao('caixa.abrir');       // boolean async (handlers)
+//   limparCachePapeis();                     // limpa tudo (papeis + permissoes)
+//   invalidarCachePermissoes();              // limpa só permissoes
 //
-// Backward-compat super_admin (CP-RBAC Sessao 1): se o usuario tem
-// papel 'super_admin' ativo, pegarPapeis() injeta 'admin' na lista
-// retornada (caso ja nao esteja). Razao: super_admin eh estritamente
-// mais poderoso que admin (decisao arquitetural), e o sistema atual
-// tem 8 call sites fazendo `papeis.includes('admin')` direto. Sem
-// essa expansao, super_admins perderiam acesso a /configuracoes,
-// /usuarios, /relatorios etc. ate as Sessoes 2/3 do RBAC trocarem
-// para temPermissao(). A expansao acontece DEPOIS do cache pra que
-// limparCachePapeis() continue funcionando normalmente.
+// Cache de permissões:
+//   - 1 minuto de TTL (config inline em CACHE_PERMISSOES_TTL_MS)
+//   - Wildcard '*' representa super_admin (bypass total)
+//   - 1 query por refresh: lê papel super_admin → se sim, '*'; se não,
+//     lê (perfil_permissao via usuario_perfil) UNION (usuario_permissao_extra)
+//   - Invalidado pelo listener de auth e por chamadas explícitas após
+//     mutações que afetam permissões (definir_papeis_usuario etc.)
 
 import { supabase, pegarSessao } from './supabase.js';
 import { log }                   from './log.js';
 
+// ─── Cache de papéis (legacy) ────────────────────────────────────────────
 let cache = null;
 let cacheUid = null;
 
@@ -41,63 +43,136 @@ export async function pegarPapeis() {
     return [];
   }
 
-  const papeisDoBanco = (data || []).map(r => r.papel);
-
-  // Expansao de super_admin -> admin (ver header do arquivo).
-  if (papeisDoBanco.includes('super_admin') && !papeisDoBanco.includes('admin')) {
-    papeisDoBanco.push('admin');
-  }
-
-  cache = papeisDoBanco;
+  cache = (data || []).map(r => r.papel);
   cacheUid = uid;
   return cache;
 }
 
 export async function temPapel(papel) {
   const lista = await pegarPapeis();
-  // Defesa em profundidade: super_admin satisfaz qualquer checagem de
-  // papel (caso pegarPapeis() seja substituido no futuro e a expansao
-  // acima saia, temPapel continua coerente).
-  if (lista.includes('super_admin')) return true;
   return lista.includes(papel);
 }
 
+// ─── Cache de permissões (RBAC) ──────────────────────────────────────────
+const CACHE_PERMISSOES_TTL_MS = 60_000;
+let _permissoesCache = null;        // Set<string>; '*' = super_admin bypass
+let _permissoesCacheTimestamp = 0;
+
 /**
- * Verifica se o usuario atual tem uma permissao especifica do RBAC.
- * Chama a RPC public.tem_permissao() (SECURITY DEFINER) que considera:
- *   1. Bypass total se papel='super_admin' ativo
- *   2. Permissao via perfil principal (usuario_perfil -> perfil_permissao)
- *   3. Permissao via override pontual (usuario_permissao_extra)
+ * Carrega TODAS as permissões efetivas do usuário atual num único refresh.
+ * Cacheada por CACHE_PERMISSOES_TTL_MS. Retorna o Set de códigos OU
+ * Set(['*']) pra super_admin.
  *
- * IMPORTANTE: hoje (Sessao 1 do RBAC) esta funcao existe mas NAO eh
- * usada em lugar nenhum. As checagens atuais continuam usando
- * temPapel('admin'). Adocao gradual nas Sessoes 2 e 3 do RBAC.
- *
- * Fail-closed: qualquer erro de rede/RPC -> false (nega).
+ * Não é fail-fast: erros de RPC viram cache vazio (nega tudo).
  */
-export async function temPermissao(codigo) {
+export async function carregarPermissoes() {
+  const agora = Date.now();
+  if (_permissoesCache && (agora - _permissoesCacheTimestamp) < CACHE_PERMISSOES_TTL_MS) {
+    return _permissoesCache;
+  }
+
   const sessao = await pegarSessao();
   const uid = sessao?.user?.id;
-  if (!uid) return false;
-
-  const { data, error } = await supabase.rpc('tem_permissao', {
-    p_usuario_id: uid,
-    p_codigo:     codigo,
-  });
-
-  if (error) {
-    log.erro('tem_permissao falhou', error, { codigo });
-    return false;
+  if (!uid) {
+    _permissoesCache = new Set();
+    _permissoesCacheTimestamp = agora;
+    return _permissoesCache;
   }
-  return data === true;
+
+  // 1. Super_admin? Bypass total via wildcard.
+  const { data: papeis, error: erroPapeis } = await supabase
+    .from('usuario_papel')
+    .select('papel')
+    .eq('usuario_id', uid)
+    .eq('ativo', true);
+
+  if (erroPapeis) {
+    log.erro('carregarPermissoes: falha ao ler usuario_papel', erroPapeis);
+    _permissoesCache = new Set();
+    _permissoesCacheTimestamp = agora;
+    return _permissoesCache;
+  }
+
+  if (papeis?.some(p => p.papel === 'super_admin')) {
+    _permissoesCache = new Set(['*']);
+    _permissoesCacheTimestamp = agora;
+    return _permissoesCache;
+  }
+
+  // 2. Permissões do perfil principal (via JOIN aninhado de PostgREST).
+  const { data: perfilRow, error: erroPerfil } = await supabase
+    .from('usuario_perfil')
+    .select('perfil:perfil_id ( perfil_permissao ( permissao_codigo ) )')
+    .eq('usuario_id', uid)
+    .maybeSingle();
+
+  if (erroPerfil) {
+    log.erro('carregarPermissoes: falha ao ler usuario_perfil', erroPerfil);
+  }
+
+  const fromPerfil = (perfilRow?.perfil?.perfil_permissao || [])
+    .map(pp => pp.permissao_codigo);
+
+  // 3. Permissões extras pontuais (override).
+  const { data: extras, error: erroExtras } = await supabase
+    .from('usuario_permissao_extra')
+    .select('permissao_codigo')
+    .eq('usuario_id', uid);
+
+  if (erroExtras) {
+    log.erro('carregarPermissoes: falha ao ler usuario_permissao_extra', erroExtras);
+  }
+
+  const fromExtras = (extras || []).map(e => e.permissao_codigo);
+
+  _permissoesCache = new Set([...fromPerfil, ...fromExtras]);
+  _permissoesCacheTimestamp = agora;
+  return _permissoesCache;
 }
 
+/**
+ * Síncrona: usa cache em memória. Se ainda não foi carregado retorna false
+ * (fail-closed). Chame carregarPermissoes() no topo da render que vai
+ * usar isto.
+ */
+export function temPermissaoSync(codigo) {
+  if (!_permissoesCache) return false;
+  return _permissoesCache.has('*') || _permissoesCache.has(codigo);
+}
+
+/**
+ * Async: garante cache populado, retorna boolean. Use em handlers que
+ * podem ser disparados antes do render principal terminar.
+ *
+ * Fail-closed: erro de rede/RPC -> false (nega).
+ */
+export async function temPermissao(codigo) {
+  try {
+    const perms = await carregarPermissoes();
+    return perms.has('*') || perms.has(codigo);
+  } catch (e) {
+    log.erro('temPermissao falhou', e, { codigo });
+    return false;
+  }
+}
+
+/**
+ * Força refresh do cache de permissões. Chame depois de operações que
+ * mudam papéis/perfil/permissoes_extras do usuário atual.
+ */
+export function invalidarCachePermissoes() {
+  _permissoesCache = null;
+  _permissoesCacheTimestamp = 0;
+}
+
+// ─── Limpeza geral ───────────────────────────────────────────────────────
 export function limparCachePapeis() {
   cache = null;
   cacheUid = null;
+  invalidarCachePermissoes();
 }
 
-// Listener: invalida cache em logout/login para evitar dados de sessão antiga.
+// Listener: invalida tudo em logout/login/USER_UPDATED.
 supabase.auth.onAuthStateChange((evento) => {
   if (evento === 'SIGNED_OUT' || evento === 'SIGNED_IN' || evento === 'USER_UPDATED') {
     limparCachePapeis();
