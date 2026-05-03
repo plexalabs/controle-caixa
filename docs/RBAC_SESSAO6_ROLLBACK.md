@@ -41,6 +41,12 @@ Sintomas que indicam quebra de policy:
 |---|---|---|---|
 | 1 | A | `audit_log_select_admin` | `20260504400100_REVERSE_audit_log_select_admin.sql` |
 | 2 | A | `sync_log_select` | `20260504400200_REVERSE_sync_log_select.sql` |
+| 3 | B | `config_update` | `20260504400400_REVERSE_config_update.sql` |
+| 4 | B | `feriado_modify` | `20260504400500_REVERSE_feriado_modify.sql` |
+| 5 | B | `usuario_papel_select` | `20260504400600_REVERSE_usuario_papel_select.sql` |
+| 6 | B | `usuario_papel_admin_modify` | `20260504400700_REVERSE_usuario_papel_admin_modify.sql` |
+| 7 | B | `vendedora_insert` | `20260504400800_REVERSE_vendedora_insert.sql` |
+| 8 | B | `vendedora_update` | `20260504400900_REVERSE_vendedora_update.sql` |
 
 (Mais entradas conforme próximos blocos.)
 
