@@ -28,6 +28,25 @@
 - **Sistema agora está em estado de produção real** com 1 admin (Operador)
   e zero dados operacionais. Pronto para uso.
 
+## Status — Fix do redefinir senha (2026-05-03)
+
+### Concluído
+
+- [x] **Bug do redefinir senha corrigido**
+  - Causa raiz: `flowType='pkce'` em `web/app/supabase.js` + click tracking
+    do Resend e SafeLinks do Gmail consumiam o `?code=XXX` (one-time-use)
+    antes do Operador clicar — sintoma: link sempre "expirado" mesmo em <30s
+  - Solução: trocar flow de link por OTP de 8 dígitos no email
+  - Visual editorial mantido (mesmo padrão do `/confirmar` de signup —
+    Courier 38px com filete âmbar)
+  - Boot defensivo em `main.js` captura URLs com `error=otp_expired` (links
+    antigos no inbox) e redireciona para `/recuperar?expirado=1` com aviso
+
+### Pendência
+
+- **Template `recovery.html` reaplicado manualmente** no Dashboard Supabase
+  pelo Operador (Supabase não expõe API pra atualizar templates)
+
 ## Status — Sistema em produção (2026-05-03)
 
 ### Deploy realizado
@@ -413,6 +432,10 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+15a875e  [F3-FIX] merge: redefinir senha via OTP em vez de link
+         (causa raiz PKCE+click-tracking; refator recuperar.js+
+          redefinir.js, recovery.html usa {{ .Token }}, main.js
+          defesa contra error=otp_expired)
 802dbec  [F3-RESET] merge: reset operacional + flag primeiro-admin
          (apaga users + identidade + operacionais, mantem seeds;
           trigger trg_primeiro_admin em auth.users)
