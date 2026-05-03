@@ -146,6 +146,36 @@ Distinguir antes de truncar:
 | Seed | `config`, `feriado` | **não** — restaurar via migration `20260502150000_restore_seeds_pos_limpeza.sql` se truncar acidentalmente |
 | Identidade | `usuario_papel`, `auth.users`, `vendedora` | só se for reset deliberado de acesso |
 
+## CSP — Cloudflare Web Analytics
+
+Cloudflare Pages injeta automaticamente um `<script>` inline + carrega
+`beacon.min.js` de `static.cloudflareinsights.com` em todas as páginas
+para coletar métricas de Web Analytics. A CSP estrita do `web/public/_headers`
+bloqueia esses dois recursos por padrão.
+
+Sintoma: tela em branco em produção; console mostra:
+
+```
+Executing inline script violates CSP directive 'script-src 'self''.
+Loading 'https://static.cloudflareinsights.com/beacon.min.js' violates CSP.
+```
+
+Fix aplicado em `_headers`:
+- `script-src` ganha `'sha256-VY2U1GTJm5dVbF6ZC0w0a1xAXWCy9dqDJB+VSyBud8E='`
+  (hash exato do inline injetado) + `https://static.cloudflareinsights.com`
+- `connect-src` ganha `https://cloudflareinsights.com` (beacon de telemetria)
+
+**Nunca usar `'unsafe-inline'`** — derrubaria a segurança da CSP toda.
+O hash específico só aceita aquele script exato.
+
+### Se a Cloudflare atualizar o script
+
+O hash quebra e o sintoma volta. Procedimento:
+1. Abrir DevTools → Console em prod
+2. Copiar o novo `'sha256-...'` que aparece na mensagem de erro
+3. Substituir em `web/public/_headers`
+4. Commit + push (Cloudflare redeploya em ~2 min)
+
 ## Variáveis de ambiente
 
 | Variável | Onde | Quando |
