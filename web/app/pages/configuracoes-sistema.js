@@ -18,7 +18,7 @@ import { supabase } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModal, fecharModal } from '../../components/modal.js';
 import { mostrarToast } from '../notifications.js';
-import { pegarPapeis } from '../papeis.js';
+import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
 import { instalarPopDatasEm } from '../../components/pop-data.js';
 
 // ─── METADADOS por chave ─────────────────────────────────────────────
@@ -110,8 +110,11 @@ const FALLBACK_META = (chave) => ({
 let configs = [];
 
 export async function renderSistema() {
-  const papeis = await pegarPapeis();
-  const ehAdmin = papeis.includes('admin');
+  // RBAC Sessao 3: troca papeis.includes('admin') por permissao do RBAC.
+  // config.editar_sistema eh exclusiva de super_admin no desenho da Sessao 1
+  // (admins futuros precisarao de override pontual via Sessao 4).
+  await carregarPermissoes();
+  const ehAdmin = temPermissaoSync('config.editar_sistema');
 
   if (!ehAdmin) {
     document.querySelector('#app').innerHTML = await renderShell({
