@@ -1,14 +1,19 @@
-// configuracoes.js — Hub /configuracoes (CP5.1).
-// Lista as subseções disponíveis. Cards admin-only só renderizam se
-// o usuário tiver o papel; placeholders dos CP7+ aparecem desativados.
-// Layout editorial: índice numerado tipo sumário de revista.
+// configuracoes.js — Hub /configuracoes (CP5.1, RBAC Sessao 3).
+// Lista as subseções disponíveis. Cards admin-only renderizam só se o
+// usuário tiver a permissão específica do RBAC. Layout editorial: índice
+// numerado tipo sumário de revista.
 
 import { renderShell, ligarShell } from '../shell.js';
-import { pegarPapeis } from '../papeis.js';
+import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
 
 export async function renderConfiguracoes() {
-  const papeis  = await pegarPapeis();
-  const ehAdmin = papeis.includes('admin');
+  // Pré-carrega o cache de permissões pra todos os itens() abaixo serem síncronos.
+  await carregarPermissoes();
+  // "Tem painel admin" no rodapé = qualquer permissão admin-only do RBAC.
+  // Usar usuario.visualizar como proxy (admin/gerente têm; super_admin via bypass).
+  const ehAdmin = temPermissaoSync('usuario.visualizar')
+                || temPermissaoSync('config.editar_sistema')
+                || temPermissaoSync('config.gerenciar_feriados');
 
   document.querySelector('#app').innerHTML = await renderShell({
     rotaAtiva: 'config',
@@ -26,7 +31,7 @@ export async function renderConfiguracoes() {
       </header>
 
       <ol class="config-sumario reveal reveal-2" aria-label="Sumário das configurações">
-        ${itens(ehAdmin).map((it, i) => itemHtml(it, i + 1)).join('')}
+        ${itens().map((it, i) => itemHtml(it, i + 1)).join('')}
       </ol>
 
       <p class="config-rodape reveal reveal-3 text-body">
@@ -40,7 +45,9 @@ export async function renderConfiguracoes() {
   ligarShell();
 }
 
-function itens(ehAdmin) {
+// Cada card declara a permissão necessária; carregarPermissoes() já rodou
+// no render acima, então temPermissaoSync() é seguro.
+function itens() {
   return [
     {
       slug: 'vendedoras',
@@ -49,6 +56,7 @@ function itens(ehAdmin) {
       desc: 'Cadastro de quem recebe pagamentos em dinheiro. Operadores criam, admin desativa.',
       href: '/configuracoes/vendedoras',
       ativo: true,
+      // Sem permissao -> sempre visivel (operador também precisa)
     },
     {
       slug: 'perfil',
@@ -65,6 +73,7 @@ function itens(ehAdmin) {
       desc: 'Exportação de períodos por categoria, estado e formato. Base pra contação mensal e auditoria.',
       href: '/relatorios',
       ativo: true,
+      permissao: 'relatorio.diario',
     },
     {
       slug: 'feriados',
@@ -73,7 +82,7 @@ function itens(ehAdmin) {
       desc: 'Define quais datas são feriado bancário. Afeta o cálculo de dias úteis nas pendências.',
       href: '/configuracoes/feriados',
       ativo: true,
-      adminOnly: true,
+      permissao: 'config.gerenciar_feriados',
     },
     {
       slug: 'usuarios',
@@ -82,7 +91,7 @@ function itens(ehAdmin) {
       desc: 'Quem entra no sistema e em que papel — operador, admin, ou ambos.',
       href: '/configuracoes/usuarios',
       ativo: true,
-      adminOnly: true,
+      permissao: 'usuario.visualizar',
     },
     {
       slug: 'sistema',
@@ -91,9 +100,9 @@ function itens(ehAdmin) {
       desc: 'Configurações globais do banco — limites, alertas, integrações com Excel e Apps Script.',
       href: '/configuracoes/sistema',
       ativo: true,
-      adminOnly: true,
+      permissao: 'config.editar_sistema',
     },
-  ].filter(it => !it.adminOnly || ehAdmin);
+  ].filter(it => !it.permissao || temPermissaoSync(it.permissao));
 }
 
 function itemHtml(it, n) {
