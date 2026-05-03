@@ -6,6 +6,16 @@
 //   await temPapel('admin');              // boolean
 //   await temPermissao('caixa.abrir');    // boolean (RBAC novo, Sessao 1)
 //   limparCachePapeis();                  // chamado no logout
+//
+// Backward-compat super_admin (CP-RBAC Sessao 1): se o usuario tem
+// papel 'super_admin' ativo, pegarPapeis() injeta 'admin' na lista
+// retornada (caso ja nao esteja). Razao: super_admin eh estritamente
+// mais poderoso que admin (decisao arquitetural), e o sistema atual
+// tem 8 call sites fazendo `papeis.includes('admin')` direto. Sem
+// essa expansao, super_admins perderiam acesso a /configuracoes,
+// /usuarios, /relatorios etc. ate as Sessoes 2/3 do RBAC trocarem
+// para temPermissao(). A expansao acontece DEPOIS do cache pra que
+// limparCachePapeis() continue funcionando normalmente.
 
 import { supabase, pegarSessao } from './supabase.js';
 import { log }                   from './log.js';
@@ -31,13 +41,24 @@ export async function pegarPapeis() {
     return [];
   }
 
-  cache = (data || []).map(r => r.papel);
+  const papeisDoBanco = (data || []).map(r => r.papel);
+
+  // Expansao de super_admin -> admin (ver header do arquivo).
+  if (papeisDoBanco.includes('super_admin') && !papeisDoBanco.includes('admin')) {
+    papeisDoBanco.push('admin');
+  }
+
+  cache = papeisDoBanco;
   cacheUid = uid;
   return cache;
 }
 
 export async function temPapel(papel) {
   const lista = await pegarPapeis();
+  // Defesa em profundidade: super_admin satisfaz qualquer checagem de
+  // papel (caso pegarPapeis() seja substituido no futuro e a expansao
+  // acima saia, temPapel continua coerente).
+  if (lista.includes('super_admin')) return true;
   return lista.includes(papel);
 }
 
