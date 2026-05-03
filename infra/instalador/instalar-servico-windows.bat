@@ -208,34 +208,56 @@ if !errorLevel! neq 0 (
 )
 echo.
 
-REM ---------- 8. Sumario ----------
-echo ============================================================
-echo   Conversao concluida
-echo ============================================================
+REM ---------- 8. Sumario final ----------
+REM Decide visual com base no estado real dos dois servicos.
+set "APP_OK=0"
+set "TUNNEL_OK=0"
+sc query %SERVICE_NAME% | findstr /C:"RUNNING" >nul && set "APP_OK=1"
+sc query cloudflared    | findstr /C:"RUNNING" >nul && set "TUNNEL_OK=1"
+
 echo.
-echo Servicos rodando em background (invisivel ao usuario):
-echo   - %SERVICE_NAME%   (vite preview em 127.0.0.1:4173)
-echo   - cloudflared      (tunel para caixa-boti.plexalabs.com)
 echo.
-echo Comandos uteis:
+if "!APP_OK!"=="1" if "!TUNNEL_OK!"=="1" (
+  echo ############################################################
+  echo #                                                          #
+  echo #              [OK]   TUDO PRONTO - SISTEMA NO AR          #
+  echo #                                                          #
+  echo ############################################################
+  echo.
+  echo   App   ....  RUNNING   ^(%SERVICE_NAME%^)
+  echo   Tunel ....  RUNNING   ^(cloudflared^)
+  echo.
+  echo   Acesse agora: https://caixa-boti.plexalabs.com
+  echo.
+  echo   Os dois servicos sobem sozinhos a cada boot do Windows.
+  echo   Voce pode FECHAR ESTA JANELA -- nao precisa ficar aberta.
+  echo.
+  echo ############################################################
+  echo.
+  echo   Comandos uteis pra depois:
+  echo     sc query %SERVICE_NAME%               status do app
+  echo     sc query cloudflared                  status do tunel
+  echo     type "%LOG_DIR%\app.out.log"           log do app
+  echo     sc stop %SERVICE_NAME% ^&^& sc start %SERVICE_NAME%   restart apos git pull
+  echo.
+  pause
+  exit /b 0
+)
+
+REM Algum dos dois nao subiu -- visual de aviso, NAO de sucesso.
+echo ############################################################
+echo #                                                          #
+echo #          [AVISO]  INSTALACAO INCOMPLETA                  #
+echo #                                                          #
+echo ############################################################
 echo.
-echo   Status:
-echo     sc query %SERVICE_NAME%
+if "!APP_OK!"=="1"     (echo   App   ....  RUNNING   ^(OK^))   else (echo   App   ....  PARADO    ^(verifique log^))
+if "!TUNNEL_OK!"=="1"  (echo   Tunel ....  RUNNING   ^(OK^))   else (echo   Tunel ....  PARADO    ^(rode etapa 8 do instalador^))
+echo.
+echo   Cheque os logs:
+echo     type "%LOG_DIR%\app.err.log"
 echo     sc query cloudflared
 echo.
-echo   Logs do app:
-echo     type "%LOG_DIR%\app.out.log"
-echo     type "%LOG_DIR%\app.err.log"
-echo.
-echo   Restart manual (depois de "git pull && npm run build"):
-echo     sc stop %SERVICE_NAME% ^&^& sc start %SERVICE_NAME%
-echo.
-echo   Desinstalar este servico (volta ao zero):
-echo     "%NSSM_EXE%" stop %SERVICE_NAME%
-echo     "%NSSM_EXE%" remove %SERVICE_NAME% confirm
-echo.
-echo Sistema vai subir automaticamente em todo boot do Windows.
-echo Acesso publico: https://caixa-boti.plexalabs.com
-echo.
 pause
+exit /b 1
 exit /b 0
