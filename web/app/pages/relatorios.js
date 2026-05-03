@@ -12,7 +12,7 @@ import { supabase, pegarSessao } from '../supabase.js';
 import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { mostrarToast } from '../notifications.js';
-import { pegarPapeis } from '../papeis.js';
+import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
 import { instalarPopDatasEm } from '../../components/pop-data.js';
 
 const CATEGORIAS = [
@@ -45,8 +45,12 @@ let pagina = 1;
 let ord = { coluna: 'data', dir: 'asc' };
 
 export async function renderRelatorios() {
-  const papeis = await pegarPapeis();
-  if (!papeis.includes('admin') && !papeis.includes('operador')) {
+  // RBAC Sessao 3: troca papeis.includes('admin'|'operador') por permissao.
+  // ATENCAO: operador NAO tem 'relatorio.diario' na seed RBAC (so admin,
+  // gerente, contador). Comportamento muda: operadores futuros perderao
+  // acesso. Operador atual eh super_admin via bypass.
+  await carregarPermissoes();
+  if (!temPermissaoSync('relatorio.diario')) {
     document.querySelector('#app').innerHTML = await renderShell({
       rotaAtiva: 'relatorios',
       conteudo: `
