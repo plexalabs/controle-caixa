@@ -1,14 +1,19 @@
-// papeis.js — papéis (legacy) + permissões (RBAC) do usuário logado.
+// papeis.js — papéis (legacy informativo) + permissões (RBAC) do usuário logado.
 // Cache em memória, invalidado em logout/login/USER_UPDATED.
 //
 // API pública:
-//   const papeis = await pegarPapeis();      // ['admin','operador',...] (legacy)
-//   await temPapel('admin');                 // boolean (legacy)
+//   const papeis = await pegarPapeis();      // ['operador','super_admin',...] -- só
+//                                            //   informativo (/perfil exibe; main.js warm cache)
 //   await carregarPermissoes();              // pré-carrega cache RBAC
 //   temPermissaoSync('caixa.abrir');         // boolean síncrono (UI em loop)
 //   await temPermissao('caixa.abrir');       // boolean async (handlers)
+//   listarTodasPermissoes();                 // catálogo completo (UI de RBAC)
 //   limparCachePapeis();                     // limpa tudo (papeis + permissoes)
 //   invalidarCachePermissoes();              // limpa só permissoes
+//
+// CP-RBAC Sessão 5: temPapel() removida (zero call sites após Sessão 3
+// migrar tudo pra temPermissaoSync). pegarPapeis() preservada porque
+// /perfil ainda exibe a lista informativamente, sem usar pra autorização.
 //
 // Cache de permissões:
 //   - 1 minuto de TTL (config inline em CACHE_PERMISSOES_TTL_MS)
@@ -16,7 +21,8 @@
 //   - 1 query por refresh: lê papel super_admin → se sim, '*'; se não,
 //     lê (perfil_permissao via usuario_perfil) UNION (usuario_permissao_extra)
 //   - Invalidado pelo listener de auth e por chamadas explícitas após
-//     mutações que afetam permissões (definir_papeis_usuario etc.)
+//     mutações (atribuir_perfil_usuario, conceder/revogar_permissao_extra,
+//     promover/revogar_super_admin, atualizar_permissoes_perfil etc.)
 
 import { supabase, pegarSessao } from './supabase.js';
 import { log }                   from './log.js';
@@ -46,11 +52,6 @@ export async function pegarPapeis() {
   cache = (data || []).map(r => r.papel);
   cacheUid = uid;
   return cache;
-}
-
-export async function temPapel(papel) {
-  const lista = await pegarPapeis();
-  return lista.includes(papel);
 }
 
 // ─── Cache de permissões (RBAC) ──────────────────────────────────────────
