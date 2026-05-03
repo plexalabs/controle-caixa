@@ -3,10 +3,16 @@
 // anti-enumeration: nunca revela se o email existe ou não.
 
 import { pedirRecuperacao } from '../auth.js';
+import { navegar }          from '../router.js';
 import { validarEmail }     from '../utils.js';
 
 export function renderRecuperar() {
-  const emailInicio = new URLSearchParams(location.search).get('email') || '';
+  const params = new URLSearchParams(location.search);
+  const emailInicio = params.get('email') || '';
+  // Quando algum link antigo (com ?code=) chega expirado, main.js redireciona
+  // pra cá com ?expirado=1. Mostra um aviso editorial em vez de só repetir
+  // o formulário sem contexto.
+  const expirado = params.get('expirado') === '1';
 
   document.querySelector('#app').innerHTML = `
     <div id="main" class="auth-shell">
@@ -17,8 +23,14 @@ export function renderRecuperar() {
         </header>
         <h2 id="auth-titulo" class="auth-titulo">Recuperar senha</h2>
         <p class="auth-subtitulo">
-          Enviaremos um link válido por 1 hora para o email cadastrado.
+          Enviaremos um código de 8 dígitos para o email cadastrado.
         </p>
+
+        ${expirado ? `
+          <div class="alert alert--info" style="margin-bottom:18px">
+            O código anterior expirou ou já foi usado. Peça um novo abaixo.
+          </div>
+        ` : ''}
 
         <div id="form-bloco">
           <form id="form-recuperar" novalidate>
@@ -33,18 +45,9 @@ export function renderRecuperar() {
             <div id="erro-form" role="alert" aria-live="polite" class="hidden alert"></div>
 
             <button id="btn-enviar" type="submit" class="btn-primary">
-              Enviar link
+              Enviar código
             </button>
           </form>
-        </div>
-
-        <!-- Tela de confirmação genérica (mostrada após submit) -->
-        <div id="bloco-enviado" class="hidden auth-bloco-enviado">
-          <div class="alert alert--info">
-            <p class="font-medium mb-2" style="color:var(--c-musgo-3)">Pedido recebido.</p>
-            <p>Se este email tiver cadastro, você receberá um link de recuperação em alguns minutos. Verifique também a caixa de spam.</p>
-          </div>
-          <a href="/login" data-link class="btn-link">Voltar ao login</a>
         </div>
 
         <p id="rodape-form" class="auth-rodape">
@@ -60,9 +63,6 @@ export function renderRecuperar() {
   const form    = document.querySelector('#form-recuperar');
   const btn     = document.querySelector('#btn-enviar');
   const erro    = document.querySelector('#erro-form');
-  const blocoEnviado = document.querySelector('#bloco-enviado');
-  const formBloco    = document.querySelector('#form-bloco');
-  const rodape       = document.querySelector('#rodape-form');
 
   setTimeout(() => {
     if (!emailInicio) form.email.focus();
@@ -97,11 +97,11 @@ export function renderRecuperar() {
       return;
     }
 
-    // Sucesso OU erro silencioso (rate limit, email inexistente, etc.)
-    // → mensagem idêntica para impedir enumeration.
-    formBloco.classList.add('hidden');
-    rodape.classList.add('hidden');
-    blocoEnviado.classList.remove('hidden');
+    // Sucesso OU erro silencioso (rate limit, email inexistente, etc.) →
+    // navega para /redefinir?email=X com a mesma UX de OTP do cadastro.
+    // Anti-enumeration preservada: a tela de OTP existe pra qualquer
+    // email; quem digitou errado simplesmente nunca recebe código.
+    navegar('/redefinir?email=' + encodeURIComponent(email));
   });
 }
 
