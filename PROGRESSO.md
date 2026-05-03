@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-04-29.
+> Última atualização: 2026-05-04 — RBAC granular 100% concluído (Sessão 6 de 6).
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -43,7 +43,67 @@
 
 ## 1. ESTADO ATUAL
 
-**Fase 1 + Fase 1B (refactor auth) concluídas em 2026-04-30 — smoke test 8 de 8 auditáveis aprovado (#9 fica para Fase 2). Aguardando autorização para iniciar Fase 2.**
+**RBAC granular 100% concluído em 2026-05-04 (6 sessões em 2 dias).** 17 RLS policies migradas de `fn_tem_papel(varchar)` para `tem_permissao(auth.uid(), 'X.Y')`, função legacy removida do banco. Smoke completo passou em PROD em todos os 4 blocos do Bloco D (caixa, lançamento, realtime entre 2 abas).
+
+Antes do RBAC: Fase 1 + Fase 1B (refactor auth) concluídas em 2026-04-30 — smoke test 8 de 8 auditáveis aprovado (#9 fica para Fase 2).
+
+## Status — RBAC Sessão 6 (FINAL) (2026-05-04)
+
+### Concluído (Sessão 6 de 6) — RBAC GRANULAR 100%
+
+- [x] Auditoria das 17 policies dependentes de `fn_tem_papel`
+- [x] Mapeamento policy → permissão equivalente para cada uma
+- [x] Catálogo: nova permissão `auditoria.visualizar` (só admin)
+- [x] Migration reversa em cada commit (17 arquivos)
+- [x] `docs/RBAC_SESSAO6_ROLLBACK.md` com procedimento de rollback
+- [x] Bloco A migrado: `audit_log_select_admin`, `sync_log_select`
+- [x] Bloco B migrado: `config_update`, `feriado_modify`, `usuario_papel_select`/`admin_modify`, `vendedora_insert`/`update`
+- [x] Bloco C migrado: 3 policies de `storage.objects` (backups, comprovantes_select, comprovantes_upload)
+- [x] Bloco D migrado: `caixa` (3 policies) + `lancamento` (3 policies)
+- [x] DROP final de `fn_tem_papel(varchar)` aplicado
+- [x] Fix bonus: `listar_usuarios_com_perfis_e_extras` ambiguidade `usuario_id`
+
+### Validação em PROD
+
+- [x] Smoke completo passou em todos os 4 blocos
+- [x] Realtime entre 2 abas funcionou após migração RLS (CRÍTICO)
+- [x] Operações normais (criar caixa, lançamento, fechar) OK
+- [x] Console sem erros vermelhos relacionados a RLS
+
+### Estado final do RBAC granular
+
+- **40 permissões** catalogadas em 10 módulos (39 + `auditoria.visualizar`)
+- **5 perfis pré-definidos** + capacidade de criar customizados via UI
+- **17 RLS policies** usando `tem_permissao()`
+- **0 referências** a `fn_tem_papel` em qualquer policy
+- **`fn_tem_papel` REMOVIDA** do banco
+- **`temPapel()`** removida do client (Sessão 5)
+- **`definir_papeis_usuario`** removida do banco (Sessão 5)
+- **2 telas RBAC**: `/configuracoes/permissoes` (CRUD perfis) + `/configuracoes/usuarios` (atribuir perfil + extras)
+- **`super_admin`**: bypass total mantido
+- **Cache de permissões** ativo (TTL 1 min) com invalidação
+
+### Bugs de UX detectados (NÃO causados pela Sessão 6)
+
+Detectados durante smoke do Bloco D, registrados como pendência separada:
+
+- Lançamento dinheiro sem vendedora cadastrada: redireciona para `/configuracoes/vendedoras` mas drawer da nota fica aberto na lateral. Bug de fluxo UI pré-existente.
+- Modal de adicionar permissão extra: "sai do usuário e não volta depois". Bug do drawer da Sessão 5, pré-existente.
+
+### RBAC: COMPLETO (6 sessões em 2 dias)
+
+Total acumulado:
+
+- **Sessão 1**: modelagem + tabelas + função `tem_permissao`
+- **Sessão 2**: 5 RPCs migradas no banco
+- **Sessão 3**: client refatorado (`papeis.js` + 7 call sites)
+- **Sessão 4**: tela `/configuracoes/permissoes` (CRUD)
+- **Sessão 5**: tela `/configuracoes/usuarios` reescrita + 7 RPCs
+- **Sessão 6**: 17 RLS policies migradas + DROP final
+
+### Histórico de merges (recentes)
+
+- `f082c19` — `[F3-RBAC-6] merge: Sessao 6 do RBAC + DROP fn_tem_papel`
 
 ---
 
