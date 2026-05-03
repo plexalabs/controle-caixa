@@ -10,16 +10,18 @@ import { supabase, pegarSessao } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModal, fecharModal } from '../../components/modal.js';
 import { mostrarToast } from '../notifications.js';
-import { pegarPapeis, limparCachePapeis } from '../papeis.js';
+import { carregarPermissoes, temPermissaoSync, invalidarCachePermissoes, limparCachePapeis } from '../papeis.js';
 
 const PALAVRA_PROMOVER = 'promover';
 
-let papeisCache = null;
 let meuUid = null;
 
 export async function renderUsuarios() {
-  papeisCache = await pegarPapeis();
-  if (!papeisCache.includes('admin')) {
+  // RBAC Sessao 3: troca papeis.includes('admin') por permissao do RBAC.
+  // usuario.visualizar eh a permissao mais basica do modulo usuario;
+  // admin/gerente tem na seed; super_admin via bypass.
+  await carregarPermissoes();
+  if (!temPermissaoSync('usuario.visualizar')) {
     document.querySelector('#app').innerHTML = await renderShell({
       rotaAtiva: 'config',
       conteudo: `

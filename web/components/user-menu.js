@@ -6,7 +6,7 @@
 
 import { pegarSessao } from '../app/supabase.js';
 import { navegar } from '../app/router.js';
-import { pegarPapeis } from '../app/papeis.js';
+import { carregarPermissoes, temPermissaoSync } from '../app/papeis.js';
 
 let popoverAtual = null;
 let escListener  = null;
@@ -19,8 +19,12 @@ export async function abrirUserMenu({ onSair } = {}) {
   const meta   = sessao?.user?.user_metadata ?? {};
   const nome   = (meta.nome || sessao?.user?.email?.split('@')[0] || 'Operador').trim();
   const email  = sessao?.user?.email || '';
-  const papeis = await pegarPapeis();
-  const ehAdmin = papeis.includes('admin');
+  // RBAC Sessao 3: "Painel admin" mostra pra quem tem acesso a alguma
+  // area admin. usuario.visualizar eh proxy estavel (admin/gerente tem;
+  // super_admin via bypass). Pra menus mais granulares no futuro, dividir
+  // em itens individuais com sua propria permissao.
+  await carregarPermissoes();
+  const ehAdmin = temPermissaoSync('usuario.visualizar');
 
   const trigger = document.querySelector('#sidebar-user');
   if (!trigger) return;

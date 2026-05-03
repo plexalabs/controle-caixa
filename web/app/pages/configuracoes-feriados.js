@@ -13,7 +13,7 @@ import { supabase } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModal, fecharModal } from '../../components/modal.js';
 import { mostrarToast } from '../notifications.js';
-import { pegarPapeis } from '../papeis.js';
+import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
 import { instalarPopDatasEm } from '../../components/pop-data.js';
 
 const TIPOS = [
@@ -27,8 +27,9 @@ let ehAdmin = false;
 let anoAtual = new Date().getFullYear();
 
 export async function renderFeriados() {
-  const papeis = await pegarPapeis();
-  ehAdmin = papeis.includes('admin');
+  // RBAC Sessao 3: troca papeis.includes('admin') por permissao do RBAC.
+  await carregarPermissoes();
+  ehAdmin = temPermissaoSync('config.gerenciar_feriados');
 
   if (!ehAdmin) {
     document.querySelector('#app').innerHTML = await renderShell({
