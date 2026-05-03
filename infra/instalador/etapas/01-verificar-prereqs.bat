@@ -9,7 +9,7 @@ if %errorLevel% neq 0 (
   exit /b 1
 )
 
-REM Conectividade basica — sem internet nada vai funcionar.
+REM Conectividade basica -- sem internet nada vai funcionar.
 ping -n 1 -w 2000 github.com >nul 2>&1
 if %errorLevel% neq 0 (
   echo [ERRO] Sem conexao com github.com. Verifique a internet.
@@ -22,7 +22,7 @@ if %errorLevel% neq 0 (
   exit /b 1
 )
 
-REM Avisa sobre PowerShell ExecutionPolicy — precisamos rodar
+REM Avisa sobre PowerShell ExecutionPolicy -- precisamos rodar
 REM Invoke-WebRequest para baixar instaladores.
 powershell -Command "if ((Get-ExecutionPolicy -Scope CurrentUser) -eq 'Restricted') { exit 1 }" >nul 2>&1
 if %errorLevel% neq 0 (

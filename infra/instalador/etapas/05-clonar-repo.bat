@@ -25,7 +25,7 @@ if %errorLevel% neq 0 (
   echo [ERRO] Clone falhou.
   echo        Se o repo for privado, configure um Personal Access Token
   echo        em https://github.com/settings/tokens (escopo "repo") e
-  echo        rode novamente — o Git Credential Manager vai pedir as
+  echo        rode novamente -- o Git Credential Manager vai pedir as
   echo        credenciais na primeira vez.
   exit /b 1
 )

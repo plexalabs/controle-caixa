@@ -23,7 +23,7 @@ if "%ANON_KEY%"=="" (
 echo.
 set /p SENTRY_DSN="VITE_SENTRY_DSN (ENTER para pular se nao tiver): "
 
-REM URL do Supabase e fixa para este projeto — nao ha multi-tenant.
+REM URL do Supabase e fixa para este projeto -- nao ha multi-tenant.
 (
   echo VITE_SUPABASE_URL=https://shjtwrojdgotmxdbpbta.supabase.co
   echo VITE_SUPABASE_ANON_KEY=%ANON_KEY%
