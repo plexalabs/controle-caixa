@@ -92,6 +92,33 @@ Adicione exceção no Windows Defender:
 2. Gerenciar configurações → Adicionar ou remover exclusões
 3. Adicionar exclusão → Pasta → `C:\Program Files (x86)\cloudflared\`
 
+### Mensagens "X não é reconhecido como comando"
+
+Sintoma: ao rodar o `.bat`, aparecem erros tipo `'o' nao e reconhecido
+como um comando interno`, `'utar' nao e reconhecido` etc., e o instalador
+para sem completar nenhuma etapa.
+
+Causa: o arquivo `.bat` está com caracteres multi-byte (acentos, em-dash
+`—`, box-drawing `═`) que o `cmd.exe` lê no codepage nativo do Windows
+(CP-850/CP-1252) **antes** do `chcp 65001` virar efetivo. Os bytes UTF-8
+viram lixo que o cmd tenta interpretar como comando.
+
+A versão atual do instalador (a partir do CP-DEPLOY-LOCAL §2-FIX) só
+usa ASCII puro nos `.bat`, então este problema não deve ocorrer. Se
+ainda assim acontecer:
+
+1. Confirme que baixou a versão mais recente do repo
+2. Apague a pasta parcial:
+
+   ```cmd
+   rmdir /S /Q C:\caixa-boti
+   ```
+
+3. Rode o instalador novamente
+
+Se já tem Node, Git ou cloudflared instalado de tentativa anterior,
+o instalador detecta e pula essas etapas (idempotência total).
+
 ### PowerShell ExecutionPolicy bloqueado
 
 A etapa 1 já trata, mas se ainda assim falhar:
