@@ -1,7 +1,52 @@
 # PROGRESSO — Sistema de Controle de Caixa
 
-> Estado do projeto após o merge do CP-PRE-DEPLOY-2 na `main` (2026-05-02).
+> Estado do projeto após o CP-DEPLOY-LOCAL na `main` (2026-05-03).
 > Stack canônica documentada em `docs/STACK.md`.
+
+## Status — fim do CP-DEPLOY-LOCAL (2026-05-03)
+
+### Decisão arquitetural
+
+Cloudflare Pages descartado em favor de execução local + Cloudflare Tunnel.
+Razão registrada: Operador preferiu controle total do servidor sobre conveniência
+de SaaS estático. Trade-offs aceitos: dependência de PC do trabalho ligado,
+manutenção mais frequente, internet do trabalho como SLA.
+
+### Concluído (adições)
+
+- [x] **Sessão 1: Configuração para deploy local**
+  - `_headers` ajustada com CSP para Sentry e Cloudflare Insights
+  - Script `npm run start:local` com `vite preview --host 127.0.0.1 --port 4173`
+  - `infra/tunnel/config.yml` template para tunnel `caixa-boti`
+  - `docs/DEPLOY_LOCAL.md` com passo-a-passo manual completo
+  - `docs/INFRA.md` documenta arquitetura local
+
+- [x] **Sessão 2: Instalador empacotado**
+  - `infra/instalador/instalar-caixa-boti.bat` orquestrador
+  - 9 etapas `.bat` granulares (verificar, Node, Git, cloudflared, clone, env, build, tunnel, PM2)
+  - Download dinâmico via PowerShell (sem MSIs no repo)
+  - Substituição automática de TUNNEL_ID no config.yml via PowerShell
+  - PM2 + pm2-windows-startup para autostart do app
+  - Idempotência verificada por inspeção em todas as etapas
+  - README com troubleshooting (antivírus, repo privado, reinstalação)
+
+### Pendências CP-DEPLOY-LOCAL
+
+- **Validação real**: instalador não testado em ambiente Windows.
+  Primeira execução no PC do trabalho é o teste de fato.
+- **Repo privado**: se virar privado, clone via HTTPS no `.bat` precisa
+  de Personal Access Token. README documenta procedimento.
+- **Versão do Node hardcoded**: v20.18.0 em `02-instalar-nodejs.bat`.
+  Atualizar URL ao longo do tempo.
+- **Antivírus**: Windows Defender pode quarentinar cloudflared.exe.
+  README orienta adicionar exceção.
+- **Modo offline**: instalador requer internet (downloads PowerShell).
+  Se trabalho tiver internet ruim, considerar empacotar MSIs em `recursos/`.
+- **Sentry DSN**: configurado no `.env.local` mas Allowed Domains do Sentry
+  precisa ser atualizado pra `caixa-boti.plexalabs.com` no Dashboard Sentry.
+- **Supabase Site URL**: ainda apontando pra URL provisória de teste anterior.
+  Atualizar pra `https://caixa-boti.plexalabs.com` quando tunnel estiver ativo.
+- **PITR Supabase**: ainda não ativado. Recomendado antes de uso real.
 
 ## Status — fim do CP-PRE-DEPLOY-2 (2026-05-02)
 
@@ -287,6 +332,12 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+67a8917  [F3-DL-2] merge: instalador empacotado para PC Windows
+         (orquestrador + 9 etapas .bat + README, PM2 + cloudflared,
+          download dinamico via PowerShell, idempotencia total)
+30e1033  [F3-DL] merge: configuracao para deploy local com Cloudflare Tunnel
+         (CSP+Sentry, npm start:local, infra/tunnel/config.yml,
+          docs/DEPLOY_LOCAL.md, INFRA documentado)
 d3fdc95  [F3-PRE-2] merge: emails customizados pt-BR com identidade editorial
          (3 templates HTML em supabase/email-templates/,
           subjects editoriais aplicados no Dashboard)
