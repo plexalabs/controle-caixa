@@ -4695,7 +4695,26 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 /* ─── /configuracoes/usuarios ──────────────────────────── */
-.us-card { padding: 1.05rem 1.2rem 1.05rem 1.55rem; }
+.us-card {
+    position: relative;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    padding: 1.05rem 1.2rem 1.05rem 1.55rem;
+    margin-bottom: 0.7rem;
+    overflow: hidden;
+    transition: border-color 220ms var(--ease-out), transform 220ms var(--ease-out);
+    animation: fade-up 600ms var(--ease-out) backwards;
+}
+.us-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--c-papel-3);
+    transition: background 220ms var(--ease-out);
+}
+.us-card:hover { border-color: var(--c-musgo); transform: translateY(-1px); }
 .us-card[data-eu="true"]::before { background: var(--c-musgo); }
 .us-card[data-eu="true"] { border-color: var(--c-musgo-2); }
 
@@ -6583,4 +6602,221 @@ body.supabase-down [data-acao="critica"] {
     .prm-card { animation: none; }
     .prm-detalhes { animation: none; }
     .prm-modulo-fold[open] .prm-modulo-summary::before { transition: none; }
+}
+
+/* =====================================================================
+ * USUÁRIOS (CP-RBAC Sessão 5) — /configuracoes/usuarios reescrita
+ * Cards de usuários, drawer com seções (identidade / super_admin /
+ * perfil / extras), toggle estilizado, modal de promover/revogar.
+ * ===================================================================== */
+
+.us-card[data-eh-eu="true"] { border-color: var(--c-musgo-2); }
+.us-card[data-eh-eu="true"]::before { background: var(--c-musgo); }
+
+.us-card-cabec {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+}
+.us-card-id {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.us-card-email {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--c-tinta);
+    word-break: break-all;
+}
+.us-badge-super {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--c-musgo);
+    color: var(--c-papel);
+    padding: 0.22rem 0.55rem;
+    border-radius: var(--r-pill);
+}
+.us-badge-eu {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--c-musgo);
+    background: rgba(15, 76, 58, 0.1);
+    padding: 0.18rem 0.45rem;
+    border-radius: var(--r-pill);
+}
+.us-card-meta {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-2);
+    margin-top: 0.05rem;
+}
+.us-meta-perfil {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    color: var(--c-musgo);
+}
+.us-meta-sep { color: var(--c-tinta-3); margin: 0 0.3em; }
+.us-sem-perfil {
+    font-style: italic;
+    color: var(--c-tinta-3);
+}
+.us-card-data {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.72rem;
+    color: var(--c-tinta-3);
+    margin-top: 0.2rem;
+    font-variant-numeric: tabular-nums;
+}
+.us-card-acoes {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.7rem;
+}
+
+/* ─── Drawer: seções ──────────────────────────────────────────────── */
+
+.us-secao {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.1rem;
+    border-bottom: 1px dashed var(--c-papel-3);
+}
+.us-secao:last-child { border-bottom: 0; padding-bottom: 0; }
+
+/* Toggle super_admin */
+.us-toggle {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 0.85rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    cursor: pointer;
+    transition: border-color 180ms var(--ease-out), background 180ms var(--ease-out);
+    align-items: start;
+}
+.us-toggle:hover { background: var(--c-papel-2); border-color: var(--c-musgo); }
+.us-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.us-toggle-marca {
+    width: 36px; height: 20px;
+    background: var(--c-papel-3);
+    border-radius: var(--r-pill);
+    position: relative;
+    transition: background 200ms var(--ease-out);
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+}
+.us-toggle-marca::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: var(--c-papel);
+    border-radius: 50%;
+    transition: transform 200ms var(--ease-out);
+}
+.us-toggle input:checked + .us-toggle-marca {
+    background: var(--c-musgo);
+}
+.us-toggle input:checked + .us-toggle-marca::after {
+    transform: translateX(16px);
+}
+.us-toggle-rotulo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta);
+    line-height: 1.4;
+}
+.us-toggle-sub {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.78rem;
+    color: var(--c-tinta-3);
+    font-weight: 400;
+}
+
+/* Lista de extras */
+.us-extras-cabec {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+}
+.us-extras-vazio {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+    font-style: italic;
+    padding: 0.85rem;
+    background: var(--c-papel-2);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    border-left: 2px solid var(--c-papel-3);
+}
+.us-extra-item {
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 0.5rem;
+    border-left: 3px solid var(--c-ambar);
+}
+.us-extra-cabec {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+.us-extra-revogar {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--c-alerta);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--r-sm);
+    transition: background 160ms var(--ease-out);
+}
+.us-extra-revogar:hover { background: rgba(154, 42, 31, 0.08); }
+.us-extra-desc {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.82rem;
+    color: var(--c-tinta-2);
+    line-height: 1.4;
+}
+.us-extra-motivo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    color: var(--c-tinta-2);
+    line-height: 1.4;
+    margin-top: 0.4rem;
+    padding: 0.45rem 0.6rem;
+    background: var(--c-papel-2);
+    border-radius: 0.3rem;
+    font-style: italic;
+}
+.us-extra-rodape {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    color: var(--c-tinta-3);
+    margin-top: 0.35rem;
+    font-variant-numeric: tabular-nums;
 }
