@@ -1,7 +1,15 @@
-# Cabeçalhos do build estático servido pelo Vite preview (npm run start:local)
-# atrás do Cloudflare Tunnel em caixa-boti.plexalabs.com. Em dev local
-# (npm run dev), os mesmos headers podem ser aplicados via vite.config.js
-# para validar antes do build.
+# Cabeçalhos servidos pelo Cloudflare Pages para o build estático
+# (caixa-boti.plexalabs.com). CSP estrita por padrão, com exceções
+# explicitas pra Supabase (REST + WebSocket), Sentry (ingest beacon)
+# e Cloudflare Insights (script + beacon).
+#
+# O hash sha256 do script-src cobre o snippet inline que o Pages
+# injeta automaticamente para Web Analytics; mesmo com Analytics
+# desabilitado no Dashboard, mantemos o hash + domínio como fallback
+# pra evitar tela em branco se alguém reativar sem coordenar.
+#
+# Em dev local (npm run dev), os mesmos headers podem ser aplicados
+# via vite.config.js para validar antes do build.
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
