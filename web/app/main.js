@@ -57,6 +57,19 @@ async function iniciar() {
   //    persistida e o operador é jogado pra /login a cada F5.
   await prepararAuthStorage();
 
+  // 1b. Defesa contra link de recovery antigo: o flow PKCE manda o usuário
+  //     pra Site URL com ?error=access_denied&error_code=otp_expired quando
+  //     o code já foi consumido (Resend tracking, Gmail SafeLinks, etc.).
+  //     A partir do F3-FIX-REDEFINIR-SENHA usamos OTP-code, mas links
+  //     antigos no inbox do operador ainda chegam aqui. Limpa a URL e
+  //     manda pra /recuperar com aviso editorial.
+  {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('error') && qs.get('error_code') === 'otp_expired') {
+      window.history.replaceState({}, '', '/recuperar?expirado=1');
+    }
+  }
+
   // 2. Aguarda Supabase reidratar a sessão (lê do adapter já populado).
   const sessao = await pegarSessao();
 
