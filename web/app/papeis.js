@@ -165,6 +165,28 @@ export function invalidarCachePermissoes() {
   _permissoesCacheTimestamp = 0;
 }
 
+/**
+ * Lista TODAS as permissões catalogadas no banco, ordenadas por modulo
+ * + codigo. Usada pela tela /configuracoes/permissoes pra renderizar
+ * o checklist de permissoes (agrupado por modulo) no drawer de
+ * criacao/edicao de perfil. NAO faz checagem de permissao (qualquer
+ * authenticated pode listar o catalogo via RLS de leitura da Sessao 1).
+ *
+ * Retorna [{ codigo, modulo, descricao, destrutiva }] ou [] em erro.
+ */
+export async function listarTodasPermissoes() {
+  const { data, error } = await supabase
+    .from('permissao')
+    .select('codigo, modulo, descricao, destrutiva')
+    .order('modulo', { ascending: true })
+    .order('codigo', { ascending: true });
+  if (error) {
+    log.erro('listarTodasPermissoes falhou', error);
+    return [];
+  }
+  return data || [];
+}
+
 // ─── Limpeza geral ───────────────────────────────────────────────────────
 export function limparCachePapeis() {
   cache = null;

@@ -94,6 +94,15 @@ function itens() {
       permissao: 'usuario.visualizar',
     },
     {
+      slug: 'permissoes',
+      eyebrow: 'Acessos · RBAC',
+      titulo: 'Perfis e permissões',
+      desc: 'Edite perfis pré-definidos ou crie novos com permissões granulares.',
+      href: '/configuracoes/permissoes',
+      ativo: true,
+      permissao: 'perfil.visualizar',
+    },
+    {
       slug: 'sistema',
       eyebrow: 'Bastidores',
       titulo: 'Sistema',
