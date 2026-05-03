@@ -1,7 +1,32 @@
 # PROGRESSO — Sistema de Controle de Caixa
 
 > Sistema em produção em https://caixa-boti.plexalabs.com via Cloudflare Pages (2026-05-03).
+> Banco zerado e Operador re-cadastrado como admin via trigger `trg_primeiro_admin`.
 > Stack canônica documentada em `docs/STACK.md`.
+
+## Status — Reset operacional (2026-05-03)
+
+### Concluído
+
+- [x] **Reset de banco em produção** após validação do deploy
+  - Apagados: 4 users, 5 papéis, 1 caixa, 1 lançamento, 1 notificação
+  - Mantidos: 9 configs, 15 feriados ativos
+  - Vendedora "Vendedora Teste" do CP3 também removida
+
+- [x] **Trigger `trg_primeiro_admin`** em `auth.users`
+  - Primeiro cadastro com sistema vazio vira admin automaticamente
+  - Demais cadastros viram operador
+  - Risco aceito conscientemente: "primeiro a chegar = admin"
+  - Operador cadastrou-se imediatamente após reset e validou
+    (6 cards visíveis em `/configuracoes`)
+
+### Pendências
+
+- **Trigger `trg_primeiro_admin` deve ser revisado**: enquanto sistema for
+  privado e baixa exposição, mantém. Se virar público multi-tenant, trocar
+  por whitelist explícita ou remover.
+- **Sistema agora está em estado de produção real** com 1 admin (Operador)
+  e zero dados operacionais. Pronto para uso.
 
 ## Status — Sistema em produção (2026-05-03)
 
@@ -388,6 +413,9 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+802dbec  [F3-RESET] merge: reset operacional + flag primeiro-admin
+         (apaga users + identidade + operacionais, mantem seeds;
+          trigger trg_primeiro_admin em auth.users)
 1fa699b  [F3-DL-3] merge: app como servico Windows nativo via NSSM
          (instalar-servico-windows.bat substitui PM2 por NSSM 2.24,
           Session 0 invisivel, restart automatico em crash)
