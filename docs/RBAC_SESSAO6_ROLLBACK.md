@@ -59,6 +59,59 @@ Sintomas que indicam quebra de policy:
 
 **Sessão 6 completa**: 17/17 policies migradas. Próxima etapa controlada é o DROP de `fn_tem_papel(varchar)` — só após smoke completo do Bloco D em PROD pelo Operador.
 
+## DROP de fn_tem_papel aplicado
+
+**Data**: 2026-05-03
+**Migration**: `supabase/migrations/20260504401900_rbac_sessao6_drop_fn_tem_papel.sql`
+
+Estado no momento do drop (validação automática dentro da própria migration):
+
+- `pg_policies` com `fn_tem_papel`: **0**
+- `pg_proc` (fora `fn_tem_papel`) referenciando `fn_tem_papel`: **0**
+- `pg_policies` com `tem_permissao`: **17** (distribuídas em 9 tabelas)
+
+Distribuição final das 17 policies migradas:
+
+| schema | tabela | policies |
+|---|---|---|
+| public | audit_log | 1 |
+| public | caixa | 3 |
+| public | config | 1 |
+| public | feriado | 1 |
+| public | lancamento | 3 |
+| public | sync_log | 1 |
+| public | usuario_papel | 2 |
+| public | vendedora | 2 |
+| storage | objects | 3 |
+| **total** | | **17** |
+
+### Rollback do DROP
+
+Recriar `fn_tem_papel` sozinho **não restaura nenhuma policy** — as 17 já estão usando `tem_permissao`. O DROP só faz sentido reverter como pré-requisito para reverter alguma policy individual:
+
+```sql
+CREATE OR REPLACE FUNCTION public.fn_tem_papel(p character varying)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.usuario_papel
+    WHERE usuario_id = auth.uid() AND papel = p
+  );
+$$;
+```
+
+Depois disso, aplicar a reversa específica em `supabase/migrations-reversas/`.
+
+### Reverter Sessão 6 inteira (cenário extremo)
+
+1. Recriar `fn_tem_papel` (snippet acima).
+2. Aplicar **as 17 reversas** em ordem inversa (linha 17 → 1 da tabela acima).
+3. Confirmar: `SELECT count(*) FROM pg_policies WHERE qual::text ~ 'fn_tem_papel' OR with_check::text ~ 'fn_tem_papel'` → 17.
+
+Em prática: rollback granular (uma policy por vez) cobre todos os cenários reais. Reverter em massa só faz sentido se o RBAC granular tiver problema sistêmico — o que o smoke completo descartou.
+
 ## Padrão de cada migration reversa
 
 ```sql
