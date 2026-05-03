@@ -6,7 +6,7 @@ REM processos novos depois do MSI).
 echo [2/9] Verificando Node.js...
 
 REM Idempotencia: se ja tem Node, pula. Versao 20+ e suficiente
-REM para Vite 5 e supabase-js — major check apenas.
+REM para Vite 5 e supabase-js -- major check apenas.
 where node >nul 2>&1
 if %errorLevel% equ 0 (
   for /f "tokens=*" %%i in ('node --version') do echo [info] Node.js ja instalado: %%i
@@ -15,7 +15,7 @@ if %errorLevel% equ 0 (
 
 echo [info] Node.js nao encontrado. Baixando v20.18.0 LTS...
 
-REM Versao hardcoded — pode ficar obsoleta. Quando passar de 6 meses,
+REM Versao hardcoded -- pode ficar obsoleta. Quando passar de 6 meses,
 REM atualizar para a LTS mais recente em https://nodejs.org/dist/.
 powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi' -OutFile '%TEMP%\nodejs-installer.msi'"
 

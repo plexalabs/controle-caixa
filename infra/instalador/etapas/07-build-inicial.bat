@@ -3,7 +3,7 @@ echo [7/9] Build inicial (npm install + npm run build)...
 
 cd /d C:\caixa-boti
 
-REM npm install e idempotente — se node_modules ja existe e package-lock
+REM npm install e idempotente -- se node_modules ja existe e package-lock
 REM esta sincronizado, e quase no-op (~5s). Caso contrario baixa tudo
 REM (~2-3 min na primeira vez).
 echo [info] Instalando dependencias...

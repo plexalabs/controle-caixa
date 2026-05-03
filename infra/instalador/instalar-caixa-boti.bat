@@ -2,10 +2,10 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-echo ════════════════════════════════════════════════════════
-echo   Caixa Boti — Instalador local
+echo ============================================================
+echo   Caixa Boti -- Instalador local
 echo   Plexa Lab's, 2026
-echo ════════════════════════════════════════════════════════
+echo ============================================================
 echo.
 
 REM Verifica se esta rodando como administrador (necessario para
@@ -34,7 +34,7 @@ echo.
 if not exist "%BASE_DIR%" mkdir "%BASE_DIR%"
 cd /d "%BASE_DIR%"
 
-REM As 9 etapas sao idempotentes — rodar 2x nao quebra nada e retoma
+REM As 9 etapas sao idempotentes -- rodar 2x nao quebra nada e retoma
 REM do ponto que falhou. Cada etapa ecoa "[N/9] ..." na entrada e
 REM "[info] ..." nos passos relevantes; erros saem com "[ERRO] ...".
 call "%~dp0etapas\01-verificar-prereqs.bat" || goto :erro
@@ -48,9 +48,9 @@ call "%~dp0etapas\08-setup-tunnel.bat" || goto :erro
 call "%~dp0etapas\09-pm2-autostart.bat" || goto :erro
 
 echo.
-echo ════════════════════════════════════════════════════════
+echo ============================================================
 echo   Instalacao concluida com sucesso
-echo ════════════════════════════════════════════════════════
+echo ============================================================
 echo.
 echo Sistema disponivel em: https://caixa-boti.plexalabs.com
 echo.
