@@ -47,6 +47,53 @@
 - **Template `recovery.html` reaplicado manualmente** no Dashboard Supabase
   pelo Operador (Supabase não expõe API pra atualizar templates)
 
+## Status — RBAC Sessão 4 (2026-05-04)
+
+### Concluído (Sessão 4 de 5)
+
+- [x] 5 RPCs novas: `criar_perfil`, `atualizar_permissoes_perfil`,
+      `deletar_perfil`, `listar_perfis_com_detalhes`,
+      `listar_usuarios_afetados_por_perfil`
+- [x] Tela `/configuracoes/permissoes` com identidade editorial
+- [x] Listagem de perfis (badge "sistema" nos 5 pré-definidos)
+- [x] Drawer de edição com permissões agrupadas por 9 módulos
+- [x] Drawer de criação de perfis customizados
+- [x] Modal de confirmação listando usuários afetados antes de salvar
+- [x] Modal de delete por digitação do nome (case-sensitive)
+- [x] Bloqueios: `e_sistema=true` não pode ser deletado;
+      `total_usuarios>0` bloqueia delete
+- [x] `papeis.js`: `listarTodasPermissoes()` utilitário
+- [x] Card "Perfis e permissões" em `/configuracoes` gated por
+      `perfil.visualizar`
+
+### Decisões registradas
+
+- **Operador editou perfil "operador"** durante o smoke (adicionou
+  `relatorio.diario`). Operador (super_admin) tem perfil 'operador'
+  atribuído, então essa edição afeta operadores futuros que receberem
+  esse perfil. Operador ciente.
+- **Validação por digitação** é case-sensitive — protege contra
+  cliques acidentais
+
+### Pendências do projeto RBAC
+
+- **Sessão 5 (~1-2h)**: Tela `/configuracoes/usuarios` reescrita.
+  Atribuição de perfis em vez de papéis. Concessão de permissões
+  extras pontuais via UI. Após Sessão 5 estável, remover o filtro
+  `AND papel != 'super_admin'` no `definir_papeis_usuario`
+  (workaround temporário da Sessão 2-FIX)
+
+### Estado do sistema RBAC
+
+- Tabelas RBAC: populadas
+- 39 permissões catalogadas em 9 módulos
+- 5 perfis pré-definidos + capacidade de criar customizados via UI
+- 5 RPCs servidor + 7 call sites client + 1 nova tela CRUD
+- Cache de permissões ativo (TTL 1 min)
+- super_admin: bypass total em servidor + wildcard no client
+- super_admin pode editar qualquer perfil (incluindo de sistema)
+  exceto o e_sistema (não pode deletar)
+
 ## Status — RBAC Sessão 3 (2026-05-04)
 
 ### Concluído (Sessão 3 de 5)
@@ -533,6 +580,9 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+f122c71  [F3-RBAC-4] merge: Sessao 4 do RBAC granular
+         (5 RPCs CRUD perfis + tela /configuracoes/permissoes
+          com drawer agrupado + modais de confirmacao e delete)
 f2b30de  [F3-RBAC-3] merge: Sessao 3 do RBAC granular
          (papeis.js refator com cache + 7 call sites migrados pra
           temPermissaoSync + remove backward-compat super_admin)
