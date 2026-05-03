@@ -47,6 +47,56 @@
 - **Template `recovery.html` reaplicado manualmente** no Dashboard Supabase
   pelo Operador (Supabase não expõe API pra atualizar templates)
 
+## Status — RBAC Sessão 1 (2026-05-03)
+
+### Decisão arquitetural
+
+Sistema de permissões granulares (RBAC) sobre o sistema de papéis simples.
+Decisão de modelagem do Operador:
+- **Hierarquia**: super_admin > admin > gerente > operador > vendedor > contador
+- **Multiplicidade**: 1 perfil principal + permissões extras pontuais (híbrido)
+- **Editável via UI**: super_admin edita perfis e permissões na Sessão 4
+- **Catalogo upfront**: 38 permissões catalogadas em 9 módulos
+- **Super-admin**: 3º valor no enum de papel; bypass total nas checagens
+
+### Concluído (Sessão 1 de 5)
+
+- [x] Tabelas RBAC criadas e populadas
+- [x] Catalogo de 38 permissões em 9 módulos
+- [x] 5 perfis pré-definidos (e_sistema=true, não-deletáveis)
+- [x] Função `tem_permissao(uuid, text)` com bypass super_admin
+- [x] RLS estrita: leitura authenticated, escrita super_admin
+- [x] `temPermissao()` no client em paralelo (não adotada ainda)
+- [x] Backward-compat: super_admin satisfaz `temPapel('admin')` em todos
+      os 8 call sites antigos
+
+### Pendências do projeto RBAC
+
+- **Sessão 2 (~3-4h)**: Reescrita das ~15 RPCs do banco para checar
+  permissões em vez de papel (mantendo super_admin bypass). É a sessão
+  mais arriscada porque mexe em código que está rodando em produção.
+- **Sessão 3 (~2-3h)**: Reescrita do `papeis.js` no client + guards
+  das telas migrando de `temPapel()` para `temPermissao()`
+- **Sessão 4 (~3-4h)**: Tela `/configuracoes/permissoes` com CRUD
+  de perfis e edição de permissões
+- **Sessão 5 (~1-2h)**: Tela `/configuracoes/usuarios` reescrita para
+  atribuir perfis em vez de papéis
+
+### Decisão pendente (revisitar)
+
+- **Operador tem 2 papéis ativos**: `operador` E `super_admin`. Não é bug,
+  mas é estado que vale corrigir antes da Sessão 2. Após Sessão 2 e 3
+  estarem estáveis, considerar desativar `operador` extra:
+  ```sql
+  UPDATE public.usuario_papel
+  SET ativo = false
+  WHERE usuario_id = (SELECT id FROM auth.users WHERE email = 'joaopedro.botucatu@vdboti.com.br')
+    AND papel = 'operador';
+  ```
+- **Trigger `fn_promove_primeiro_admin`** não seta `ativo=true` no INSERT
+  (depende do default da coluna). Hoje funciona porque default é true,
+  mas vale revisar em sessão futura.
+
 ## Status — Sistema em produção (2026-05-03)
 
 ### Deploy realizado
@@ -432,6 +482,9 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+0d4bf07  [F3-RBAC-1] merge: Sessao 1 do RBAC granular
+         (5 tabelas + 38 permissoes + 5 perfis + tem_permissao()
+          com bypass super_admin + RLS + papeis.js backward-compat)
 15a875e  [F3-FIX] merge: redefinir senha via OTP em vez de link
          (causa raiz PKCE+click-tracking; refator recuperar.js+
           redefinir.js, recovery.html usa {{ .Token }}, main.js
