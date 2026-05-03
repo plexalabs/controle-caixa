@@ -47,6 +47,57 @@
 - **Template `recovery.html` reaplicado manualmente** no Dashboard Supabase
   pelo Operador (Supabase não expõe API pra atualizar templates)
 
+## Status — RBAC Sessão 3 (2026-05-04)
+
+### Concluído (Sessão 3 de 5)
+
+- [x] `papeis.js` refatorado com cache de permissões (TTL 1 minuto)
+- [x] `temPermissao()` async + `temPermissaoSync()` para uso em loop
+- [x] Bypass super_admin via wildcard `*` no cache
+- [x] Invalidação automática via `onAuthStateChange` + manual em mudanças
+- [x] 7 call sites migrados para `temPermissaoSync(<permissao_granular>)`
+- [x] Backward-compat da Sessão 1 REMOVIDO
+
+### Pendências do projeto RBAC
+
+- **Sessão 4 (~3-4h)**: Tela `/configuracoes/permissoes` com CRUD de
+  perfis e edição granular de permissões
+- **Sessão 5 (~1-2h)**: Tela `/configuracoes/usuarios` reescrita;
+  remover workaround `papel != 'super_admin'` após estabilizar
+
+### Estado do sistema RBAC
+
+- Tabelas RBAC: populadas
+- 39 permissões catalogadas em 9 módulos
+- 5 perfis pré-definidos
+- 5 RPCs servidor + 7 call sites client migrados
+- Cache de permissões ativo
+- super_admin: bypass total em servidor + wildcard no client
+
+## Status — RBAC Sessão 2 (2026-05-04)
+
+### Concluído (Sessão 2 de 5)
+
+- [x] Catálogo: `lancamento.revelar_pii` adicionada (39 permissões total)
+- [x] 5 RPCs migradas para `tem_permissao()`:
+  - `atualizar_config` → `config.editar_sistema`
+  - `definir_papeis_usuario` → `usuario.atribuir_perfil`
+  - `gerar_relatorio_periodo` → `relatorio.diario`
+  - `listar_usuarios_papeis` → `usuario.visualizar`
+  - `revelar_pii` → `lancamento.revelar_pii`
+- [x] 5 funções preservadas com COMMENT registrando razão (NÃO MIGRADAS)
+- [x] FIX: `definir_papeis_usuario` preserva `super_admin` no UPDATE
+  (workaround pro bug do demote silencioso pela UI antiga)
+
+### Decisão arquitetural (Caminho A do conflito declarado)
+
+3 RPCs ficam mais restritivas vs sistema antigo (admin perde acesso a
+`config.editar_sistema`, `usuario.atribuir_perfil`; operador perde
+`relatorio.diario`). Operador atual (super_admin) bypassa via
+`tem_permissao()`. Admins futuros precisarão de permissões extras
+pontuais ou perfil customizado (Sessão 4) para recuperar essas
+capacidades.
+
 ## Status — RBAC Sessão 1 (2026-05-03)
 
 ### Decisão arquitetural
@@ -482,6 +533,12 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+f2b30de  [F3-RBAC-3] merge: Sessao 3 do RBAC granular
+         (papeis.js refator com cache + 7 call sites migrados pra
+          temPermissaoSync + remove backward-compat super_admin)
+fbe2ffb  [F3-RBAC-2] merge: Sessao 2 do RBAC + FIX super_admin
+         (5 RPCs migradas pra tem_permissao + lancamento.revelar_pii
+          ao catalogo + workaround preserva super_admin)
 0d4bf07  [F3-RBAC-1] merge: Sessao 1 do RBAC granular
          (5 tabelas + 38 permissoes + 5 perfis + tem_permissao()
           com bypass super_admin + RLS + papeis.js backward-compat)
