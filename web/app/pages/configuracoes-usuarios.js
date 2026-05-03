@@ -1,25 +1,44 @@
-// configuracoes-usuarios.js — Quem tem acesso ao caderno (CP7.1).
+// configuracoes-usuarios.js — Quem entra no caderno + suas permissões.
+// CP-RBAC Sessão 5 (FINAL): troca o fluxo legacy de "papel" por
+// atribuição de PERFIL principal + permissões EXTRAS pontuais.
 //
-// Lista todos os usuários auth + papéis ativos. Drawer de alteração com
-// confirmação dupla por digitação ao promover a admin. Auto-proteção
-// visual no card do próprio admin (não pode demover-se sozinho).
-//
-// Acesso: admin only. Operadores que digitarem a URL veem alerta.
+// Acesso: usuario.visualizar (admin/gerente/super_admin).
+// Edição: usuario.atribuir_perfil + usuario.conceder_extra (apenas super_admin
+//         no desenho atual).
+// Toggle super_admin: só super_admin existente promove/revoga (RPC valida).
 
-import { supabase, pegarSessao } from '../supabase.js';
-import { renderShell, ligarShell } from '../shell.js';
-import { abrirModal, fecharModal } from '../../components/modal.js';
-import { mostrarToast } from '../notifications.js';
-import { carregarPermissoes, temPermissaoSync, invalidarCachePermissoes, limparCachePapeis } from '../papeis.js';
+import { supabase, pegarSessao }     from '../supabase.js';
+import { renderShell, ligarShell }   from '../shell.js';
+import { abrirModal, fecharModal }   from '../../components/modal.js';
+import { mostrarToast }              from '../notifications.js';
+import {
+  carregarPermissoes,
+  temPermissaoSync,
+  invalidarCachePermissoes,
+  limparCachePapeis,
+  listarTodasPermissoes,
+} from '../papeis.js';
 
-const PALAVRA_PROMOVER = 'promover';
-
+// Estado da tela
+let usuarios = [];           // [{ usuario_id, email, e_super_admin, perfil_id, perfil_nome, perfil_codigo, total_extras, criado_em }]
+let perfisDisponiveis = [];  // [{ id, codigo, nome, total_permissoes }]
+let catalogo = [];           // [{ codigo, modulo, descricao, destrutiva }]
+let perfilPermsCache = new Map(); // perfilId -> [codigos]
 let meuUid = null;
 
+const MODULOS = {
+  caixa:        'Caixa',
+  lancamento:   'Lançamento',
+  vendedora:    'Vendedora',
+  usuario:      'Usuário',
+  perfil:       'Perfil',
+  config:       'Configurações',
+  relatorio:    'Relatório',
+  notificacao:  'Notificação',
+  arquivamento: 'Arquivamento',
+};
+
 export async function renderUsuarios() {
-  // RBAC Sessao 3: troca papeis.includes('admin') por permissao do RBAC.
-  // usuario.visualizar eh a permissao mais basica do modulo usuario;
-  // admin/gerente tem na seed; super_admin via bypass.
   await carregarPermissoes();
   if (!temPermissaoSync('usuario.visualizar')) {
     document.querySelector('#app').innerHTML = await renderShell({
@@ -27,10 +46,7 @@ export async function renderUsuarios() {
       conteudo: `
         <main class="max-w-3xl mx-auto px-5 sm:px-8 py-12">
           <a href="/configuracoes" data-link class="btn-link" style="font-size:0.85rem">← Configurações</a>
-          <div class="alert mt-6">
-            Esta seção é restrita a administradores. Peça acesso a quem
-            cuida do sistema.
-          </div>
+          <div class="alert mt-6">Esta seção é restrita a administradores.</div>
         </main>`,
     });
     ligarShell();
@@ -50,320 +66,552 @@ export async function renderUsuarios() {
 
       <header class="tela-cabec reveal reveal-2" data-etiqueta="ADMIN">
         <div class="tela-cabec-texto">
-          <p class="h-eyebrow">Acessos · Equipe</p>
-          <h1 class="tela-cabec-titulo">Quem tem acesso ao caderno.</h1>
+          <p class="h-eyebrow">Acessos · RBAC</p>
+          <h1 class="tela-cabec-titulo">Usuários e suas permissões.</h1>
           <p class="tela-cabec-sub">
-            Operadores fazem o trabalho do dia. Admins gerenciam o sistema.
-            Ninguém pode remover o próprio acesso de admin — peça para
-            outro admin se precisar.
+            Cada pessoa tem 1 perfil principal e pode receber permissões
+            extras pontuais. Super-admins ficam acima de qualquer checagem.
           </p>
         </div>
       </header>
 
-      <section id="us-bloco-ativos" class="reveal reveal-3"></section>
-      <div id="us-bloco-inativos" class="reveal reveal-4"></div>
+      <section id="us-lista" class="reveal reveal-3"></section>
     </main>
   `,
   });
 
   ligarShell();
-  await carregarLista();
+
+  await Promise.all([
+    carregarPerfisDisponiveis(),
+    carregarCatalogo(),
+    carregarLista(),
+  ]);
 }
 
-// ─── Lista ──────────────────────────────────────────────────────────
-async function carregarLista() {
-  const blocoAtivos = document.querySelector('#us-bloco-ativos');
-  const blocoInativos = document.querySelector('#us-bloco-inativos');
-  if (!blocoAtivos) return;
-
-  blocoAtivos.innerHTML = `
-    <div class="vd-grid">
-      ${[1, 2, 3].map(() => `<div class="skel" style="height:9.5rem"></div>`).join('')}
-    </div>`;
-  blocoInativos.innerHTML = '';
-
-  const { data, error } = await supabase.rpc('listar_usuarios_papeis');
-
+async function carregarPerfisDisponiveis() {
+  const { data, error } = await supabase.rpc('listar_perfis_com_detalhes');
   if (error) {
-    blocoAtivos.innerHTML = `<p class="alert">Não foi possível carregar usuários. ${esc(error.message)}</p>`;
+    console.warn('[usuarios] erro perfis:', error.message);
+    perfisDisponiveis = [];
     return;
   }
+  perfisDisponiveis = (data || []).map(p => ({
+    id: p.id,
+    codigo: p.codigo,
+    nome: p.nome,
+    total_permissoes: Number(p.total_permissoes),
+  }));
+}
 
-  const todos = data || [];
-  const ativos = todos.filter(u => u.papeis.length > 0);
-  const inativos = todos.filter(u => u.papeis.length === 0);
+async function carregarCatalogo() {
+  catalogo = await listarTodasPermissoes();
+}
 
-  if (ativos.length === 0 && inativos.length === 0) {
-    blocoAtivos.innerHTML = `
-      <div class="vazio">
-        <div class="vazio-num">∅</div>
-        <p class="vazio-titulo">Nenhum usuário cadastrado.</p>
-      </div>`;
-    return;
-  }
-
-  blocoAtivos.innerHTML = `
-    <div class="vd-grid">
-      ${ativos.map((u, i) => cardUsuario(u, i)).join('')}
+async function carregarLista() {
+  const lista = document.querySelector('#us-lista');
+  if (!lista) return;
+  lista.innerHTML = `
+    <div>
+      ${[1,2,3].map(() => `<div class="skel" style="height:6.5rem;margin-bottom:0.6rem"></div>`).join('')}
     </div>`;
 
-  if (inativos.length > 0) {
-    blocoInativos.innerHTML = `
-      <button class="vd-inativas-toggle" type="button" aria-expanded="false" aria-controls="us-inativos-grid">
-        <span>Acessos desativados (${inativos.length})</span>
-        <span class="vd-toggle-caret" aria-hidden="true">
-          <svg width="12" height="8" viewBox="0 0 12 8"><path d="M1 1.5 L6 6.5 L11 1.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-      </button>
-      <div id="us-inativos-grid" class="vd-inativas vd-grid" hidden>
-        ${inativos.map((u, i) => cardUsuario(u, i)).join('')}
-      </div>`;
+  const { data, error } = await supabase.rpc('listar_usuarios_com_perfis_e_extras');
+  if (error) {
+    lista.innerHTML = `<div class="alert">Não foi possível carregar usuários. ${esc(error.message)}</div>`;
+    return;
   }
 
-  document.querySelectorAll('[data-us-acao]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.dataset.usId;
-      const u = todos.find(x => x.user_id === id);
-      if (!u) return;
-      abrirDrawerPapeis(u);
+  usuarios = data || [];
+
+  if (usuarios.length === 0) {
+    lista.innerHTML = `<div class="vazio"><p class="vazio-titulo">Nenhum usuário cadastrado.</p></div>`;
+    return;
+  }
+
+  renderListaCards();
+}
+
+function renderListaCards() {
+  const lista = document.querySelector('#us-lista');
+  if (!lista) return;
+  lista.innerHTML = usuarios.map((u, i) => cardUsuario(u, i)).join('');
+  lista.querySelectorAll('[data-us-acao="editar"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const u = usuarios.find(x => x.usuario_id === btn.dataset.usId);
+      if (u) abrirDrawerEditar(u);
     });
   });
-
-  const tog = document.querySelector('.vd-inativas-toggle');
-  if (tog) {
-    tog.addEventListener('click', () => {
-      const exp = tog.getAttribute('aria-expanded') === 'true';
-      tog.setAttribute('aria-expanded', String(!exp));
-      const grid = document.querySelector('#us-inativos-grid');
-      if (grid) grid.hidden = exp;
-    });
-  }
 }
 
 function cardUsuario(u, i) {
-  const ehEu = u.user_id === meuUid;
-  const nome = [u.nome, u.sobrenome].filter(Boolean).join(' ').trim() || u.email.split('@')[0];
-  const inicial = (u.nome?.[0] || u.email?.[0] || '?').toUpperCase();
-
-  const pilhas = u.papeis.length > 0
-    ? u.papeis.map(p => `<span class="us-pill us-pill--${esc(p)}">${esc(rotuloPapel(p))}</span>`).join('')
-    : `<span class="us-pill us-pill--sem">sem acesso</span>`;
-
-  const emailStatus = u.email_confirmado
-    ? `<span class="us-meta us-meta--ok" title="Email confirmado">${esc(u.email)} <span aria-hidden="true">✓</span></span>`
-    : `<span class="us-meta us-meta--warn" title="Email pendente">${esc(u.email)} · pendente</span>`;
-
-  const acesso = u.ultimo_acesso
-    ? `último acesso ${formatarRelativo(u.ultimo_acesso)}`
-    : 'nunca acessou';
+  const ehEu = u.usuario_id === meuUid;
+  const perfilTxt = u.perfil_nome
+    ? esc(u.perfil_nome)
+    : `<span class="us-sem-perfil">Sem perfil atribuído</span>`;
+  const extrasTxt = Number(u.total_extras) === 0
+    ? '0 extras'
+    : `${u.total_extras} extra${u.total_extras > 1 ? 's' : ''}`;
 
   return `
-    <article class="vd-card us-card" data-ativa="${u.papeis.length > 0}" data-eu="${ehEu}" style="animation-delay:${i * 50}ms">
-      <div class="us-card-topo">
-        <span class="us-avatar" aria-hidden="true">${esc(inicial)}</span>
-        <div class="us-cabec">
-          <h3 class="vd-card-nome">${esc(nome)}${ehEu ? ' <span class="us-eu">você</span>' : ''}</h3>
-          ${emailStatus}
+    <article class="us-card" style="animation-delay:${i * 50}ms" data-eh-eu="${ehEu}">
+      <header class="us-card-cabec">
+        <div class="us-card-id">
+          <h3 class="us-card-email">${esc(u.email)}</h3>
+          ${u.e_super_admin ? `<span class="us-badge-super">super_admin</span>` : ''}
+          ${ehEu ? `<span class="us-badge-eu">você</span>` : ''}
         </div>
-      </div>
-      <div class="us-pilhas" aria-label="Papéis">${pilhas}</div>
-      <p class="vd-card-data">${esc(acesso)} · cadastrado em ${formatarDataCurta(u.cadastrado_em)}</p>
-      <div class="vd-card-acoes">
-        <button class="vd-card-btn" data-us-acao="papeis" data-us-id="${esc(u.user_id)}">
-          Alterar papéis
-        </button>
+        <p class="us-card-meta">
+          <span class="us-meta-perfil">${perfilTxt}</span>
+          <span class="us-meta-sep">·</span>
+          ${extrasTxt}
+        </p>
+        <p class="us-card-data">Cadastrado em ${formatarData(u.criado_em)}</p>
+      </header>
+      <div class="us-card-acoes">
+        <button class="vd-card-btn" data-us-acao="editar" data-us-id="${esc(u.usuario_id)}">Editar</button>
       </div>
     </article>`;
 }
 
-// ─── Drawer alterar papéis ──────────────────────────────────────────
-function abrirDrawerPapeis(u) {
-  const ehEu = u.user_id === meuUid;
-  const nome = [u.nome, u.sobrenome].filter(Boolean).join(' ').trim() || u.email.split('@')[0];
-  const tinhaAdmin = u.papeis.includes('admin');
-  const tinhaOperador = u.papeis.includes('operador');
+// ─── Drawer de edição ────────────────────────────────────────────────────
+
+async function abrirDrawerEditar(u) {
+  const podeAtribuir = temPermissaoSync('usuario.atribuir_perfil');
+  const podeExtra    = temPermissaoSync('usuario.conceder_extra');
+  const ehEu         = u.usuario_id === meuUid;
+
+  const optionsPerfis = perfisDisponiveis.map(p =>
+    `<option value="${esc(p.id)}" ${u.perfil_id === p.id ? 'selected' : ''}>
+       ${esc(p.nome)} (${p.total_permissoes} perm.)
+     </option>`
+  ).join('');
 
   const corpo = `
-    <p class="text-body" style="color:var(--c-tinta-2);line-height:1.55;margin-bottom:1.25rem">
-      Marque os papéis que <strong style="font-family:'Fraunces',serif;font-style:italic;font-weight:500;color:var(--c-tinta)">${esc(nome)}</strong>
-      deve ter. Pelo menos um papel é obrigatório.
-    </p>
-
-    <div class="us-checks" role="group" aria-label="Papéis">
-      <label class="us-check ${tinhaOperador ? 'is-marcado' : ''}">
-        <input type="checkbox" id="us-papel-operador" name="papeis" value="operador"
-               ${tinhaOperador ? 'checked' : ''}>
-        <span class="us-check-marca" aria-hidden="true">
-          <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
-            <path d="M1 5 L4.5 8.5 L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <span class="us-check-conteudo">
-          <span class="us-check-titulo">Operador</span>
-          <span class="us-check-desc">Lança NFs, categoriza, abre observações, fecha caixa.</span>
-        </span>
-      </label>
-
-      <label class="us-check ${tinhaAdmin ? 'is-marcado' : ''} ${ehEu ? 'is-trava' : ''}"
-             ${ehEu ? 'title="Você não pode remover seu próprio papel de administrador. Peça para outro admin fazer isso."' : ''}>
-        <input type="checkbox" id="us-papel-admin" name="papeis" value="admin"
-               ${tinhaAdmin ? 'checked' : ''} ${ehEu ? 'disabled' : ''}>
-        <span class="us-check-marca" aria-hidden="true">
-          <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
-            <path d="M1 5 L4.5 8.5 L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <span class="us-check-conteudo">
-          <span class="us-check-titulo">Admin</span>
-          <span class="us-check-desc">Tudo do operador + gerenciar usuários, feriados e sistema.</span>
-        </span>
-      </label>
-    </div>
-
-    <div id="us-bloco-promover" class="us-aviso us-aviso--alerta" hidden>
-      <div class="us-aviso-cabec">
-        <span class="us-aviso-icone" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M9 1.5 L17 16.5 L1 16.5 Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
-            <path d="M9 7 V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="9" cy="13.5" r="0.85" fill="currentColor"/>
-          </svg>
-        </span>
-        <strong>Promovendo a administrador</strong>
+    <div class="us-secao">
+      <p class="h-eyebrow" style="margin-bottom:0.4rem">Identidade</p>
+      <div class="prm-form-readonly" style="margin-bottom:0">
+        <p class="prm-readonly-rotulo">Email</p>
+        <p class="prm-readonly-valor"><code>${esc(u.email)}</code></p>
+        <p class="prm-readonly-rotulo" style="margin-top:0.7rem">Cadastrado em</p>
+        <p class="prm-readonly-valor">${formatarData(u.criado_em)}</p>
       </div>
-      <p>Ao confirmar, <strong>${esc(nome)}</strong> poderá:</p>
-      <ul>
-        <li>Gerenciar todos os usuários (inclusive remover seu acesso)</li>
-        <li>Editar feriados e configurações do sistema</li>
-        <li>Forçar fechamento de caixas</li>
-        <li>Acessar relatórios completos</li>
-      </ul>
-      <label class="us-confirma-label" for="us-confirma-input">
-        Digite <code>${PALAVRA_PROMOVER}</code> para confirmar:
+    </div>
+
+    <div class="us-secao">
+      <p class="h-eyebrow" style="margin-bottom:0.4rem">Super-administrador</p>
+      <label class="us-toggle">
+        <input type="checkbox" id="us-toggle-super" ${u.e_super_admin ? 'checked' : ''}>
+        <span class="us-toggle-marca"></span>
+        <span class="us-toggle-rotulo">
+          <strong>${u.e_super_admin ? 'É super-admin' : 'Não é super-admin'}</strong>
+          <span class="us-toggle-sub">
+            Bypass total: pode tudo, sem checagem de permissão.
+            ${ehEu ? '<br><em>Você não pode revogar seu próprio super-admin.</em>' : ''}
+          </span>
+        </span>
       </label>
-      <input id="us-confirma-input" type="text" class="us-confirma-input"
-             autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
     </div>
 
-    <div id="us-bloco-demover" class="us-aviso us-aviso--musgo" hidden>
-      <p>Confirma remover privilégios de admin de <strong>${esc(nome)}</strong>?
-         O histórico fica preservado — pode promover de novo a qualquer momento.</p>
+    <div class="us-secao">
+      <p class="h-eyebrow" style="margin-bottom:0.4rem">Perfil principal</p>
+      <div class="field">
+        <label class="field-label" for="us-perfil-select">Perfil</label>
+        <select id="us-perfil-select" class="field-input" ${podeAtribuir ? '' : 'disabled'}>
+          <option value="">— escolha um perfil —</option>
+          ${optionsPerfis}
+        </select>
+        <span class="field-underline"></span>
+        <p class="field-hint" id="us-perfil-hint">
+          ${u.e_super_admin
+            ? 'Super-admins têm bypass total — o perfil é apenas informativo.'
+            : 'O perfil define o conjunto base de permissões. Override pontual via "extras" abaixo.'}
+        </p>
+      </div>
     </div>
 
-    <div id="us-bloco-zerar" class="us-aviso us-aviso--alerta" hidden>
-      <p>Sem nenhum papel marcado, <strong>${esc(nome)}</strong> não conseguirá entrar
-         no sistema. Marque ao menos um papel.</p>
+    <div class="us-secao">
+      <div class="us-extras-cabec">
+        <p class="h-eyebrow" style="margin-bottom:0">Permissões extras pontuais</p>
+        ${podeExtra ? `<button type="button" id="us-add-extra" class="vd-card-btn">+ Adicionar</button>` : ''}
+      </div>
+      <div id="us-extras-lista">
+        <div class="skel" style="height:3rem"></div>
+      </div>
     </div>
   `;
 
   abrirModal({
     lateral: true,
-    eyebrow: `Acessos · ${u.email}`,
-    titulo: `Alterar papéis`,
+    eyebrow: ehEu ? 'Editando você' : 'RBAC',
+    titulo: u.email,
     conteudo: corpo,
     rodape: `
       <div id="us-erro" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
       <div class="painel-rodape-acoes">
-        <button type="button" id="us-cancelar" class="btn-link">Cancelar</button>
-        <button type="button" id="us-salvar" class="btn-primary" disabled>Confirmar</button>
+        <button type="button" id="us-fechar" class="btn-link">Fechar</button>
       </div>`,
   });
 
-  const f = (id) => document.querySelector(`#${id}`);
-  const inOp = f('us-papel-operador');
-  const inAd = f('us-papel-admin');
-  const blocoProm = f('us-bloco-promover');
-  const blocoDem = f('us-bloco-demover');
-  const blocoZerar = f('us-bloco-zerar');
-  const inputConf = f('us-confirma-input');
-  const btnSalvar = f('us-salvar');
-  const erroEl = f('us-erro');
+  document.querySelector('#us-fechar').addEventListener('click', () => fecharModal(true));
 
-  function atualizarUI() {
-    const marcouAdmin = inAd.checked;
-    const marcouOperador = inOp.checked;
-    const algumMarcado = marcouAdmin || marcouOperador;
+  // Toggle super_admin
+  const toggle = document.querySelector('#us-toggle-super');
+  toggle.addEventListener('change', async (ev) => {
+    const novoEstado = ev.target.checked;
+    if (novoEstado === u.e_super_admin) return;
 
-    inOp.closest('.us-check')?.classList.toggle('is-marcado', marcouOperador);
-    inAd.closest('.us-check')?.classList.toggle('is-marcado', marcouAdmin);
-
-    const promovendo = !tinhaAdmin && marcouAdmin && !ehEu;
-    const demovendo = tinhaAdmin && !marcouAdmin && !ehEu;
-    const zerou = !algumMarcado;
-
-    blocoProm.hidden = !promovendo;
-    blocoDem.hidden = !demovendo;
-    blocoZerar.hidden = !zerou;
-
-    let podeSalvar = algumMarcado;
-    if (promovendo) {
-      podeSalvar = podeSalvar && inputConf.value.trim().toLowerCase() === PALAVRA_PROMOVER;
+    if (novoEstado) {
+      ev.target.checked = false;
+      abrirModalPromoverSuperAdmin(u, async () => {
+        ev.target.checked = true;
+        await aplicarPromoverSuper(u);
+      });
+    } else {
+      ev.target.checked = true;
+      abrirModalRevogarSuperAdmin(u, async () => {
+        ev.target.checked = false;
+        await aplicarRevogarSuper(u);
+      });
     }
-    btnSalvar.disabled = !podeSalvar;
+  });
+
+  // Perfil dropdown
+  const select = document.querySelector('#us-perfil-select');
+  if (podeAtribuir) {
+    select.addEventListener('change', async () => {
+      const novoPerfilId = select.value;
+      if (!novoPerfilId) return;
+      if (novoPerfilId === u.perfil_id) return;
+
+      const erroEl = document.querySelector('#us-erro');
+      erroEl.classList.add('hidden');
+
+      const { error } = await supabase.rpc('atribuir_perfil_usuario', {
+        p_usuario_id: u.usuario_id,
+        p_perfil_id:  novoPerfilId,
+      });
+
+      if (error) {
+        erroEl.textContent = traduzirErro(error);
+        erroEl.classList.remove('hidden');
+        select.value = u.perfil_id || '';
+        return;
+      }
+
+      const novoPerfil = perfisDisponiveis.find(p => p.id === novoPerfilId);
+      u.perfil_id = novoPerfilId;
+      u.perfil_nome = novoPerfil?.nome || '';
+      u.perfil_codigo = novoPerfil?.codigo || '';
+      mostrarToast('Perfil atualizado.', 'ok', 2400);
+      if (u.usuario_id === meuUid) limparCachePapeis(); else invalidarCachePermissoes();
+    });
   }
 
-  inOp.addEventListener('change', atualizarUI);
-  inAd.addEventListener('change', atualizarUI);
-  inputConf.addEventListener('input', atualizarUI);
+  if (podeExtra) {
+    document.querySelector('#us-add-extra').addEventListener('click', () => abrirModalAdicionarExtra(u));
+  }
+  await renderListaExtras(u, podeExtra);
+}
 
-  f('us-cancelar').addEventListener('click', () => fecharModal(false));
+async function renderListaExtras(u, podeExtra) {
+  const cont = document.querySelector('#us-extras-lista');
+  if (!cont) return;
 
-  btnSalvar.addEventListener('click', async () => {
-    erroEl.classList.add('hidden');
-    const papeis = [
-      inOp.checked ? 'operador' : null,
-      inAd.checked ? 'admin' : null,
-    ].filter(Boolean);
+  const { data, error } = await supabase.rpc('listar_extras_de_usuario', { p_usuario_id: u.usuario_id });
+  if (error) {
+    cont.innerHTML = `<p class="alert">${esc(error.message)}</p>`;
+    return;
+  }
 
-    btnSalvar.setAttribute('aria-busy', 'true');
-    btnSalvar.disabled = true;
+  const extras = data || [];
+  if (extras.length === 0) {
+    cont.innerHTML = `<p class="us-extras-vazio">Sem permissões extras.</p>`;
+    return;
+  }
 
-    const { error } = await supabase.rpc('definir_papeis_usuario', {
-      p_user_id: u.user_id,
-      p_papeis: papeis,
+  cont.innerHTML = extras.map(e => `
+    <div class="us-extra-item">
+      <div class="us-extra-cabec">
+        <code class="prm-codigo">${esc(e.permissao_codigo)}</code>
+        ${podeExtra ? `<button class="us-extra-revogar" data-codigo="${esc(e.permissao_codigo)}" type="button">Revogar</button>` : ''}
+      </div>
+      <p class="us-extra-desc">${esc(e.descricao)}</p>
+      ${e.motivo ? `<p class="us-extra-motivo"><strong>Motivo:</strong> ${esc(e.motivo)}</p>` : ''}
+      <p class="us-extra-rodape">
+        Concedida em ${formatarData(e.concedido_em)}${e.concedido_por_email ? ` por ${esc(e.concedido_por_email)}` : ''}
+      </p>
+    </div>
+  `).join('');
+
+  if (podeExtra) {
+    cont.querySelectorAll('.us-extra-revogar').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const codigo = btn.dataset.codigo;
+        const { error } = await supabase.rpc('revogar_permissao_extra', {
+          p_usuario_id: u.usuario_id,
+          p_codigo:     codigo,
+        });
+        if (error) {
+          mostrarToast(traduzirErro(error), 'erro', 4000);
+          return;
+        }
+        u.total_extras = Math.max(0, Number(u.total_extras) - 1);
+        if (u.usuario_id === meuUid) limparCachePapeis(); else invalidarCachePermissoes();
+        mostrarToast('Permissão revogada.', 'ok', 2400);
+        await renderListaExtras(u, podeExtra);
+      });
     });
+  }
+}
 
-    btnSalvar.removeAttribute('aria-busy');
+// ─── Modal: adicionar permissão extra ────────────────────────────────────
 
-    if (error) {
-      btnSalvar.disabled = false;
+async function abrirModalAdicionarExtra(u) {
+  let permsDoPerfil = new Set();
+  if (u.perfil_id) {
+    const perms = await carregarPermsDoPerfil(u.perfil_id);
+    permsDoPerfil = new Set(perms);
+  }
+
+  const { data: extrasAtuais } = await supabase
+    .from('usuario_permissao_extra')
+    .select('permissao_codigo')
+    .eq('usuario_id', u.usuario_id);
+  const setExtras = new Set((extrasAtuais || []).map(e => e.permissao_codigo));
+
+  const candidatos = catalogo.filter(p => !permsDoPerfil.has(p.codigo) && !setExtras.has(p.codigo));
+
+  if (candidatos.length === 0) {
+    mostrarToast('Este usuário já tem todas as permissões disponíveis.', 'info', 3500);
+    return;
+  }
+
+  const porModulo = new Map();
+  for (const p of candidatos) {
+    if (!porModulo.has(p.modulo)) porModulo.set(p.modulo, []);
+    porModulo.get(p.modulo).push(p);
+  }
+
+  const optgroups = Array.from(porModulo.entries()).map(([mod, itens]) => `
+    <optgroup label="${esc(MODULOS[mod] || mod)}">
+      ${itens.map(p => `<option value="${esc(p.codigo)}">${esc(p.codigo)} — ${esc(p.descricao)}</option>`).join('')}
+    </optgroup>
+  `).join('');
+
+  abrirModal({
+    titulo: 'Conceder permissão extra',
+    conteudo: `
+      <p class="text-body" style="color:var(--c-tinta-2);line-height:1.55;margin-bottom:1rem">
+        Permissão pontual ALÉM do perfil principal de
+        <strong style="font-family:'Fraunces',serif;font-style:italic;font-weight:500;color:var(--c-tinta)">${esc(u.email)}</strong>.
+        O motivo fica registrado no histórico para auditoria.
+      </p>
+
+      <div class="field">
+        <label class="field-label" for="us-extra-codigo">Permissão</label>
+        <select id="us-extra-codigo" class="field-input" required>
+          <option value="">— escolha uma permissão —</option>
+          ${optgroups}
+        </select>
+        <span class="field-underline"></span>
+      </div>
+
+      <div class="field" style="margin-top:1rem">
+        <label class="field-label" for="us-extra-motivo">Motivo *</label>
+        <textarea id="us-extra-motivo" class="field-input" required minlength="10" maxlength="500"
+                  style="min-height:5rem;resize:vertical"
+                  placeholder="ex: Precisa exportar relatórios na ausência do contador (mín 10 caracteres)"></textarea>
+        <span class="field-underline"></span>
+        <p class="field-hint">Mínimo 10 caracteres. Fica registrado em audit log.</p>
+      </div>`,
+    rodape: `
+      <div id="us-extra-erro" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
+      <div class="painel-rodape-acoes">
+        <button type="button" id="us-extra-cancelar" class="btn-link">Cancelar</button>
+        <button type="button" id="us-extra-conceder" class="btn-primary">Conceder</button>
+      </div>`,
+  });
+
+  document.querySelector('#us-extra-cancelar').addEventListener('click', () => fecharModal(false));
+
+  document.querySelector('#us-extra-conceder').addEventListener('click', async () => {
+    const codigo = document.querySelector('#us-extra-codigo').value;
+    const motivo = document.querySelector('#us-extra-motivo').value.trim();
+    const erroEl = document.querySelector('#us-extra-erro');
+    erroEl.classList.add('hidden');
+
+    if (!codigo) {
+      erroEl.textContent = 'Escolha uma permissão.';
       erroEl.classList.remove('hidden');
-      erroEl.textContent = error.message || 'Erro ao salvar.';
+      return;
+    }
+    if (motivo.length < 10) {
+      erroEl.textContent = 'Motivo precisa ter pelo menos 10 caracteres.';
+      erroEl.classList.remove('hidden');
       return;
     }
 
-    if (u.user_id === meuUid) limparCachePapeis();
+    const btn = document.querySelector('#us-extra-conceder');
+    btn.setAttribute('aria-busy', 'true');
+    btn.disabled = true;
+
+    const { error } = await supabase.rpc('conceder_permissao_extra', {
+      p_usuario_id: u.usuario_id,
+      p_codigo:     codigo,
+      p_motivo:     motivo,
+    });
+
+    btn.removeAttribute('aria-busy');
+
+    if (error) {
+      btn.disabled = false;
+      erroEl.textContent = traduzirErro(error);
+      erroEl.classList.remove('hidden');
+      return;
+    }
+
+    u.total_extras = Number(u.total_extras) + 1;
+    if (u.usuario_id === meuUid) limparCachePapeis(); else invalidarCachePermissoes();
     fecharModal(true);
-    mostrarToast('Papéis atualizados.', 'ok', 2400);
-    await carregarLista();
+    mostrarToast('Permissão extra concedida.', 'ok', 2800);
+    await renderListaExtras(u, true);
+  });
+}
+
+// ─── Modal: promover super_admin (digitação obrigatória) ─────────────────
+
+function abrirModalPromoverSuperAdmin(u, onConfirmar) {
+  abrirModal({
+    titulo: 'Promover a super_admin?',
+    conteudo: `
+      <p class="text-body" style="color:var(--c-tinta-2);line-height:1.55">
+        Super-admin tem <strong>bypass total</strong>: pode tudo, sem
+        checagem de permissão. Eles também podem promover ou revogar
+        outros super-admins.
+      </p>
+      <p class="text-body" style="margin-top:0.6rem;font-size:0.86rem;color:var(--c-tinta-3);line-height:1.5">
+        Para confirmar, digite o email de
+        <strong style="color:var(--c-tinta)">${esc(u.email)}</strong> abaixo (case-sensitive):
+      </p>
+      <div class="field" style="margin-top:0.85rem">
+        <input id="us-super-confirm" type="text" autocomplete="off"
+               class="field-input" placeholder="${esc(u.email)}">
+        <span class="field-underline"></span>
+      </div>`,
+    rodape: `
+      <div class="painel-rodape-acoes">
+        <button type="button" id="us-super-cancelar" class="btn-link">Cancelar</button>
+        <button type="button" id="us-super-confirmar" class="btn-primary" disabled>
+          Promover
+        </button>
+      </div>`,
   });
 
-  setTimeout(() => atualizarUI(), 50);
+  const inp = document.querySelector('#us-super-confirm');
+  const btn = document.querySelector('#us-super-confirmar');
+  inp.addEventListener('input', () => { btn.disabled = inp.value !== u.email; });
+  setTimeout(() => inp.focus(), 200);
+
+  document.querySelector('#us-super-cancelar').addEventListener('click', () => fecharModal(false));
+  btn.addEventListener('click', async () => {
+    if (inp.value !== u.email) return;
+    fecharModal(true);
+    await onConfirmar();
+  });
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────
-function rotuloPapel(p) {
-  return p === 'admin' ? 'Admin' : (p === 'operador' ? 'Operador' : p);
+// ─── Modal: revogar super_admin (confirmação simples) ────────────────────
+
+function abrirModalRevogarSuperAdmin(u, onConfirmar) {
+  abrirModal({
+    titulo: 'Revogar super_admin?',
+    conteudo: `
+      <p class="text-body" style="color:var(--c-tinta-2);line-height:1.55">
+        <strong style="font-family:'Fraunces',serif;font-style:italic;font-weight:500;color:var(--c-tinta);font-size:1.05rem">${esc(u.email)}</strong>
+        deixa de ter bypass total. Continua com o perfil principal e
+        permissões extras pontuais.
+      </p>
+      <p class="text-body" style="margin-top:0.6rem;font-size:0.86rem;color:var(--c-tinta-3);line-height:1.5">
+        O sistema bloqueia esta ação se for o último super-admin ativo,
+        ou se for você mesmo.
+      </p>`,
+    rodape: `
+      <div class="painel-rodape-acoes">
+        <button type="button" id="us-rev-cancelar" class="btn-link">Cancelar</button>
+        <button type="button" id="us-rev-confirmar" class="btn-primary">Revogar</button>
+      </div>`,
+  });
+
+  document.querySelector('#us-rev-cancelar').addEventListener('click', () => fecharModal(false));
+  document.querySelector('#us-rev-confirmar').addEventListener('click', async () => {
+    fecharModal(true);
+    await onConfirmar();
+  });
 }
 
-function formatarDataCurta(ts) {
+async function aplicarPromoverSuper(u) {
+  const { error } = await supabase.rpc('promover_super_admin', { p_usuario_id: u.usuario_id });
+  if (error) {
+    mostrarToast(traduzirErro(error), 'erro', 4500);
+    return;
+  }
+  u.e_super_admin = true;
+  if (u.usuario_id === meuUid) limparCachePapeis(); else invalidarCachePermissoes();
+  mostrarToast(`${u.email} agora é super_admin.`, 'ok', 2800);
+  renderListaCards();
+}
+
+async function aplicarRevogarSuper(u) {
+  const { error } = await supabase.rpc('revogar_super_admin', { p_usuario_id: u.usuario_id });
+  if (error) {
+    mostrarToast(traduzirErro(error), 'erro', 4500);
+    return;
+  }
+  u.e_super_admin = false;
+  if (u.usuario_id === meuUid) limparCachePapeis(); else invalidarCachePermissoes();
+  mostrarToast(`Super_admin revogado de ${u.email}.`, 'ok', 2800);
+  renderListaCards();
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────
+
+async function carregarPermsDoPerfil(perfilId) {
+  if (perfilPermsCache.has(perfilId)) return perfilPermsCache.get(perfilId);
+  const { data, error } = await supabase
+    .from('perfil_permissao')
+    .select('permissao_codigo')
+    .eq('perfil_id', perfilId);
+  if (error) return [];
+  const arr = (data || []).map(r => r.permissao_codigo);
+  perfilPermsCache.set(perfilId, arr);
+  return arr;
+}
+
+function traduzirErro(error) {
+  const msg = (error.message || '').toLowerCase();
+  if (msg.includes('permissao negada') || msg.includes('apenas super_admin'))
+    return 'Você não tem permissão para esta ação.';
+  if (msg.includes('motivo obrigatorio'))
+    return 'Motivo obrigatório (mínimo 10 caracteres).';
+  if (msg.includes('pelo menos 1 super_admin'))
+    return 'O sistema precisa ter pelo menos 1 super_admin ativo. Promova outro antes.';
+  if (msg.includes('proprio super_admin'))
+    return 'Você não pode revogar seu próprio super_admin (peça para outro super_admin).';
+  if (msg.includes('perfil nao encontrado') || msg.includes('usuario nao encontrado'))
+    return 'Registro não encontrado. Recarregue a página.';
+  if (msg.includes('permissao nao encontrada'))
+    return 'Permissão não está no catálogo.';
+  return error.message || 'Erro inesperado.';
+}
+
+function formatarData(ts) {
   if (!ts) return '—';
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  }).format(new Date(ts)).replace('.', '');
-}
-
-function formatarRelativo(ts) {
-  if (!ts) return 'nunca';
-  const d = new Date(ts);
-  const agora = Date.now();
-  const seg = Math.floor((agora - d.getTime()) / 1000);
-  if (seg < 60) return 'agora há pouco';
-  if (seg < 3600) return `há ${Math.floor(seg / 60)} min`;
-  if (seg < 86400) return `há ${Math.floor(seg / 3600)} h`;
-  if (seg < 86400 * 7) return `há ${Math.floor(seg / 86400)} dias`;
-  return formatarDataCurta(ts);
+  try {
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit', month: 'short', year: 'numeric',
+    }).format(new Date(ts));
+  } catch { return ts; }
 }
 
 function esc(s) {
