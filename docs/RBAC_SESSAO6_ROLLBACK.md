@@ -50,8 +50,14 @@ Sintomas que indicam quebra de policy:
 | 9 | C | `backups_admin_only` (storage.objects) | `20260504401000_REVERSE_storage_backups.sql` |
 | 10 | C | `comprovantes_select` (storage.objects) | `20260504401100_REVERSE_storage_comprovantes_select.sql` |
 | 11 | C | `comprovantes_upload` (storage.objects) | `20260504401200_REVERSE_storage_comprovantes_upload.sql` |
+| 12 | D | `caixa_select` | `20260504401300_REVERSE_caixa_select.sql` |
+| 13 | D | `caixa_insert` | `20260504401400_REVERSE_caixa_insert.sql` |
+| 14 | D | `caixa_update` | `20260504401500_REVERSE_caixa_update.sql` |
+| 15 | D | `lancamento_select` | `20260504401600_REVERSE_lancamento_select.sql` |
+| 16 | D | `lancamento_insert` | `20260504401700_REVERSE_lancamento_insert.sql` |
+| 17 | D | `lancamento_update` | `20260504401800_REVERSE_lancamento_update.sql` |
 
-(Mais entradas conforme próximos blocos.)
+**Sessão 6 completa**: 17/17 policies migradas. Próxima etapa controlada é o DROP de `fn_tem_papel(varchar)` — só após smoke completo do Bloco D em PROD pelo Operador.
 
 ## Padrão de cada migration reversa
 
