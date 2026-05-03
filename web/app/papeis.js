@@ -4,9 +4,11 @@
 // Uso:
 //   const papeis = await pegarPapeis();   // ['admin','operador'] | ['operador'] | []
 //   await temPapel('admin');              // boolean
+//   await temPermissao('caixa.abrir');    // boolean (RBAC novo, Sessao 1)
 //   limparCachePapeis();                  // chamado no logout
 
 import { supabase, pegarSessao } from './supabase.js';
+import { log }                   from './log.js';
 
 let cache = null;
 let cacheUid = null;
@@ -37,6 +39,36 @@ export async function pegarPapeis() {
 export async function temPapel(papel) {
   const lista = await pegarPapeis();
   return lista.includes(papel);
+}
+
+/**
+ * Verifica se o usuario atual tem uma permissao especifica do RBAC.
+ * Chama a RPC public.tem_permissao() (SECURITY DEFINER) que considera:
+ *   1. Bypass total se papel='super_admin' ativo
+ *   2. Permissao via perfil principal (usuario_perfil -> perfil_permissao)
+ *   3. Permissao via override pontual (usuario_permissao_extra)
+ *
+ * IMPORTANTE: hoje (Sessao 1 do RBAC) esta funcao existe mas NAO eh
+ * usada em lugar nenhum. As checagens atuais continuam usando
+ * temPapel('admin'). Adocao gradual nas Sessoes 2 e 3 do RBAC.
+ *
+ * Fail-closed: qualquer erro de rede/RPC -> false (nega).
+ */
+export async function temPermissao(codigo) {
+  const sessao = await pegarSessao();
+  const uid = sessao?.user?.id;
+  if (!uid) return false;
+
+  const { data, error } = await supabase.rpc('tem_permissao', {
+    p_usuario_id: uid,
+    p_codigo:     codigo,
+  });
+
+  if (error) {
+    log.erro('tem_permissao falhou', error, { codigo });
+    return false;
+  }
+  return data === true;
 }
 
 export function limparCachePapeis() {
