@@ -1,49 +1,44 @@
 # INFRA — Configurações de produção
 
 > Coisas que precisam ser feitas **fora do código** (Dashboards, env vars,
-> contas) antes do deploy. Atualizado em 2026-05-03 (CP-DEPLOY-LOCAL §1).
+> contas) antes do deploy. Atualizado em 2026-05-03 (deploy em Cloudflare Pages).
 
-## Deploy local via Cloudflare Tunnel
+## Deploy via Cloudflare Pages
 
-A partir de 2026-05-03, o sistema roda **localmente no PC do trabalho**
-exposto via Cloudflare Tunnel — não em Cloudflare Pages. Procedimento
-de instalação completo em `docs/DEPLOY_LOCAL.md`.
+Sistema rodando em `https://caixa-boti.plexalabs.com` via Cloudflare
+Pages. Build estático (`dist/`) servido pela CDN da Cloudflare; cada
+push em `main` dispara redeploy automático via integração GitHub.
 
 ### Arquitetura
 
 ```
-Internet → caixa-boti.plexalabs.com → Cloudflare Tunnel → PC do trabalho
-                                                              ↓
-                                                       Vite preview (127.0.0.1:4173)
-                                                              ↓
-                                                         Supabase (nuvem)
+Internet → caixa-boti.plexalabs.com → Cloudflare Pages (CDN global)
+                                              ↓
+                                        Browser do usuario
+                                              ↓
+                                  Supabase (shjtwrojdgotmxdbpbta)
 ```
 
-### Decisões
+### Variáveis de ambiente (painel Cloudflare Pages)
 
-- **Sem Cloudflare Pages**: rodando build local em vez de servidor estático
-  na nuvem. Motivo: controle total + simplicidade do pipeline (sem CI/CD).
-- **Tunnel via cloudflared**: zero abertura de portas no roteador. Tráfego
-  egress 443 é o único requisito de rede.
-- **Domínio próprio**: `caixa-boti.plexalabs.com` em vez de URL aleatória
-  `*.trycloudflare.com`. CNAME criado pelo `cloudflared tunnel route dns`.
-- **Vite preview em `127.0.0.1`** (não `0.0.0.0`): protege de exposição
-  acidental na rede local. Cloudflare Tunnel acessa via loopback.
-- **Build estático**: `npm run start:local` faz `build` antes de `preview`.
-  Build leva ~3s; preview é instantâneo. Não há SSR.
+| Variável | Valor |
+|---|---|
+| `VITE_SUPABASE_URL` | `https://shjtwrojdgotmxdbpbta.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | (anon JWT do projeto) |
+| `VITE_SENTRY_DSN` | DSN do projeto Sentry |
+| `NODE_VERSION` | `20` |
 
-### Operação
+### Web Analytics da Cloudflare
 
-| Componente | Onde roda | Auto-start |
-|---|---|---|
-| `cloudflared` | Serviço Windows (NT) | Sim — `sc start cloudflared` no boot |
-| `npm run start:local` | Processo Node | Manual / Task Scheduler / PM2 |
-| Supabase (DB + Auth + Edge) | Nuvem | Sempre online (SLA Supabase Pro) |
+Desabilitado no Dashboard (Pages → Settings → Web Analytics) para
+evitar conflito com a CSP estrita do `web/public/_headers`. O beacon
+era injetado via `<script>` inline + carga de `static.cloudflareinsights.com`,
+ambos bloqueados por `script-src 'self'`.
 
-### Pendências
-
-- Sessão 2 do CP-DEPLOY-LOCAL: instalador `.bat` empacotado que automatiza
-  os Passos 1 a 7 do `DEPLOY_LOCAL.md` num clique.
+Mesmo desabilitado, o `_headers` permite explicitamente
+`static.cloudflareinsights.com` em `script-src` e `cloudflareinsights.com`
+em `connect-src` — funciona como fallback caso alguém reative o
+Analytics no Dashboard sem coordenar.
 
 ## Sentry — logs de produção
 
