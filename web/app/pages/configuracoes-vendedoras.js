@@ -12,12 +12,12 @@ import { supabase } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModal, fecharModal } from '../../components/modal.js';
 import { mostrarToast } from '../notifications.js';
-import { pegarPapeis } from '../papeis.js';
-
-let papeisCache = null;
+import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
 
 export async function renderVendedoras() {
-  papeisCache = await pegarPapeis();
+  // RBAC Sessao 3: pre-carrega cache de permissoes pra cardVendedora()
+  // (chamada em loop) usar temPermissaoSync sem await em cada iteracao.
+  await carregarPermissoes();
 
   document.querySelector('#app').innerHTML = await renderShell({
     rotaAtiva: 'config',
@@ -154,7 +154,9 @@ async function carregarLista() {
 }
 
 function cardVendedora(v, i) {
-  const ehAdmin = papeisCache.includes('admin');
+  // Permissao: vendedora.editar (cobre desativar/reativar tambem -- 1
+  // permissao para os 3 verbos no desenho atual).
+  const ehAdmin = temPermissaoSync('vendedora.editar');
   const acoes = [];
   if (v.ativa) {
     acoes.push(`<button class="vd-card-btn" data-vd-acao="editar" data-vd-id="${esc(v.id)}">Editar</button>`);
