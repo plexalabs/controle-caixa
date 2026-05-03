@@ -47,6 +47,60 @@
 - **Template `recovery.html` reaplicado manualmente** no Dashboard Supabase
   pelo Operador (Supabase não expõe API pra atualizar templates)
 
+## Status — RBAC Sessão 5 (2026-05-04)
+
+### Concluído (Sessão 5 de 6)
+
+**Atenção**: o que era originalmente planejado como Sessão 5 final virou
+"Sessão 5 + Sessão 6" devido a achado durante a implementação. Sessão 6
+agora é necessária pra finalizar o RBAC.
+
+- [x] 7 RPCs novas: atribuir_perfil, conceder/revogar_extra,
+      promover/revogar_super_admin, listar_usuarios_com_perfis_e_extras,
+      listar_extras_de_usuario
+- [x] Tela `/configuracoes/usuarios` reescrita com modelo RBAC
+- [x] Drawer de 4 seções: Identidade, Super-admin, Perfil, Permissões extras
+- [x] Modal de promover super_admin com confirmação por digitação do email
+- [x] Modal de conceder extra com motivo obrigatório (mín 10 chars)
+- [x] Anti-lockout em revogar_super_admin (rejeita último ou self)
+- [x] `definir_papeis_usuario` (RPC legacy) removida
+- [x] Workaround `papel != super_admin` removido junto (saiu com a RPC)
+- [x] `temPapel()` no client removida (zero call sites)
+
+### Achado: 17 RLS policies dependem de fn_tem_papel
+
+Durante a tentativa de remover `fn_tem_papel(varchar)`, descoberto que
+17 RLS policies em tabelas críticas dependem dela:
+
+- caixa, lancamento, vendedora, feriado, config (operacionais)
+- audit_log, sync_log (auditoria)
+- usuario_papel (tabela do próprio sistema RBAC legacy)
+- 3 policies em storage.objects (uploads/anexos)
+
+Sem prejuízo imediato: ninguém chama mais a função do client/RPCs.
+Mas a função não pode ser dropada sem antes migrar as policies.
+
+### Pendência crítica
+
+- **Sessão 6 (~2-3h, ALTO RISCO)**: migrar 17 RLS policies de
+  `fn_tem_papel('admin'|'operador')` para `tem_permissao(auth.uid(), 'X.Y')`.
+  Após Sessão 6 estável e validada, dropar `fn_tem_papel`.
+
+  Risco: errar policy pode tornar dados invisíveis ou expô-los
+  indevidamente. Validação cuidadosa obrigatória antes do merge.
+
+### Estado do sistema RBAC
+
+- Tabelas RBAC: populadas
+- 39 permissões catalogadas em 9 módulos
+- 5 perfis pré-definidos + capacidade de criar customizados via UI
+- 5 RPCs servidor + 7 call sites client + 2 telas RBAC + 7 RPCs novas
+- Cache de permissões ativo (TTL 1 min)
+- super_admin: bypass total em servidor + wildcard no client
+- super_admin: pode promover/revogar outros super_admins via UI
+- Permissões extras pontuais via UI com motivo obrigatório
+- **RLS ainda em modelo legacy**: precisa Sessão 6 finalizar
+
 ## Status — RBAC Sessão 4 (2026-05-04)
 
 ### Concluído (Sessão 4 de 5)
@@ -580,6 +634,10 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+ef1e71b  [F3-RBAC-5] merge: Sessao 5 do RBAC + remocao parcial de legacy
+         (7 RPCs novas + tela /configuracoes/usuarios reescrita
+          + dropa definir_papeis_usuario; fn_tem_papel preservada
+          por 17 RLS deps -- pendente Sessao 6)
 f122c71  [F3-RBAC-4] merge: Sessao 4 do RBAC granular
          (5 RPCs CRUD perfis + tela /configuracoes/permissoes
           com drawer agrupado + modais de confirmacao e delete)
