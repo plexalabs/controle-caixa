@@ -1,6 +1,7 @@
-# Cabeçalhos servidos pelo Cloudflare Pages na Fase 4. Em dev local
-# (npm run dev / npm run preview), aplicar via vite.config.js para
-# validar antes do deploy.
+# Cabeçalhos do build estático servido pelo Vite preview (npm run start:local)
+# atrás do Cloudflare Tunnel em caixa-boti.plexalabs.com. Em dev local
+# (npm run dev), os mesmos headers podem ser aplicados via vite.config.js
+# para validar antes do build.
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -8,4 +9,4 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), camera=(), microphone=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-VY2U1GTJm5dVbF6ZC0w0a1xAXWCy9dqDJB+VSyBud8E=' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://shjtwrojdgotmxdbpbta.supabase.co wss://shjtwrojdgotmxdbpbta.supabase.co https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-VY2U1GTJm5dVbF6ZC0w0a1xAXWCy9dqDJB+VSyBud8E=' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://shjtwrojdgotmxdbpbta.supabase.co wss://shjtwrojdgotmxdbpbta.supabase.co https://cloudflareinsights.com https://*.ingest.sentry.io https://o4511051433115648.ingest.us.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'

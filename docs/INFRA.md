@@ -1,7 +1,49 @@
 # INFRA — Configurações de produção
 
 > Coisas que precisam ser feitas **fora do código** (Dashboards, env vars,
-> contas) antes do deploy. Atualizado em 2026-05-02 (CP-PRE-DEPLOY-1).
+> contas) antes do deploy. Atualizado em 2026-05-03 (CP-DEPLOY-LOCAL §1).
+
+## Deploy local via Cloudflare Tunnel
+
+A partir de 2026-05-03, o sistema roda **localmente no PC do trabalho**
+exposto via Cloudflare Tunnel — não em Cloudflare Pages. Procedimento
+de instalação completo em `docs/DEPLOY_LOCAL.md`.
+
+### Arquitetura
+
+```
+Internet → caixa-boti.plexalabs.com → Cloudflare Tunnel → PC do trabalho
+                                                              ↓
+                                                       Vite preview (127.0.0.1:4173)
+                                                              ↓
+                                                         Supabase (nuvem)
+```
+
+### Decisões
+
+- **Sem Cloudflare Pages**: rodando build local em vez de servidor estático
+  na nuvem. Motivo: controle total + simplicidade do pipeline (sem CI/CD).
+- **Tunnel via cloudflared**: zero abertura de portas no roteador. Tráfego
+  egress 443 é o único requisito de rede.
+- **Domínio próprio**: `caixa-boti.plexalabs.com` em vez de URL aleatória
+  `*.trycloudflare.com`. CNAME criado pelo `cloudflared tunnel route dns`.
+- **Vite preview em `127.0.0.1`** (não `0.0.0.0`): protege de exposição
+  acidental na rede local. Cloudflare Tunnel acessa via loopback.
+- **Build estático**: `npm run start:local` faz `build` antes de `preview`.
+  Build leva ~3s; preview é instantâneo. Não há SSR.
+
+### Operação
+
+| Componente | Onde roda | Auto-start |
+|---|---|---|
+| `cloudflared` | Serviço Windows (NT) | Sim — `sc start cloudflared` no boot |
+| `npm run start:local` | Processo Node | Manual / Task Scheduler / PM2 |
+| Supabase (DB + Auth + Edge) | Nuvem | Sempre online (SLA Supabase Pro) |
+
+### Pendências
+
+- Sessão 2 do CP-DEPLOY-LOCAL: instalador `.bat` empacotado que automatiza
+  os Passos 1 a 7 do `DEPLOY_LOCAL.md` num clique.
 
 ## Sentry — logs de produção
 
