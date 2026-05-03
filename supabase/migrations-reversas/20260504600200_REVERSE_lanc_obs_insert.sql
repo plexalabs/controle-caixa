@@ -1,0 +1,20 @@
+-- REVERSA da migration 20260504600200_audit_fix_002_lanc_obs_insert.sql
+--
+-- NÃO aplicar automaticamente. Cole no Supabase Dashboard → SQL Editor
+-- se INSERT em lancamento_observacao começar a falhar com 403.
+--
+-- NOTA: a reversa NÃO depende de fn_tem_papel (que foi dropado na Sessão 6),
+-- pois usa EXISTS direto contra a coluna papel de usuario_papel.
+
+DROP POLICY IF EXISTS "lanc_obs_insert" ON public.lancamento_observacao;
+
+CREATE POLICY "lanc_obs_insert" ON public.lancamento_observacao
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    auth.uid() = autor_id
+    AND EXISTS (
+      SELECT 1 FROM public.usuario_papel
+      WHERE usuario_id = auth.uid()
+        AND papel IN ('admin','operador')
+    )
+  );
