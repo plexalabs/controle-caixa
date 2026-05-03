@@ -6258,3 +6258,329 @@ body.supabase-down [data-acao="critica"] {
 @media (prefers-reduced-motion: reduce) {
     .lanc-row--destacado { animation: none; background: rgba(199, 122, 63, 0.12); }
 }
+
+/* =====================================================================
+ * PERMISSÕES (CP-RBAC Sessão 4) — /configuracoes/permissoes
+ * Cards de perfis, drawer com checklist agrupado, modal de delete,
+ * detalhes inline. Reusa identidade flat-left/round-right + paleta papel.
+ * ===================================================================== */
+
+.prm-card {
+    position: relative;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    padding: 1.1rem 1.25rem 1.1rem 1.6rem;
+    margin-bottom: 0.7rem;
+    overflow: hidden;
+    transition: border-color 220ms var(--ease-out), transform 220ms var(--ease-out);
+    animation: fade-up 600ms var(--ease-out) backwards;
+}
+.prm-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--c-musgo);
+    transition: background 220ms var(--ease-out);
+}
+.prm-card:hover { border-color: var(--c-musgo); transform: translateY(-1px); }
+.prm-card.is-aberto { border-color: var(--c-musgo); background: var(--c-papel-2); }
+.prm-card.is-aberto::before { background: var(--c-ambar); }
+
+.prm-card-cabec {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.prm-card-id { display: flex; align-items: baseline; gap: 0.6rem; }
+.prm-card-nome {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    font-size: 1.3rem;
+    line-height: 1.15;
+    color: var(--c-tinta);
+}
+.prm-badge-sistema, .prm-badge-custom {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.22rem 0.5rem;
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+}
+.prm-badge-sistema { background: rgba(15, 76, 58, 0.1); color: var(--c-musgo-3); }
+.prm-badge-custom  { background: rgba(199, 122, 63, 0.12); color: var(--c-ambar); }
+
+.prm-card-meta {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-2);
+    margin-top: 0.25rem;
+}
+.prm-meta-num { font-weight: 600; color: var(--c-tinta); font-variant-numeric: tabular-nums; }
+.prm-meta-sep { color: var(--c-tinta-3); margin: 0 0.3em; }
+
+.prm-card-desc {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.9rem;
+    color: var(--c-tinta-2);
+    line-height: 1.5;
+    margin-top: 0.55rem;
+}
+
+.prm-card-acoes {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.vd-card-btn--desabilitado, .vd-card-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.vd-card-btn--desabilitado:hover, .vd-card-btn[disabled]:hover {
+    background: transparent; color: var(--c-tinta-2); border-color: var(--c-papel-3);
+}
+
+.prm-detalhes {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--c-papel-3);
+    animation: fade-up 320ms var(--ease-out);
+}
+.prm-detalhe-bloco { margin-bottom: 1rem; }
+.prm-detalhe-subtitulo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--c-musgo-3);
+    margin-bottom: 0.55rem;
+}
+.prm-detalhe-vazio {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+    font-style: italic;
+}
+.prm-detalhe-rodape {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.74rem;
+    color: var(--c-tinta-3);
+    margin-top: 0.85rem;
+    padding-top: 0.6rem;
+    border-top: 1px dashed var(--c-papel-3);
+    font-variant-numeric: tabular-nums;
+}
+
+.prm-modulo-detalhe { margin-bottom: 0.85rem; }
+.prm-modulo-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 1rem;
+    color: var(--c-musgo);
+    margin-bottom: 0.4rem;
+}
+.prm-perms-leitura { list-style: none; padding: 0; margin: 0; }
+.prm-perms-leitura li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px dotted var(--c-papel-3);
+    flex-wrap: wrap;
+}
+.prm-perms-leitura li:last-child { border-bottom: 0; }
+
+.prm-codigo {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--c-musgo-3);
+    background: rgba(15, 76, 58, 0.06);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+}
+.prm-desc-curta {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-2);
+    line-height: 1.45;
+}
+.prm-badge-destrutiva, .prm-badge-destrutiva-inline {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: rgba(154, 42, 31, 0.12);
+    color: var(--c-alerta);
+    padding: 0.18rem 0.45rem;
+    border-radius: var(--r-pill);
+    margin-left: auto;
+    white-space: nowrap;
+}
+.prm-badge-destrutiva-inline { margin-left: 0; vertical-align: middle; }
+
+.prm-usuarios-lista { list-style: none; padding: 0; margin: 0; }
+.prm-usuarios-lista li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px dotted var(--c-papel-3);
+}
+.prm-usuarios-lista li:last-child { border-bottom: 0; }
+.prm-usuario-email {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-2);
+}
+.prm-usuario-extras {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--c-ambar);
+    background: rgba(199, 122, 63, 0.1);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--r-pill);
+}
+.prm-usuarios-mais { font-style: italic; color: var(--c-tinta-3); font-size: 0.78rem; }
+
+.prm-form-readonly {
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px dashed var(--c-papel-3);
+}
+.prm-readonly-rotulo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--c-tinta-3);
+    margin-bottom: 0.25rem;
+}
+.prm-readonly-valor {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    color: var(--c-tinta);
+}
+.prm-readonly-valor code {
+    font-family: 'Roboto Mono', monospace;
+    color: var(--c-musgo-3);
+    background: rgba(15, 76, 58, 0.06);
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.3rem;
+    font-size: 0.85rem;
+}
+
+.prm-perms-secao {
+    margin-top: 1.2rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--c-papel-3);
+}
+.prm-perms-aviso {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.82rem;
+    color: var(--c-tinta-2);
+    line-height: 1.5;
+    margin-bottom: 0.85rem;
+}
+
+.prm-modulo-fold {
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    margin-bottom: 0.5rem;
+    background: var(--c-papel);
+    overflow: hidden;
+    transition: border-color 180ms var(--ease-out);
+}
+.prm-modulo-fold[open] { border-color: var(--c-musgo); }
+.prm-modulo-summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.65rem 0.85rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    user-select: none;
+    transition: background 180ms var(--ease-out);
+}
+.prm-modulo-summary::-webkit-details-marker { display: none; }
+.prm-modulo-summary::before {
+    content: '›';
+    color: var(--c-tinta-3);
+    font-size: 1.1rem;
+    margin-right: 0.5rem;
+    transition: transform 180ms var(--ease-out);
+    display: inline-block;
+}
+.prm-modulo-fold[open] .prm-modulo-summary::before { transform: rotate(90deg); }
+.prm-modulo-summary:hover { background: var(--c-papel-2); }
+.prm-modulo-rotulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 1rem;
+    color: var(--c-musgo);
+    flex: 1;
+}
+.prm-modulo-cont {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--c-tinta-3);
+    font-variant-numeric: tabular-nums;
+    background: var(--c-papel-2);
+    padding: 0.18rem 0.5rem;
+    border-radius: var(--r-pill);
+}
+
+.prm-perms-checklist { list-style: none; padding: 0; margin: 0; border-top: 1px dashed var(--c-papel-3); }
+.prm-perms-checklist li { border-bottom: 1px dotted var(--c-papel-3); }
+.prm-perms-checklist li:last-child { border-bottom: 0; }
+
+.prm-perm-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.55rem 0.85rem;
+    cursor: pointer;
+    transition: background 160ms var(--ease-out);
+}
+.prm-perm-item:hover { background: var(--c-papel-2); }
+.prm-perm-item input[type="checkbox"] {
+    margin-top: 0.2rem;
+    accent-color: var(--c-musgo);
+    cursor: pointer;
+}
+.prm-perm-conteudo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.field-hint {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.72rem;
+    color: var(--c-tinta-3);
+    margin-top: 0.3rem;
+    font-style: italic;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .prm-card { animation: none; }
+    .prm-detalhes { animation: none; }
+    .prm-modulo-fold[open] .prm-modulo-summary::before { transition: none; }
+}
