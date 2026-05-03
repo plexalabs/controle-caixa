@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — RBAC granular 100% concluído (Sessão 6 de 6).
+> Última atualização: 2026-05-04 — CP-AUDIT-1 (CRÍTICO-001) mergeado pós-RBAC.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -101,8 +101,36 @@ Total acumulado:
 - **Sessão 5**: tela `/configuracoes/usuarios` reescrita + 7 RPCs
 - **Sessão 6**: 17 RLS policies migradas + DROP final
 
+## Status — CP-AUDIT-1 (CRITICO-001) (2026-05-04)
+
+### Concluído
+
+Auditoria externa identificou 4 RPCs SECURITY DEFINER que mudavam
+estado de lancamento sem checar permissao. Apenas `auth.uid() IS NOT NULL`.
+
+- [x] 2 permissoes novas no catalogo: `lancamento.finalizar` e
+      `lancamento.cancelar_pos` (atribuidas a admin/gerente/operador)
+- [x] `categorizar_lancamento`: check `lancamento.categorizar`
+- [x] `marcar_finalizado`: check `lancamento.finalizar`
+- [x] `marcar_cancelado_pos`: check `lancamento.cancelar_pos`
+- [x] `adicionar_observacao`: check `lancamento.adicionar_observacao`
+- [x] Validado em PROD por Operador
+
+### Estado pos-fix
+
+40 → 42 permissoes catalogadas. 4 RPCs operacionais agora seguem
+o padrao das RPCs RBAC (Sessoes 4/5): check de permissao no inicio,
+falha com 42501 antes de mudar estado.
+
+### Item registrado como nao-bug
+
+Operador notou que botao "reabrir caixa" nao aparece em caixas
+fechados. NAO eh bug do fix: feature ainda nao foi implementada
+(FEATURE-002 do relatorio, esforco G).
+
 ### Histórico de merges (recentes)
 
+- `e7573b2` — `[AUDIT-FIX-1] merge: CRITICO-001 do relatorio de auditoria`
 - `f082c19` — `[F3-RBAC-6] merge: Sessao 6 do RBAC + DROP fn_tem_papel`
 
 ---
