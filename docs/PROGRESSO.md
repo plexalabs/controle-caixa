@@ -1,6 +1,6 @@
 # PROGRESSO — Sistema de Controle de Caixa
 
-> Estado do projeto após o CP-DEPLOY-LOCAL na `main` (2026-05-03).
+> Estado do projeto após o CP-DEPLOY-LOCAL §3 (NSSM) na `main` (2026-05-03).
 > Stack canônica documentada em `docs/STACK.md`.
 
 ## Status — fim do CP-DEPLOY-LOCAL (2026-05-03)
@@ -26,9 +26,34 @@ manutenção mais frequente, internet do trabalho como SLA.
   - 9 etapas `.bat` granulares (verificar, Node, Git, cloudflared, clone, env, build, tunnel, PM2)
   - Download dinâmico via PowerShell (sem MSIs no repo)
   - Substituição automática de TUNNEL_ID no config.yml via PowerShell
-  - PM2 + pm2-windows-startup para autostart do app
+  - PM2 + pm2-windows-startup para autostart do app (depois substituído pela Sessão 3)
   - Idempotência verificada por inspeção em todas as etapas
   - README com troubleshooting (antivírus, repo privado, reinstalação)
+
+- [x] **Sessão 2-FIX: encoding dos `.bat`**
+  - Operador rodou no PC do trabalho e o instalador parou logo no boot
+    com mensagens "'o' não é reconhecido como comando interno". Causa:
+    conteúdo multi-byte UTF-8 (em-dash `—`, box-drawing `═`) lido pelo
+    `cmd.exe` no codepage nativo (CP-850/1252) **antes** do `chcp 65001`
+    virar efetivo
+  - Fix: todos os 10 `.bat` reescritos em ASCII puro (`—` → `--`,
+    `═══` → `===`). Lógica intocada — só encoding
+  - README ganhou subseção explicando sintoma + procedimento de
+    reinstalação após falha parcial
+
+- [x] **Sessão 3: app como serviço Windows nativo via NSSM**
+  - `infra/instalador/instalar-servico-windows.bat` standalone, idempotente
+  - Substitui PM2 por NSSM 2.24 (Non-Sucking Service Manager)
+  - Razão: PM2 mostra janela cmd, daemon flaky no boot, não roda em
+    Session 0. NSSM é o jeito canônico de wrappar processo como serviço
+    Windows nativo (mesma arquitetura do `cloudflared`)
+  - Serviço chama `node.exe` direto rodando `vite.js preview` — evita o
+    cmd.exe extra que `npm.cmd` traria (mais robusto em serviço Windows)
+  - Configurações: auto-start no boot, restart automático em crash
+    (delay 5s, throttle 10s), logs rotacionados em `C:\caixa-boti\logs\`
+    a cada 1MB, mata árvore de processos no stop
+  - Resultado: liga o PC → 2 serviços sobem (`caixa-boti-app` +
+    `cloudflared`) → site disponível sem janela alguma na tela do operador
 
 ### Pendências CP-DEPLOY-LOCAL
 
@@ -332,6 +357,12 @@ npm run preview              # http://localhost:4173 (com CSP)
 ## Histórico de merges na main
 
 ```
+1fa699b  [F3-DL-3] merge: app como servico Windows nativo via NSSM
+         (instalar-servico-windows.bat substitui PM2 por NSSM 2.24,
+          Session 0 invisivel, restart automatico em crash)
+445cfb7  [F3-DL-2-FIX] merge: instalador .bat em ASCII puro
+         (em-dash e box-drawing trocados por ASCII; cmd.exe lia
+          UTF-8 no codepage nativo e quebrava nos primeiros bytes)
 67a8917  [F3-DL-2] merge: instalador empacotado para PC Windows
          (orquestrador + 9 etapas .bat + README, PM2 + cloudflared,
           download dinamico via PowerShell, idempotencia total)
