@@ -47,6 +47,9 @@ Sintomas que indicam quebra de policy:
 | 6 | B | `usuario_papel_admin_modify` | `20260504400700_REVERSE_usuario_papel_admin_modify.sql` |
 | 7 | B | `vendedora_insert` | `20260504400800_REVERSE_vendedora_insert.sql` |
 | 8 | B | `vendedora_update` | `20260504400900_REVERSE_vendedora_update.sql` |
+| 9 | C | `backups_admin_only` (storage.objects) | `20260504401000_REVERSE_storage_backups.sql` |
+| 10 | C | `comprovantes_select` (storage.objects) | `20260504401100_REVERSE_storage_comprovantes_select.sql` |
+| 11 | C | `comprovantes_upload` (storage.objects) | `20260504401200_REVERSE_storage_comprovantes_upload.sql` |
 
 (Mais entradas conforme próximos blocos.)
 
