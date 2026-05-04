@@ -3432,7 +3432,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    ============================================================ */
 
 :root {
-    --sidebar-w-expandida: 260px;
+    --sidebar-w-expandida: 220px;
     --sidebar-w-colapsada: 68px;
     --z-sidebar:    20;
     --z-drawer:     40;
@@ -3614,6 +3614,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .app-sidebar[data-estado="expandida"] .sidebar-toggle svg { transform: rotate(0deg); }
 /* Colapsada: chevron aponta `>` (vai expandir) — gira 180° */
 .app-sidebar[data-estado="colapsada"] .sidebar-toggle svg { transform: rotate(180deg); }
+
+/* Em mobile o toggle some -- usuário fecha tocando fora da sidebar
+   (overlay já trata) ou via gesture do hamburguer. Toggle dentro da
+   sidebar mobile fica redundante e atrapalhava o layout do rodapé. */
+@media (max-width: 767px) {
+    .sidebar-toggle { display: none; }
+}
 
 /* Nav itens.
    Padding-left = 0 para que o item possa colar na borda esquerda da sidebar
