@@ -1790,11 +1790,31 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     border-color: var(--c-papel-3);
 }
 @media (max-width: 640px) {
+    /* Mobile: filter-bar e botões dividem a mesma linha (row),
+       botões encolhem ao tamanho do conteúdo (min-width:0) pra caber. */
     .cx-acoes-row {
-        /* Em mobile, o filter-bar ocupa a linha inteira acima dos botões
-           pra preservar largura util do filtro quando aberto. */
-        flex-direction: column-reverse;
-        align-items: stretch;
+        gap: 0.5rem;
+    }
+    .resumo-acao {
+        gap: 0.4rem;
+        flex-wrap: nowrap;
+    }
+    .resumo-acao .btn-primary,
+    .resumo-acao .btn-fechar-caixa,
+    .resumo-acao .hint-pendencias {
+        min-width: 0;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+    /* Quando o filter-bar abre em mobile, o slot ocupa toda a linha
+       e empurra os botões pra próxima linha (flex-wrap volta) -- evita
+       espremer os campos do painel. */
+    .cx-acoes-row {
+        flex-wrap: wrap;
+    }
+    .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .cx-filtros-slot {
+        flex-basis: 100%;
     }
 }
 
@@ -1822,12 +1842,9 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .resumo-acao .btn-primary {
     border: 1.5px solid transparent;
 }
-@media (max-width: 480px) {
-    .resumo-acao { justify-content: stretch; }
-    .resumo-acao .btn-primary,
-    .resumo-acao .btn-fechar-caixa,
-    .resumo-acao .hint-pendencias { width: 100%; min-width: 0; justify-content: flex-start; }
-}
+/* Mobile: regras consolidadas em @media (max-width:640px) acima
+   junto com .cx-acoes-row -- botões encolhem mas mantêm row, dividindo
+   a linha com o filter-bar. */
 
 
 /* ============================================================
