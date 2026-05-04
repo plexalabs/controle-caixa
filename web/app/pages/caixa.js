@@ -451,51 +451,54 @@ function atualizarRodape(lancamentos) {
     dist[l.categoria] = (dist[l.categoria] || 0) + 1;
   }
 
+  // Layout clean: hierarquia tipográfica vertical sem tira "DO DIA",
+  // sem chips chromados. Apenas:
+  //   1) eyebrow + valor + qtd  (bloco principal)
+  //   2) linha de estados (só os com n>0, número colorido + label)
+  //   3) linha de distribuição (bolinha colorida + categoria · qtd)
+  const itensEstado = [
+    { tom: 'analise',   rotulo: 'em análise',  n: emAnalise.length },
+    { tom: 'curso',     rotulo: 'em curso',    n: emCurso.length },
+    { tom: 'resolvido', rotulo: 'resolvidas',  n: resolvidos.length },
+    { tom: 'cancelado', rotulo: 'canceladas',  n: cancelados.length },
+  ].filter(i => i.n > 0);
+
+  const itensDist = Object.entries(dist).map(([cat, n]) => ({
+    cat, n, nome: LABEL_CATEGORIA[cat] || cat,
+  }));
+
   rod.innerHTML = `
-    <div class="resumo-dia-bloco resumo-dia-bloco--total">
+    <div class="resumo-dia-cabec">
       <p class="h-eyebrow">Total do dia</p>
-      <div class="resumo-dia-total">
-        <span class="resumo-dia-total-valor">${formatBRL(total)}</span>
-        <span class="resumo-dia-total-quant">
-          ${validos.length} ${validos.length === 1 ? 'lançamento válido' : 'lançamentos válidos'}
-        </span>
+      <div class="resumo-dia-valor">
+        <span class="resumo-dia-valor-num">${formatBRL(total)}</span>
+        <span class="resumo-dia-valor-qtd">${validos.length} ${validos.length === 1 ? 'lançamento válido' : 'lançamentos válidos'}</span>
       </div>
     </div>
 
-    <div class="resumo-dia-bloco resumo-dia-bloco--estado">
-      <p class="h-eyebrow">Estado</p>
-      <div class="resumo-dia-chips">
-        ${chipEstado('analise',   'Em análise', emAnalise.length)}
-        ${chipEstado('curso',     'Em curso',   emCurso.length)}
-        ${chipEstado('resolvido', 'Resolvidas', resolvidos.length)}
-        ${chipEstado('cancelado', 'Canceladas', cancelados.length)}
-      </div>
-    </div>
+    ${itensEstado.length ? `
+      <ul class="resumo-dia-linha resumo-dia-estados">
+        ${itensEstado.map(i => `
+          <li data-tom="${i.tom}">
+            <span class="resumo-dia-num">${i.n}</span>
+            <span class="resumo-dia-rotulo">${i.rotulo}</span>
+          </li>
+        `).join('')}
+      </ul>
+    ` : ''}
 
-    ${Object.keys(dist).length ? `
-      <div class="resumo-dia-bloco resumo-dia-bloco--dist">
-        <p class="h-eyebrow">Distribuição</p>
-        <div class="resumo-dia-cats">
-          ${Object.entries(dist).map(([cat, n]) => `
-            <span class="rd-cat" data-cat="${esc(cat)}">
-              <span class="rd-cat-conteudo">
-                <span class="rd-cat-nome">${esc(LABEL_CATEGORIA[cat] || cat)}</span>
-                <span class="rd-cat-num">${n}</span>
-              </span>
-            </span>
-          `).join('')}
-        </div>
-      </div>
+    ${itensDist.length ? `
+      <ul class="resumo-dia-linha resumo-dia-dist">
+        ${itensDist.map(i => `
+          <li data-cat="${esc(i.cat)}">
+            <span class="resumo-dia-dot" aria-hidden="true"></span>
+            <span class="resumo-dia-rotulo">${esc(i.nome)}</span>
+            <span class="resumo-dia-num resumo-dia-num--small">${i.n}</span>
+          </li>
+        `).join('')}
+      </ul>
     ` : ''}
   `;
-}
-
-function chipEstado(tom, rotulo, n) {
-  return `
-    <span class="rd-chip" data-tom="${tom}" data-zero="${n === 0 ? 'true' : 'false'}">
-      <span class="rd-chip-num">${n}</span>
-      <span class="rd-chip-rotulo">${rotulo}</span>
-    </span>`;
 }
 
 function renderSemCaixa(dataAlvo) {
