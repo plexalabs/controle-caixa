@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — STYLE-FILTER (filter-bar colapsável + inline com botões de ação) mergeado.
+> Última atualização: 2026-05-04 — STYLE-CAIXA-HEADER (refator mobile + filter overlay + resumo-dia clean) mergeado.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -277,8 +277,32 @@ para economizar espaco vertical em telas com filtros pouco usados.
 Telas afetadas (componente compartilhado): /caixa/:data, /pendencias,
 /notificacoes.
 
+## Status — STYLE-CAIXA-HEADER refator (2026-05-04)
+
+11 commits encadeados em 1 merge -- refatoração da tela /caixa/:data
+focada em ergonomia mobile + clean-up visual.
+
+- [x] Status do caixa movido pro topbar (.cx-topbar) -- economiza
+      linha vertical em mobile
+- [x] Filter-bar mobile como overlay full-width: botao circular
+      44x44 recolhido vira pilula com texto "Filtro" quando aberto;
+      slot reserva 44px no fluxo (botoes nao mudam de tamanho);
+      filter vira position:absolute em cima da row
+- [x] Lista empurnada via JS MutationObserver + padding-bottom
+      dinamico (--fb-overlay-h)
+- [x] Botoes mobile com min-height 44px (= circulo do filter),
+      flex 1 1 0 dividindo espaco, ellipsis pra truncar gracioso
+- [x] Animacoes organicas: texto "Filtro" desliza com max-width +
+      opacity + translateX, botao deforma round->pilula com
+      transitions explicitas em cubic-bezier(0.22, 1, 0.36, 1)
+- [x] Resumo do dia clean: removida tira "DO DIA" + chips chromados;
+      layout tipografico (eyebrow + valor enorme + linhas de estados
+      e distribuicao com bolinhas coloridas inline)
+- [x] Validado em PROD por Operador
+
 ### Histórico de merges (recentes)
 
+- `00c55e1` — `[STYLE-CAIXA-HEADER] merge: refator mobile do header + filter overlay + resumo-dia clean`
 - `2800131` — `[STYLE-FILTER] merge: filter-bar colapsavel + inline com botoes de acao`
 - `c922ece` — `[STYLE-SIDEBAR] merge: refatoracao completa do topo + rodape da sidebar`
 - `6e51802` — `[STYLE-CAIXA-ROW] merge: caixa-row-meta sem quebra no hover`
