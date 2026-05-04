@@ -3178,19 +3178,20 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 /* Topo da sidebar: logo (símbolo + wordmark expandido / só símbolo colapsado).
-   Altura mínima 64px. */
+   Logo ocupa quase todo o espaço do topo — gera assinatura visual forte. */
 .sidebar-topo {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding: 20px 16px;
-    min-height: 64px;
+    padding: 18px 16px;
+    min-height: 88px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--c-papel-3);
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-topo {
     justify-content: center;
-    padding: 20px 0;
+    padding: 16px 0;
+    min-height: 72px;
 }
 
 .sidebar-logo {
@@ -3207,12 +3208,17 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .sidebar-logo:focus-visible { outline-offset: 4px; }
 
 .sidebar-logo-marca {
-    width: 32px;
-    height: 32px;
+    width: 52px;
+    height: 52px;
     background: var(--c-musgo);
     flex-shrink: 0;
-    transition: background 180ms ease, transform 280ms var(--ease-spring);
+    transition: background 180ms ease, transform 280ms var(--ease-spring),
+                width 220ms var(--ease-out), height 220ms var(--ease-out);
     display: inline-block;
+}
+.app-sidebar[data-estado="colapsada"] .sidebar-logo-marca {
+    width: 40px;
+    height: 40px;
 }
 .sidebar-logo:hover .sidebar-logo-marca {
     background: var(--c-musgo-2);
@@ -3227,9 +3233,9 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     font-style: italic;
     font-weight: 400;
     font-variation-settings: "opsz" 144, "SOFT" 30;
-    font-size: 1.35rem;     /* ~22px */
+    font-size: 1.7rem;      /* ~27px — ocupa o topo expandido com presença */
     line-height: 1;
-    letter-spacing: -0.005em;
+    letter-spacing: -0.01em;
     color: var(--c-tinta);
     white-space: nowrap;
     opacity: 1;
@@ -3244,35 +3250,31 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     padding: 4px;
 }
 
-/* Toggle FORA do topo, ancorado na borda direita da sidebar a meia-altura
-   do header. Em hover ganha papel-3, sem trocar SVG (rotaciona 180°). */
+/* Toggle agora vive DENTRO do .sidebar-rodape (não mais flutuando no topo
+   como bolinha pendurada). No expandido fica ao lado direito do bloco
+   usuário; no colapsado empilha abaixo do avatar formando um bloco
+   vertical compacto (quase quadrado). */
 .sidebar-toggle {
     appearance: none;
-    background: var(--c-papel);
+    background: var(--c-papel-2);
     border: 1px solid var(--c-papel-3);
     color: var(--c-tinta-2);
     cursor: pointer;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-sm);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    position: absolute;
-    top: 30px;
-    right: -11px;
-    z-index: 5;
-    box-shadow: 0 2px 8px -3px rgba(15, 76, 58, 0.25);
+    flex-shrink: 0;
     transition: background 180ms var(--ease-out),
                 color 180ms var(--ease-out),
-                border-color 180ms var(--ease-out),
-                box-shadow 180ms var(--ease-out);
+                border-color 180ms var(--ease-out);
 }
 .sidebar-toggle:hover {
     background: var(--c-papel-3);
     color: var(--c-musgo);
     border-color: var(--c-musgo);
-    box-shadow: 0 3px 12px -3px rgba(15, 76, 58, 0.35);
 }
 .sidebar-toggle svg {
     transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
@@ -3415,18 +3417,31 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-musgo);
 }
 
-/* Rodapé: expandido = avatar + nome + email; colapsado = só avatar. */
+/* Rodapé: bloco usuário + botão toggle.
+   Expandida: layout horizontal — [avatar] [nome/cargo] [toggle] (toggle à direita)
+   Colapsada: layout vertical — [avatar↑] [toggle↓] (forma quase quadrada,
+   ~74×68px, batendo com a largura colapsada da sidebar). */
 .sidebar-rodape {
     flex-shrink: 0;
-    padding: 12px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-height: 64px;
     position: relative;
 }
-.app-sidebar[data-estado="expandida"] .sidebar-rodape { padding: 8px; }
-.app-sidebar[data-estado="colapsada"] .sidebar-rodape { padding: 16px; }
+.app-sidebar[data-estado="expandida"] .sidebar-rodape {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    min-height: 64px;
+}
+.app-sidebar[data-estado="colapsada"] .sidebar-rodape {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    min-height: 0;
+}
 
 .sidebar-user {
     appearance: none;
@@ -3444,7 +3459,10 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     position: relative;
     color: inherit;
     font-family: 'Manrope', sans-serif;
-    width: 100%;
+    min-width: 0;
+}
+.app-sidebar[data-estado="expandida"] .sidebar-user {
+    flex: 1;
     min-width: 0;
 }
 .app-sidebar[data-estado="expandida"] .sidebar-user:hover {
@@ -3518,15 +3536,21 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.sidebar-user-email {
+/* Cargo (perfil RBAC) — label discreto em caixa-alta abaixo do nome.
+   Substituiu o email da versão anterior; estilo de etiqueta para se
+   diferenciar visualmente do nome (que é mais quente, 14px regular). */
+.sidebar-user-cargo {
     font-family: 'Manrope', sans-serif;
-    font-size: 0.75rem;    /* 12px */
-    font-weight: 400;
+    font-size: 0.68rem;    /* ~10.9px */
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     color: var(--c-tinta-3);
     line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-top: 2px;
 }
 
 /* Tooltip da sidebar (CP5-FIX 9) — div com seta, fade-in 400ms delay
