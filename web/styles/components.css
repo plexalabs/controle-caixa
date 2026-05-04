@@ -3252,23 +3252,24 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     transform: translateX(0);
     max-width: 200px;
     overflow: hidden;
-    /* ESTADO BASE (expandido): textos chegam DEPOIS que a largura cresce.
-       delay 240-280ms == "fim" da animação de largura (420ms total).
-       Sensação: barra abre primeiro, palavras "vêm de dentro" depois. */
-    transition: opacity 240ms ease 280ms,
-                transform 320ms cubic-bezier(0.22, 1, 0.36, 1) 240ms,
-                max-width 360ms cubic-bezier(0.22, 1, 0.36, 1) 240ms;
+    /* ESTADO BASE (expandido): max-width sincronizado COM a largura da
+       barra (420ms, sem delay) -- como o overflow:hidden do parent
+       recorta, o texto "sai pela esquerda" no mesmo ritmo que a barra
+       abre. Efeito de desenrolar / máquina de escrever.
+       opacity faz fade gradual durante o reveal (rápido no início). */
+    transition: opacity 280ms ease 60ms,
+                transform 360ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
+                max-width 420ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-logo-wordmark {
-    /* COLAPSANDO: textos saem PRIMEIRO (sem delay). Quando a largura
-       começa a encolher, eles já estão indo embora. Sensação: "palavras
-       recolhem antes da barra fechar". */
+    /* COLAPSANDO: textos recolhem JUNTO com a barra encolhendo (mesmo
+       timing). Sem delays, sem espera: barra fecha = textos somem. */
     max-width: 0;
     opacity: 0;
     transform: translateX(-8px);
-    transition: opacity 160ms ease 0ms,
-                transform 220ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
-                max-width 280ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
+    transition: opacity 180ms ease 0ms,
+                transform 260ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
+                max-width 320ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-logo {
     gap: 0;
@@ -3381,16 +3382,15 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 200px;
-    /* ESTADO BASE (expandido): labels chegam depois da largura abrir. */
-    transition: opacity 240ms ease 280ms,
-                max-width 360ms cubic-bezier(0.22, 1, 0.36, 1) 240ms;
+    /* Labels desenrolam JUNTO com a barra (max-width sincronizado). */
+    transition: opacity 280ms ease 60ms,
+                max-width 420ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-link-texto {
     opacity: 0;
     max-width: 0;
-    /* COLAPSANDO: labels saem primeiro, sem delay. */
-    transition: opacity 160ms ease 0ms,
-                max-width 280ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
+    transition: opacity 180ms ease 0ms,
+                max-width 320ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 
 /* Badge — vive dentro do .sidebar-link-icone (CP5-FIX 7).
@@ -3549,9 +3549,8 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.15);
 }
 
-/* Bloco nome+cargo — segue a mesma orquestração dos outros textos:
-   ESTADO BASE (expandido): chega DEPOIS da largura crescer (delay 280ms).
-   COLAPSADO: sai ANTES da largura encolher (delay 0). */
+/* Bloco nome+cargo — desenrola junto com a barra abrindo, mesma
+   filosofia dos outros textos (max-width sincronizado com largura). */
 .sidebar-user-info {
     display: flex;
     flex-direction: column;
@@ -3562,18 +3561,18 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     max-width: 200px;
     opacity: 1;
     transform: translateX(0);
-    transition: opacity 240ms ease 280ms,
-                transform 320ms cubic-bezier(0.22, 1, 0.36, 1) 240ms,
-                max-width 360ms cubic-bezier(0.22, 1, 0.36, 1) 240ms;
+    transition: opacity 280ms ease 60ms,
+                transform 360ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
+                max-width 420ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-user-info {
     max-width: 0;
     opacity: 0;
     transform: translateX(-8px);
     margin: 0;
-    transition: opacity 160ms ease 0ms,
-                transform 220ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
-                max-width 280ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
+    transition: opacity 180ms ease 0ms,
+                transform 260ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
+                max-width 320ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 
 .sidebar-user-nome {
