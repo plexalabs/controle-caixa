@@ -22,6 +22,8 @@ let caixaIdAtual = null;
 let dataAlvoAtual = null;
 let lancCache = [];      // CP5.5: cache para filtros client-side
 let fbCtrl = null;
+let fbOverlayObs = null;        // observer do data-aberto (mobile overlay)
+let fbOverlayResizeFn = null;
 
 export async function renderCaixa({ params }) {
   desmontar();
@@ -297,6 +299,50 @@ function garantirFilterBar() {
     ],
     onChange: () => renderListaFiltrada(),
   });
+
+  configurarOverlayFiltroMobile();
+}
+
+// Em mobile (<=640px), o slot do filter-bar vira overlay position:absolute
+// sobre a row quando o filter abre -- cobre os botões. Como ele sai do
+// fluxo, a .cx-acoes-row mantém altura natural da .resumo-acao (~44px) e
+// a lista de lançamentos NÃO seria empurnada naturalmente. Aqui medimos
+// a altura do filter-bar quando abre e aplicamos padding-bottom dinâmico
+// na row (--fb-overlay-h) -- a lista desce abaixo do filter expandido.
+function configurarOverlayFiltroMobile() {
+  const row = document.querySelector('.cx-acoes-row');
+  const fb  = row?.querySelector('.filter-bar');
+  if (!row || !fb) return;
+
+  const recalc = () => {
+    const ehMobile = window.innerWidth <= 640;
+    const aberto = fb.dataset.aberto === 'true';
+    if (!ehMobile || !aberto) {
+      row.style.setProperty('--fb-overlay-h', '0px');
+      return;
+    }
+    requestAnimationFrame(() => {
+      const h = fb.offsetHeight;
+      // 44px é a altura natural da row (botões mobile); o excesso é o
+      // que o filter aberto cresceu além dela.
+      const excesso = Math.max(0, h - 44);
+      row.style.setProperty('--fb-overlay-h', `${excesso}px`);
+    });
+  };
+
+  if (fbOverlayObs) fbOverlayObs.disconnect();
+  fbOverlayObs = new MutationObserver(() => {
+    // pequena espera pra animação grid-template-rows propagar a altura
+    setTimeout(recalc, 50);
+    setTimeout(recalc, 380);  // após a transição completa
+  });
+  fbOverlayObs.observe(fb, { attributes: true, attributeFilter: ['data-aberto'] });
+
+  if (fbOverlayResizeFn) window.removeEventListener('resize', fbOverlayResizeFn);
+  fbOverlayResizeFn = recalc;
+  window.addEventListener('resize', fbOverlayResizeFn);
+
+  recalc();
 }
 
 function renderListaFiltrada() {
@@ -564,6 +610,14 @@ function desmontar() {
   if (fbCtrl) {
     fbCtrl.destruir();
     fbCtrl = null;
+  }
+  if (fbOverlayObs) {
+    fbOverlayObs.disconnect();
+    fbOverlayObs = null;
+  }
+  if (fbOverlayResizeFn) {
+    window.removeEventListener('resize', fbOverlayResizeFn);
+    fbOverlayResizeFn = null;
   }
   lancCache = [];
 }

@@ -1671,26 +1671,32 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     border-color: var(--c-papel-3);
 }
 @media (max-width: 640px) {
-    /* Mobile: filter circular ícone-only + botões dividindo o resto da
-       linha. Quando o filter abre, o card EXPANDE DE SI MESMO (cresce
-       verticalmente); os botões à direita ficam alinhados pelo topo
-       (align-items:flex-start) e a lista de lançamentos é empurrada
-       naturalmente pela altura nova do .cx-acoes-row. Sem overlay,
-       sem JS de medição -- só animação de grid-template-rows do painel. */
+    /* Mobile: filter recolhido = círculo 44x44; botões à direita.
+       Quando o filter abre, o slot vira OVERLAY position:absolute
+       sobre toda a row (cobre os botões). filter-bar vira width:100%
+       e o painel cresce em altura via grid-template-rows. Os botões
+       continuam atrás (z-index baixo); a lista é empurrada pela
+       altura nova do filter aberto via padding-bottom dinâmico. */
     .cx-acoes-row {
         gap: 0.5rem;
         flex-wrap: nowrap;
-        align-items: flex-start;
+        align-items: center;
         min-width: 0;
+        position: relative;
+        /* Reserva espaço pro filter expandido (overlay) -- JS seta
+           --fb-overlay-h igual à altura extra que o filter cresceu
+           além da row natural, empurrando a lista abaixo. */
+        padding-bottom: var(--fb-overlay-h, 0);
+        transition: padding-bottom 320ms cubic-bezier(0.22, 1, 0.36, 1);
     }
     .cx-filtros-slot {
         flex: 0 0 auto;
         min-width: 0;
+        position: relative;
+        z-index: 1;
     }
 
-    /* Filtro: botão circular 44x44 com ícone funil. Texto "Filtros" e
-       resumo somem; só ficam ícone + badge no canto. Header sem gap
-       (era 0.75rem -- somava 12px com items invisíveis). */
+    /* Filtro recolhido: botão circular 44x44 com ícone funil. */
     .cx-acoes-row .filter-bar-header {
         gap: 0;
         flex-wrap: nowrap;
@@ -1740,10 +1746,11 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         border: 0;
     }
 
-    /* .resumo-acao ocupa o resto da linha; botões dentro dividem espaço.
-       min-height:44px iguala à altura do círculo do filtro -- todos os
-       elementos da linha alinham visualmente. Padding vertical zerado
-       (altura controlada por min-height + flex centering). */
+    /* .resumo-acao ocupa o resto da linha; botões dentro dividem
+       espaço com flex:1 1 0 e min-width:0. min-height:44px iguala à
+       altura do círculo do filtro -- linha visualmente coerente.
+       Padding e font generosos pra UX ergonômica; ellipsis trunca em
+       telas estreitas se necessário. */
     .cx-acoes-row .resumo-acao {
         flex: 1 1 auto;
         min-width: 0;
@@ -1758,12 +1765,34 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         min-width: 0;
         max-width: 100%;
         min-height: 44px;
-        padding: 0 0.6rem;
-        font-size: 0.82rem;
+        padding: 0 0.85rem;
+        font-size: 0.88rem;
         justify-content: center;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    /* FILTER ABERTO em mobile: slot vira overlay sobre a row inteira.
+       position:absolute + inset cobre os botões (ficam atrás via z-index),
+       filter-bar fica full-width, painel desce via grid-template-rows.
+       Sequência percebida: clica → slot expande horizontalmente cobrindo
+       os botões → painel desce verticalmente. */
+    .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .cx-filtros-slot {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+    }
+    .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .filter-bar {
+        width: 100%;
+    }
+    /* Botões ficam atrás visualmente -- não somem do DOM (acessibilidade
+       preservada), só são cobertos pelo overlay do filter. */
+    .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .resumo-acao {
+        position: relative;
+        z-index: 1;
     }
 }
 
