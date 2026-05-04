@@ -80,6 +80,31 @@ Nova permissão no catálogo: `lancamento.visualizar_observacoes`
 pois usam `EXISTS` direto contra `usuario_papel.papel`. Podem ser aplicadas
 sem pré-requisitos.
 
+## Bloco F — lancamento_select reabertura ampla (FIX-VISUALIZAR)
+
+**Data**: 2026-05-04 (ajuste pós-smoke do FEAT-002)
+
+Operador relatou durante o smoke do FEAT-002 (reabrir caixa) que conta
+operadora via caixa fechado vazio. Causa: policy `lancamento_select`
+exigia `lancamento.visualizar_todos` (atribuída só a admin/gerente/contador)
+combinada com `criado_por = auth.uid()`. Operador só via os próprios
+lançamentos.
+
+Decisão de produto: todos os 5 perfis devem enxergar todos os lançamentos
+do caixa (visão de contexto, mesmo sem editar).
+
+| # | Bloco | Policy | Migration reversa |
+|---|---|---|---|
+| 18 (rev) | F | `lancamento_select` (visualizar) | `20260504800100_REVERSE_lancamento_select_visualizar.sql` |
+
+Mudanças:
+- Nova permissão `lancamento.visualizar` no catálogo, atribuída aos 5 perfis
+- `lancamento.visualizar_observacoes` passa a ser atribuída ao vendedor (consistência)
+- Policy `lancamento_select` reescrita: `tem_permissao('lancamento.visualizar')`
+- `lancamento.visualizar_todos` permanece intocada (uso futuro: relatórios consolidados, exports gerenciais)
+
+**Reversa restaura o comportamento da Sessão 6**: `visualizar_todos OR criado_por = uid`. Não toca em `visualizar` nem nas atribuições — esses ficam no catálogo ainda que a policy volte ao estado antigo (catálogo crescente é tolerável; sumir é destrutivo).
+
 ## DROP de fn_tem_papel aplicado
 
 **Data**: 2026-05-03
