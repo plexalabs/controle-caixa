@@ -1630,17 +1630,20 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
            padding-left maior dá respiro pro primeiro item descansar. */
         margin-left: -1rem;
         margin-right: -1rem;
-        padding-left: 1.25rem;
-        padding-right: 1.25rem;
+        /* padding-left maior que o do card (1rem mobile) -- primeiro
+           item descansa com respiro de 0.75rem do edge interno do card.
+           padding-right = 1.5rem casa com a área do mask fade. */
+        padding-left: 1.75rem;
+        padding-right: 1.5rem;
         /* Mask SÓ à direita -- primeiro item sempre solido em estado
            de descanso; fade indica conteúdo restante a explorar. */
         mask-image: linear-gradient(to right,
                     #000 0,
-                    #000 calc(100% - 1.25rem),
+                    #000 calc(100% - 1.5rem),
                     transparent 100%);
         -webkit-mask-image: linear-gradient(to right,
                     #000 0,
-                    #000 calc(100% - 1.25rem),
+                    #000 calc(100% - 1.5rem),
                     transparent 100%);
     }
     .resumo-dia-linha::-webkit-scrollbar {
