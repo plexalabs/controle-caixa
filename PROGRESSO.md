@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — STYLE-CAIXA-ROW (meta com ellipsis no hover) mergeado.
+> Última atualização: 2026-05-04 — STYLE-SIDEBAR refatorada (logo + rodape + animações orquestradas) mergeada.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -234,8 +234,27 @@ de pagamento original).
 - [x] Cancelado pos-pagamento intocado (line-through + pill
       vermelha precisam de leitura visual distinta)
 
+## Status — STYLE-SIDEBAR refatorada (2026-05-04)
+
+8 commits encadeados consolidados em 1 merge. Refatora topo, rodape
+e animacoes da sidebar conforme feedback iterativo do operador.
+
+- [x] Topo (logo + wordmark): stroke no SVG (engrossa marca), 44x44
+      expandido / 40x40 colapsado, wordmark Fraunces 1.6rem, alinhado
+      a esquerda no offset dos links (26px), centralizado colapsado
+- [x] Rodape (bloco usuario): email -> cargo (perfil RBAC), nome
+      usa meta.nome (sem sobrenome), cargo discreto (peso 400)
+- [x] Toggle: removida a bolinha flutuante do topo, movido para
+      dentro do rodape (lado direito expandido / abaixo do avatar
+      colapsado, formando bloco quase quadrado 74x68px)
+- [x] Animacoes orquestradas: largura 420ms out-expo + textos com
+      max-width sincronizado (delay 0) -- efeito de "desenrolar /
+      maquina de escrever" no abrir; recolhem juntos no fechar
+- [x] Validado em PROD por Operador
+
 ### Histórico de merges (recentes)
 
+- `c922ece` — `[STYLE-SIDEBAR] merge: refatoracao completa do topo + rodape da sidebar`
 - `6e51802` — `[STYLE-CAIXA-ROW] merge: caixa-row-meta sem quebra no hover`
 - `14fb096` — `[STYLE-TIRA] merge: tira de resolvido em oliva-musgo (#556B2F)`
 - `bb47c28` — `[STYLE-LANC-RES] merge: etiqueta resolvida sem bolinha, tira verde, pill mantem cor`
