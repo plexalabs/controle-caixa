@@ -2011,6 +2011,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-tinta-2);
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
+    /* Não quebra de linha quando o hover encolhe o espaço horizontal
+       (padding-left passa de ~tira-w pra ~tira-w-hover). O overflow:
+       hidden do .caixa-row-corpo recorta o excesso com ellipsis,
+       preservando a altura do card. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .caixa-row-meta strong {
     color: var(--c-tinta);
