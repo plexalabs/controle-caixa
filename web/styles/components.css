@@ -2744,22 +2744,17 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    visível. Painel com os campos abre ao clicar no botão. Se a URL
    tiver filtros ativos ao montar, o painel já abre automaticamente.
 
-   Visual leve quando recolhido: SEM background/border/padding (parece
-   apenas a pílula do botão flutuando). O "card" só aparece quando o
-   painel está aberto, criando uma área dedicada aos campos. */
+   Card visual sempre presente (papel + border + radius) -- recolhido
+   fica compacto, aberto cresce em padding pra dar respiro aos campos. */
 .filter-bar {
-    background: transparent;
-    border: 1px solid transparent;
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
     border-radius: var(--r-md);
-    padding: 0;
+    padding: 0.4rem 0.6rem;
     margin-bottom: 1.4rem;
-    transition: background 240ms ease,
-                border-color 240ms ease,
-                padding 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: padding 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .filter-bar[data-aberto="true"] {
-    background: var(--c-papel);
-    border-color: var(--c-papel-3);
     padding: 0.6rem 0.85rem 0.85rem;
 }
 
