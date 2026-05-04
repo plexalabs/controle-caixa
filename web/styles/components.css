@@ -1734,13 +1734,42 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     .resumo-dia-total-valor { font-size: clamp(1.85rem, 8vw, 2.3rem); }
 }
 
-.resumo-acao {
+/* Linha de ações do /caixa/:data: filtros à esquerda + botões à
+   direita, mesma linha. align-items: flex-start permite o painel
+   do filtro expandir verticalmente sem deslocar os botões. */
+.cx-acoes-row {
     margin: 0 0 1.6rem 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.cx-filtros-slot {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.cx-filtros-slot.hidden { display: none; }
+/* Quando dentro de .cx-acoes-row, o filter-bar zera margin-bottom
+   (o margin já vem do wrapper). */
+.cx-acoes-row .filter-bar { margin-bottom: 0; }
+@media (max-width: 640px) {
+    .cx-acoes-row {
+        /* Em mobile, o filter-bar ocupa a linha inteira acima dos botões
+           pra preservar largura util do filtro quando aberto. */
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+}
+
+.resumo-acao {
+    margin: 0;
     display: flex;
     justify-content: flex-end;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.7rem;
+    flex-shrink: 0;
 }
 /* Harmoniza botões da .resumo-acao em altura e largura mínima:
    - line-height: 1 igualado entre primary e fechar (fechar ja tinha; primary herdava)
@@ -2713,17 +2742,25 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 /* CP-FILTER-COLLAPSE: filter-bar agora vive recolhido por default --
    só o header (botão "Filtros" + badge de filtros ativos + Limpar) é
    visível. Painel com os campos abre ao clicar no botão. Se a URL
-   tiver filtros ativos ao montar, o painel já abre automaticamente. */
+   tiver filtros ativos ao montar, o painel já abre automaticamente.
+
+   Visual leve quando recolhido: SEM background/border/padding (parece
+   apenas a pílula do botão flutuando). O "card" só aparece quando o
+   painel está aberto, criando uma área dedicada aos campos. */
 .filter-bar {
-    background: var(--c-papel);
-    border: 1px solid var(--c-papel-3);
+    background: transparent;
+    border: 1px solid transparent;
     border-radius: var(--r-md);
-    padding: 0.5rem 0.75rem;
+    padding: 0;
     margin-bottom: 1.4rem;
-    transition: padding 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: background 240ms ease,
+                border-color 240ms ease,
+                padding 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .filter-bar[data-aberto="true"] {
-    padding: 0.5rem 0.75rem 0.85rem;
+    background: var(--c-papel);
+    border-color: var(--c-papel-3);
+    padding: 0.6rem 0.85rem 0.85rem;
 }
 
 /* Header: linha sempre visível com botão de toggle + resumo + limpar */
