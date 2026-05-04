@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — STYLE-SIDEBAR refatorada (logo + rodape + animações orquestradas) mergeada.
+> Última atualização: 2026-05-04 — STYLE-FILTER (filter-bar colapsável + inline com botões de ação) mergeado.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -252,8 +252,34 @@ e animacoes da sidebar conforme feedback iterativo do operador.
       maquina de escrever" no abrir; recolhem juntos no fechar
 - [x] Validado em PROD por Operador
 
+## Status — STYLE-FILTER colapsável (2026-05-04)
+
+10 commits encadeados consolidados em 1 merge. Refatora o filter-bar
+para economizar espaco vertical em telas com filtros pouco usados.
+
+- [x] filter-bar.js: header sempre visivel (botao "Filtros" + badge
+      contador + Limpar) + painel colapsavel com os campos. Abre auto
+      se URL tem filtros aplicados.
+- [x] Animacao do painel via grid-template-rows 0fr -> 1fr (out-expo
+      320ms); icone funil rotaciona 180deg quando expandido.
+- [x] /caixa/:data: novo wrapper .cx-acoes-row inline com filter-bar
+      a esquerda + .resumo-acao a direita. align-items:flex-start +
+      :has() permite painel expandir sem deslocar botoes.
+- [x] Card recolhido sem borda/fundo (so a pilula do botao Filtros
+      visivel); surge so quando expandido. min-height 45px iguala
+      altura aos botoes.
+- [x] Mobile (<=640px): tudo em row dividindo linha; botoes encolhem
+      pra caber. Quando painel abre em mobile, slot ocupa 100% e
+      botoes vao pra proxima linha.
+
+### Estado pos-merge
+
+Telas afetadas (componente compartilhado): /caixa/:data, /pendencias,
+/notificacoes.
+
 ### Histórico de merges (recentes)
 
+- `2800131` — `[STYLE-FILTER] merge: filter-bar colapsavel + inline com botoes de acao`
 - `c922ece` — `[STYLE-SIDEBAR] merge: refatoracao completa do topo + rodape da sidebar`
 - `6e51802` — `[STYLE-CAIXA-ROW] merge: caixa-row-meta sem quebra no hover`
 - `14fb096` — `[STYLE-TIRA] merge: tira de resolvido em oliva-musgo (#556B2F)`
