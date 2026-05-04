@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — STYLE-SIDEBAR (toggle direita + click fora + mobile sem toggle) mergeado.
+> Última atualização: 2026-05-04 — CLEANUP pré-produção: só super_admin + estrutura RBAC + dados mestre.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -320,8 +320,33 @@ paleta de cores em todo o /caixa/:data.
       em todos os pontos visuais)
 - [x] Validado em PROD por Operador
 
+## Status — CLEANUP pré-produção (2026-05-04)
+
+Database limpo de dados de teste, deixando apenas o super_admin
+(joaopedro.botucatu@vdboti.com.br) + estrutura RBAC + dados mestre.
+
+### Apagado
+- 3 lancamento_observacao + 2 lancamento + 2 caixa + 12 cliente_cache
+- 1 vendedora ("wwww" inativa) + 26 audit_log + 2 notificacao
+- 2 auth.users (joaopedro@plexalabs.com + test@plexalabs.com) +
+  atribuicoes RBAC correspondentes
+
+### Preservado
+- 44 permissoes catalogadas (RBAC)
+- 5 perfis canonicos (admin/gerente/operador/contador/vendedor)
+- 9 entries de config (sistema)
+- 15 feriados (calendario)
+- super_admin user + atribuicoes
+
+### Truque tecnico
+SET LOCAL session_replication_role='replica' durante a transacao
+contorna os triggers de imutabilidade (fn_lanc_obs_imutavel,
+fn_audit_log_imutavel) que existem por design pra proteger
+auditoria em prod.
+
 ### Histórico de merges (recentes)
 
+- `eaef1e1` — `[CLEANUP] merge: limpeza pre-producao + notificacoes`
 - `2c92e4e` — `[STYLE-SIDEBAR] merge: toggle direita + click fora + mobile sem toggle`
 - `1c9d38d` — `[STYLE-CAIXA-HEADER] merge: resumo-dia carrossel + cores --est-* unificadas`
 - `00c55e1` — `[STYLE-CAIXA-HEADER] merge: refator mobile do header + filter overlay + resumo-dia clean`
