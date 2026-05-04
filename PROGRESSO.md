@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — FIX-CSS btn-primary hidden + STYLE-LANC-RES (etiqueta resolvida) mergeados pós-FEAT-002.
+> Última atualização: 2026-05-04 — STYLE-TIRA (oliva-musgo na bandeirinha resolvida) mergeado.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -236,6 +236,7 @@ de pagamento original).
 
 ### Histórico de merges (recentes)
 
+- `14fb096` — `[STYLE-TIRA] merge: tira de resolvido em oliva-musgo (#556B2F)`
 - `bb47c28` — `[STYLE-LANC-RES] merge: etiqueta resolvida sem bolinha, tira verde, pill mantem cor`
 - `70428db` — `[FIX-CSS] merge: btn-primary.hidden agora esconde de fato`
 - `eb37cd6` — `[STYLE-CAIXA-ACAO] merge: alinha botoes Novo lancamento + Fechar caixa`
