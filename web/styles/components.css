@@ -1612,42 +1612,41 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     .resumo-dia-valor-num { font-size: clamp(1.7rem, 8vw, 2.2rem); }
 
     /* Linhas de estados/distribuição viram carrossel horizontal.
-       Items com n>0 ficam primeiro (sort no JS); zerados atenuados
-       ao final do scroll. Padding lateral negativo + edge-fades dão
-       a sensação de continuidade do conteúdo escapando da borda. */
+       Items com n>0 ficam primeiro; zerados ao final do scroll.
+       Primeiro item sempre solido (sem fade à esquerda) -- só o
+       lado direito tem fade-out indicando que há mais conteúdo fora.
+       Scrollbars invisíveis em todos os browsers. */
     .resumo-dia-linha {
         flex-wrap: nowrap;
         overflow-x: auto;
         overflow-y: hidden;
         gap: 0 1.2rem;
-        padding-bottom: 0.4rem;     /* respiro pra scrollbar */
+        padding-bottom: 0;
         scroll-snap-type: x proximity;
-        scrollbar-width: thin;
-        scrollbar-color: var(--c-papel-3) transparent;
-        /* Margem lateral negativa pra carrossel sangrar até a borda
-           do card; padding restaura o início alinhado ao conteúdo. */
+        /* Hide scrollbars (cross-browser) */
+        scrollbar-width: none;            /* Firefox */
+        -ms-overflow-style: none;         /* IE/Edge legado */
+        /* Margem lateral negativa pra carrossel sangrar até a borda;
+           padding-left maior dá respiro pro primeiro item descansar. */
         margin-left: -1rem;
         margin-right: -1rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
-        /* Mascara em fade nas pontas indica que há conteúdo fora */
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+        /* Mask SÓ à direita -- primeiro item sempre solido em estado
+           de descanso; fade indica conteúdo restante a explorar. */
         mask-image: linear-gradient(to right,
-                    transparent 0,
-                    #000 1rem,
-                    #000 calc(100% - 1rem),
+                    #000 0,
+                    #000 calc(100% - 1.25rem),
                     transparent 100%);
         -webkit-mask-image: linear-gradient(to right,
-                    transparent 0,
-                    #000 1rem,
-                    #000 calc(100% - 1rem),
+                    #000 0,
+                    #000 calc(100% - 1.25rem),
                     transparent 100%);
     }
     .resumo-dia-linha::-webkit-scrollbar {
-        height: 4px;
-    }
-    .resumo-dia-linha::-webkit-scrollbar-thumb {
-        background: var(--c-papel-3);
-        border-radius: 999px;
+        display: none;                    /* Chrome/Safari/Webkit */
+        width: 0;
+        height: 0;
     }
     .resumo-dia-linha li {
         flex-shrink: 0;
