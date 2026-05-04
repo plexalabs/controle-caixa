@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — FEAT-002 (reabrir caixa) + FIX-VIZ (todos veem caixa) + STYLE-CAIXA-ACAO mergeados.
+> Última atualização: 2026-05-04 — FIX-CSS btn-primary hidden + STYLE-LANC-RES (etiqueta resolvida) mergeados pós-FEAT-002.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -204,8 +204,40 @@ altura/largura levemente diferentes lado a lado.
 - SUGESTAO-015: catalogo `caixa.reabrir_fechado` deixa de ser dead
   code (agora e checada na RPC reabrir_caixa)
 
+## Status — FIX-CSS + STYLE-LANC-RES (2026-05-04)
+
+Polimentos pos-FEAT-002 descobertos durante smoke do Operador:
+
+### FIX-CSS — btn-primary.hidden agora esconde
+
+Bug residual: caixa fechado + usuario sem caixa.reabrir_fechado
+continuava mostrando `+ Novo lancamento`. JS estava certo (chamava
+classList.add('hidden')); CSS estava errado (`.hidden` do Tailwind
+perdia por ordem pra `.btn-primary { display: inline-flex }`).
+
+- [x] Adicionada regra `.btn-primary.hidden { display: none }` em
+      components.css (mesmo padrao de .btn-fechar-caixa.hidden e
+      .hint-pendencias.hidden, que ja existiam)
+
+### STYLE-LANC-RES — etiqueta de lancamento resolvido
+
+Operador relatou que a "bolinha" verde no canto superior direito
+substituia o texto vertical da categoria que aparece no hover, e o
+pill .lanc-categoria virava verde-finalizado (perdia info do meio
+de pagamento original).
+
+- [x] Removida bolinha (.lanc-row[data-resolvido="true"]::after)
+- [x] Tira lateral (bandeirinha) fica verde via --tira-cor quando
+      resolvido -- unica mudanca cromatica de estado
+- [x] Pill .lanc-categoria mantem cor da categoria mesmo apos
+      finalizar (operador ve cartao/pix/dinheiro de relance)
+- [x] Cancelado pos-pagamento intocado (line-through + pill
+      vermelha precisam de leitura visual distinta)
+
 ### Histórico de merges (recentes)
 
+- `bb47c28` — `[STYLE-LANC-RES] merge: etiqueta resolvida sem bolinha, tira verde, pill mantem cor`
+- `70428db` — `[FIX-CSS] merge: btn-primary.hidden agora esconde de fato`
 - `eb37cd6` — `[STYLE-CAIXA-ACAO] merge: alinha botoes Novo lancamento + Fechar caixa`
 - `2874d0e` — `[FIX-VIZ] merge: visualizacao ampla de lancamentos do caixa`
 - `af1744b` — `[FEAT-002] merge: reabrir caixa fechado (FEATURE-002 do relatorio)`
