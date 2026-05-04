@@ -804,15 +804,12 @@
 .lanc-row[data-cat="obs"]         { --tira-cor: var(--cat-obs-border); }
 .lanc-row[data-cat="obs"]         .lanc-categoria { background: var(--cat-obs-bg);       color: var(--cat-obs-text); }
 
-/* Resolvido — soma uma faixa verde pequena no topo direito (cantinho). */
-.lanc-row[data-resolvido="true"]::after {
-    content: '';
-    position: absolute;
-    right: 12px; top: 12px;
-    width: 8px; height: 8px;
-    border-radius: var(--r-pill);
-    background: var(--cat-resolvido);
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+/* Resolvido — pinta a tira lateral (bandeirinha) de verde. Mantém o
+   texto vertical da categoria no hover (mesma leitura visual do
+   não-resolvido). NÃO altera .lanc-categoria (a pill embaixo do valor
+   continua com a cor da categoria). */
+.lanc-row[data-resolvido="true"] {
+    --tira-cor: var(--cat-resolvido);
 }
 
 /* Atrasado — borda direita pulsante em vermelho, soma ao inset da categoria. */
@@ -832,17 +829,18 @@
 .lanc-row--flash { animation: flash-novo 1.2s ease-out; }
 
 /* Estados finais sobrepostos: finalizado / cancelado pos-pagamento.
-   O atributo data-estado-final vem do JSON dados_categoria.estado_final. */
+   O atributo data-estado-final vem do JSON dados_categoria.estado_final.
+
+   Finalizado: tira lateral ja virou verde via [data-resolvido="true"]
+   (finalizado e' subset de resolvido). Mantém um gradient muito sutil
+   no fundo do row pra dar tom de "concluido", mas a pill .lanc-categoria
+   da direita continua com a cor original da categoria — assim o operador
+   ve de relance qual era o pagamento mesmo apos finalizado.
+
+   Cancelado pos-pagamento: line-through + override da pill em vermelho
+   permanece (cancelamento precisa de leitura visual distinta). */
 .lanc-row[data-estado-final="finalizado"] {
     background: linear-gradient(180deg, rgba(16, 185, 129, 0.04), transparent 60%), var(--c-papel);
-}
-.lanc-row[data-estado-final="finalizado"]::after {
-    /* Marcador de "OK" sobreposto ao texto da etiqueta */
-    background: linear-gradient(transparent, rgba(15, 76, 58, 0.08));
-}
-.lanc-row[data-estado-final="finalizado"] .lanc-categoria {
-    background: rgba(16, 185, 129, 0.16) !important;
-    color: #064e3b !important;
 }
 .lanc-row[data-estado-final="cancelado"] .lanc-cliente,
 .lanc-row[data-estado-final="cancelado"] .lanc-valor {
