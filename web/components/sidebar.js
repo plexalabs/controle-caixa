@@ -7,7 +7,7 @@
 //   ligarSidebar()                  → ata listeners (toggle, nav, hamburguer, user-menu)
 //   atualizarBadgeSidebar(n)        → muda contagem do bell na sidebar (chamado pelo bell)
 
-import { pegarSessao } from '../app/supabase.js';
+import { supabase, pegarSessao } from '../app/supabase.js';
 import { sair } from '../app/auth.js';
 import { navegar } from '../app/router.js';
 import { lerPref, gravarPref } from '../app/ui-prefs.js';
@@ -34,6 +34,13 @@ export async function renderSidebar(rotaAtiva) {
     : (persistido || 'expandida');
 
   const nomeCompleto = [meta.nome, meta.sobrenome].filter(Boolean).join(' ').trim() || nome;
+  // Nome exibido: usa meta.nome direto (preserva nomes do meio, exclui sobrenome).
+  // Ex.: meta.nome="Joao Pedro" + meta.sobrenome="Bueno" → exibe "Joao Pedro".
+  // O nomeCompleto (com sobrenome) permanece em aria-label e data-nome.
+  const nomeExibido = (meta.nome || nome).trim();
+  // Cargo: nome do perfil RBAC (admin, gerente, operador, contador, vendedor).
+  // Fallback "—" se RLS bloquear ou usuário ainda não tiver perfil atribuído.
+  const cargo = await pegarCargo(sessao?.user?.id);
 
   return `
     <aside class="app-sidebar" data-estado="${estado}" role="navigation" aria-label="Menu principal">
@@ -44,12 +51,6 @@ export async function renderSidebar(rotaAtiva) {
           <span class="sidebar-logo-wordmark">Caixa Boti</span>
         </a>
       </div>
-
-      <button id="sidebar-toggle" type="button" class="sidebar-toggle"
-              aria-label="${estado === 'colapsada' ? 'Expandir menu' : 'Colapsar menu'}"
-              title="${estado === 'colapsada' ? 'Expandir' : 'Colapsar'}">
-        ${svgChevron()}
-      </button>
 
       <nav class="sidebar-nav" aria-label="Seções">
         ${linkSidebar('caixas',        '/caixas',         'Caixas',       svgCaixa(), rotaAtiva)}
@@ -66,9 +67,15 @@ export async function renderSidebar(rotaAtiva) {
                 data-email="${esc(email)}">
           <span class="sidebar-user-avatar" aria-hidden="true">${esc(inicial)}</span>
           <span class="sidebar-user-info">
-            <span class="sidebar-user-nome">${esc(nomeCompleto)}</span>
-            <span class="sidebar-user-email" title="${esc(email)}">${esc(email)}</span>
+            <span class="sidebar-user-nome">${esc(nomeExibido)}</span>
+            <span class="sidebar-user-cargo">${esc(cargo)}</span>
           </span>
+        </button>
+
+        <button id="sidebar-toggle" type="button" class="sidebar-toggle"
+                aria-label="${estado === 'colapsada' ? 'Expandir menu' : 'Colapsar menu'}"
+                title="${estado === 'colapsada' ? 'Expandir' : 'Colapsar'}">
+          ${svgChevron()}
         </button>
       </div>
     </aside>
@@ -81,6 +88,25 @@ export async function renderSidebar(rotaAtiva) {
 
     <div id="sidebar-tooltip" class="sidebar-tooltip" role="tooltip" aria-hidden="true"></div>
   `;
+}
+
+/**
+ * Busca o cargo (nome do perfil RBAC) do usuário autenticado.
+ * Retorna o nome do perfil (ex: "Administrador", "Operador") ou "—" se
+ * o usuário não tem perfil atribuído ou se a query falhar (RLS, rede).
+ */
+async function pegarCargo(uid) {
+  if (!uid) return '—';
+  try {
+    const { data } = await supabase
+      .from('usuario_perfil')
+      .select('perfil:perfil_id(nome)')
+      .eq('usuario_id', uid)
+      .maybeSingle();
+    return data?.perfil?.nome || '—';
+  } catch (_) {
+    return '—';
+  }
 }
 
 function linkSidebar(chave, href, label, icone, rotaAtiva, opcoes = {}) {
