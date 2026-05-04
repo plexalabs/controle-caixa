@@ -75,37 +75,41 @@ export async function renderCaixa({ params }) {
         </div>
       </div>
 
-      <!-- Botões de ação principal — entre o resumo e a lista -->
-      <div class="resumo-acao reveal reveal-3">
-        <button id="btn-novo" class="btn-primary" disabled>
-          + Novo lançamento
-        </button>
+      <!-- Linha de ações: filtros à esquerda + botões à direita.
+           align-items:flex-start no wrapper permite o painel do filtro
+           expandir para baixo sem deslocar os botões da direita. -->
+      <div class="cx-acoes-row reveal reveal-3">
+        <!-- Filter-bar (CP5.5 + CP-FILTER-COLLAPSE) — só aparece quando há lançamentos -->
+        <div id="cx-filtros" class="cx-filtros-slot hidden"></div>
 
-        <!-- CTA "Fechar caixa" — só aparece quando total_pendentes === 0 -->
-        <a id="btn-fechar-dia" class="btn-fechar-caixa hidden" href="#" data-link
-           aria-label="Fechar este caixa" title="Tudo conferido — pronto para fechar">
-          <svg class="btn-fechar-caixa-icone" width="14" height="14" viewBox="0 0 24 24"
-               fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M5 12.5 L10 17.5 L19 7.5"/>
-          </svg>
-          <span class="btn-fechar-caixa-titulo">Fechar caixa</span>
-        </a>
+        <div class="resumo-acao">
+          <button id="btn-novo" class="btn-primary" disabled>
+            + Novo lançamento
+          </button>
 
-        <!-- Hint quando há pendências — só aparece se total_pendentes > 0 -->
-        <a id="hint-pendencias" class="hint-pendencias hidden" href="#" data-link>
-          <svg class="hint-pendencias-icone" width="13" height="13" viewBox="0 0 24 24"
-               fill="none" stroke="currentColor" stroke-width="1.8"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"/>
-            <path d="M12 7.5 V12 L15 14"/>
-          </svg>
-          <span id="hint-pendencias-texto"></span>
-        </a>
+          <!-- CTA "Fechar caixa" — só aparece quando total_pendentes === 0 -->
+          <a id="btn-fechar-dia" class="btn-fechar-caixa hidden" href="#" data-link
+             aria-label="Fechar este caixa" title="Tudo conferido — pronto para fechar">
+            <svg class="btn-fechar-caixa-icone" width="14" height="14" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12.5 L10 17.5 L19 7.5"/>
+            </svg>
+            <span class="btn-fechar-caixa-titulo">Fechar caixa</span>
+          </a>
+
+          <!-- Hint quando há pendências — só aparece se total_pendentes > 0 -->
+          <a id="hint-pendencias" class="hint-pendencias hidden" href="#" data-link>
+            <svg class="hint-pendencias-icone" width="13" height="13" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7.5 V12 L15 14"/>
+            </svg>
+            <span id="hint-pendencias-texto"></span>
+          </a>
+        </div>
       </div>
-
-      <!-- Filter-bar (CP5.5) — só aparece quando há lançamentos -->
-      <div id="cx-filtros" class="reveal reveal-4 hidden" style="margin-top:1.5rem"></div>
 
       <!-- Conteúdo principal: lista de lançamentos -->
       <section id="bloco-conteudo" class="reveal reveal-4">
