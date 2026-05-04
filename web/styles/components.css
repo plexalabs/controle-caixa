@@ -3181,15 +3181,15 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 /* Topo da sidebar: logo (símbolo + wordmark expandido / só símbolo colapsado).
-   Logo SEMPRE centralizado — visual harmônico tanto expandido quanto colapsado;
-   wordmark aparece à direita do símbolo no expandido, some no colapsado.
-   Padding reduzido pra liberar espaço da marca + wordmark crescerem dentro
-   do mesmo container (min-height inalterado). */
+   No expandido o logo alinha à ESQUERDA, com mesmo offset (padding-left
+   26px) dos .sidebar-link -- assim marca, wordmark e ícones de navegação
+   formam uma coluna coerente. No colapsado centraliza para casar com os
+   itens de nav que tambem ficam centralizados na coluna estreita. */
 .sidebar-topo {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 10px 12px;
+    justify-content: flex-start;
+    padding: 10px 12px 10px 26px;
     min-height: 72px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--c-papel-3);
@@ -3197,6 +3197,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
                 min-height 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-topo {
+    justify-content: center;
     padding: 8px 0;
     min-height: 64px;
 }
