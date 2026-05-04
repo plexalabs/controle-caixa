@@ -3432,7 +3432,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    ============================================================ */
 
 :root {
-    --sidebar-w-expandida: 260px;
+    --sidebar-w-expandida: 220px;
     --sidebar-w-colapsada: 68px;
     --z-sidebar:    20;
     --z-drawer:     40;
@@ -3615,6 +3615,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 /* Colapsada: chevron aponta `>` (vai expandir) — gira 180° */
 .app-sidebar[data-estado="colapsada"] .sidebar-toggle svg { transform: rotate(180deg); }
 
+/* Em mobile o toggle some -- usuário fecha tocando fora da sidebar
+   (overlay já trata) ou via gesture do hamburguer. Toggle dentro da
+   sidebar mobile fica redundante e atrapalhava o layout do rodapé. */
+@media (max-width: 767px) {
+    .sidebar-toggle { display: none; }
+}
+
 /* Nav itens.
    Padding-left = 0 para que o item possa colar na borda esquerda da sidebar
    e usar a identidade flat-left/round-right (mesma dos cards). O padding
@@ -3771,10 +3778,16 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 .app-sidebar[data-estado="expandida"] .sidebar-rodape {
     flex-direction: row;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 8px;
     padding: 10px 12px;
     min-height: 64px;
+}
+/* Toggle no canto direito da sidebar expandida -- margin-left:auto
+   empurra o botão até o fim do flex container, criando o respiro
+   maximo entre nome do usuário e o botão de colapsar. */
+.app-sidebar[data-estado="expandida"] .sidebar-toggle {
+    margin-left: auto;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-rodape {
     flex-direction: column;
@@ -3804,7 +3817,11 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     min-width: 0;
 }
 .app-sidebar[data-estado="expandida"] .sidebar-user {
-    flex: 1;
+    /* Largura natural (avatar + info) -- não estica até o toggle.
+       O justify-content:space-between da .sidebar-rodape empurra
+       o toggle pra borda direita, criando respiro entre o nome e
+       o botão de colapsar. */
+    flex: 0 1 auto;
     min-width: 0;
 }
 .app-sidebar[data-estado="expandida"] .sidebar-user:hover {

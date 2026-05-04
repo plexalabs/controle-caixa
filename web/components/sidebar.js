@@ -159,6 +159,11 @@ export function ligarSidebar() {
   // ESC fecha o off-canvas se aberto
   document.addEventListener('keydown', escFechaMobile);
 
+  // Click fora da sidebar (desktop expandida) -> colapsa.
+  // Em mobile, .app-mobile-overlay já cuida disso. Em desktop sem
+  // overlay, captura via document mousedown e checa contains.
+  document.addEventListener('mousedown', clickForaColapsa);
+
   // Click em link mobile fecha o off-canvas
   aside.querySelectorAll('.sidebar-link').forEach(a => {
     a.addEventListener('click', () => {
@@ -242,6 +247,22 @@ function escFechaMobile(e) {
   if (aside.dataset.estado === 'mobile-aberto') definirEstado('mobile-fechado');
 }
 
+// Click fora da sidebar em desktop expandida -> colapsa
+// (em mobile-aberto o overlay já cuida via app-mobile-overlay).
+function clickForaColapsa(e) {
+  const aside = document.querySelector('.app-sidebar');
+  if (!aside) return;
+  // Mobile: overlay já trata
+  if (window.innerWidth < BREAKPOINT_MOBILE) return;
+  // Só colapsa se estiver expandida
+  if (aside.dataset.estado !== 'expandida') return;
+  // Click dentro da sidebar ou no toggle: ignora
+  if (aside.contains(e.target)) return;
+  // Click fora -> colapsa e persiste pref
+  definirEstado('colapsada');
+  gravarPref(PREF_ESTADO, 'colapsada');
+}
+
 function onResize() {
   const aside = document.querySelector('.app-sidebar');
   if (!aside) return;
@@ -281,6 +302,7 @@ function definirEstado(novo) {
 export function desmontarSidebar() {
   desmontarSino();
   document.removeEventListener('keydown', escFechaMobile);
+  document.removeEventListener('mousedown', clickForaColapsa);
   window.removeEventListener('resize', onResize);
 }
 
