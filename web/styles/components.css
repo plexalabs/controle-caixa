@@ -1708,6 +1708,17 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         position: relative;
         flex-shrink: 0;
         gap: 0;
+        /* explícito pra garantir centralizar o ícone funil dentro do
+           círculo, mesmo com algum filho herdando display/margin */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .cx-acoes-row .filter-bar-toggle-painel .filter-bar-toggle-icone {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
     }
     /* Badge no canto superior direito do círculo */
     .cx-acoes-row .filter-bar-badge {
