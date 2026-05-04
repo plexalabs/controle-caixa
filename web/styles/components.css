@@ -1761,8 +1761,21 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     flex-grow: 1;
 }
 /* Quando dentro de .cx-acoes-row, o filter-bar zera margin-bottom
-   (o margin já vem do wrapper). */
-.cx-acoes-row .filter-bar { margin-bottom: 0; }
+   (o margin já vem do wrapper) e ganha min-height igual à altura
+   dos botões da .resumo-acao (.btn-primary ~45px) -- card e botão
+   ficam visualmente alinhados pelo topo E pela base. Largura
+   continua intrínseca (botão + badge) -- só altura é forçada. */
+.cx-acoes-row .filter-bar {
+    margin-bottom: 0;
+    min-height: 45px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.cx-acoes-row .filter-bar[data-aberto="true"] {
+    /* Aberto: header em cima, painel embaixo (sem centralizar). */
+    justify-content: flex-start;
+}
 @media (max-width: 640px) {
     .cx-acoes-row {
         /* Em mobile, o filter-bar ocupa a linha inteira acima dos botões
