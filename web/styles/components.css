@@ -1671,25 +1671,34 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     border-color: var(--c-papel-3);
 }
 @media (max-width: 640px) {
-    /* Mobile: filter circular ícone-only + botões na mesma linha, sempre.
-       Quando o filter abre, o painel vira OVERLAY (position absolute)
-       sobre os botões; conteúdo abaixo (lista de lançamentos) é empurrado
-       via padding-bottom dinâmico aplicado por JS (--fb-overlay-h). */
+    /* Mobile: filter circular ícone-only + botões dividindo o resto da
+       linha. Painel abre como OVERLAY position:absolute sobre os botões;
+       a lista de lançamentos é empurrada abaixo via padding-bottom
+       dinâmico aplicado por JS (--fb-overlay-h). */
     .cx-acoes-row {
         gap: 0.5rem;
         flex-wrap: nowrap;
         align-items: center;
         position: relative;
-        /* Reserva espaço pro overlay do painel quando ele abre.
-           JS seta --fb-overlay-h conforme a altura medida do conteúdo. */
+        min-width: 0;
         padding-bottom: var(--fb-overlay-h, 0);
         transition: padding-bottom 320ms cubic-bezier(0.22, 1, 0.36, 1);
     }
-
-    /* Filtro recolhido = botão circular 44x44 com ícone funil.
-       O texto "Filtros" some; só o ícone + badge contador permanecem. */
     .cx-filtros-slot {
         flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    /* Filtro: botão circular 44x44 com ícone funil. Texto "Filtros" e
+       resumo somem; só ficam ícone + badge no canto. Header sem gap
+       (era 0.75rem -- somava 12px com items invisíveis e crescia o slot). */
+    .cx-acoes-row .filter-bar-header {
+        gap: 0;
+        flex-wrap: nowrap;
+    }
+    .cx-acoes-row .filter-bar-toggle-rotulo,
+    .cx-acoes-row .filter-bar-resumo {
+        display: none;
     }
     .cx-acoes-row .filter-bar-toggle-painel {
         width: 44px;
@@ -1698,11 +1707,9 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         border-radius: 50%;
         position: relative;
         flex-shrink: 0;
+        gap: 0;
     }
-    .cx-acoes-row .filter-bar-toggle-rotulo {
-        display: none;
-    }
-    /* Badge passa a flutuar no canto superior direito do círculo */
+    /* Badge no canto superior direito do círculo */
     .cx-acoes-row .filter-bar-badge {
         position: absolute;
         top: -2px;
@@ -1712,6 +1719,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         font-size: 0.65rem;
         border: 1.5px solid var(--c-papel);
         margin: 0;
+        padding: 0 0.25rem;
     }
     .cx-acoes-row .filter-bar-badge[data-zero="true"] {
         opacity: 0;
@@ -1721,36 +1729,37 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         width: 0;
         min-width: 0;
         height: 0;
+        border: 0;
     }
-    /* Limpar fica fora do círculo (some já que botão tá hidden by default) */
 
-    /* .resumo-acao ocupa o resto da linha; botões dentro dividem. */
-    .resumo-acao {
+    /* .resumo-acao ocupa o resto da linha; botões dentro dividem espaço
+       com flex:1 1 0 e min-width:0 -- encolhem juntos. Especificidade
+       extra (.cx-acoes-row .resumo-acao ...) garante que o min-width:11.5rem
+       herdado de .resumo-acao .btn-primary (regra desktop) seja zerado. */
+    .cx-acoes-row .resumo-acao {
         flex: 1 1 auto;
         min-width: 0;
         gap: 0.4rem;
         flex-wrap: nowrap;
         justify-content: flex-end;
     }
-    .resumo-acao .btn-primary,
-    .resumo-acao .btn-fechar-caixa,
-    .resumo-acao .hint-pendencias {
+    .cx-acoes-row .resumo-acao .btn-primary,
+    .cx-acoes-row .resumo-acao .btn-fechar-caixa,
+    .cx-acoes-row .resumo-acao .hint-pendencias {
         flex: 1 1 0;
         min-width: 0;
-        padding: 0.6rem 0.5rem;
-        font-size: 0.85rem;
+        max-width: 100%;
+        padding: 0.55rem 0.4rem;
+        font-size: 0.82rem;
         justify-content: center;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    /* PAINEL DO FILTRO em mobile: overlay sobre a área dos botões.
-       Sai do fluxo (position:absolute) -- começa logo após o botão
-       circular do filtro (44px + 0.5rem gap) e cobre a área da
-       .resumo-acao (botões). Conteúdo abaixo (lista de lançamentos)
-       é empurrado por padding-bottom no .cx-acoes-row, calculado por
-       JS pra bater com a altura real do painel. */
+    /* PAINEL DO FILTRO em mobile = OVERLAY position:absolute sobre a
+       área dos botões. Começa logo após o círculo (44px + 0.5rem gap).
+       Lista é empurrada via --fb-overlay-h (JS). */
     .cx-acoes-row .filter-bar-painel {
         display: block;
         grid-template-rows: none;
@@ -1778,8 +1787,6 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         border-color: var(--c-papel-3);
         box-shadow: 0 14px 28px -10px rgba(15, 76, 58, 0.22);
     }
-    /* Padding aberto do .filter-bar é desligado em mobile (padding está
-       agora no painel overlay) */
     .cx-acoes-row .filter-bar[data-aberto="true"] {
         padding: 0;
         background: transparent;
