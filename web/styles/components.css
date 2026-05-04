@@ -3155,7 +3155,10 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     display: flex;
     flex-direction: column;
     z-index: var(--z-sidebar);
-    transition: width 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    /* Largura: 420ms out-expo (cubic-bezier 0.22, 1, 0.36, 1) — desliza
+       firme no início, estabiliza com calma no fim. Mestre da choreography
+       de colapso/expansão; textos sincronizam com este timing. */
+    transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1),
                 transform 280ms var(--ease-spring);
     overflow: visible;  /* permite o toggle escapar pela borda direita */
 }
@@ -3190,8 +3193,8 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     min-height: 72px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--c-papel-3);
-    transition: padding 280ms cubic-bezier(0.32, 0.72, 0, 1),
-                min-height 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    transition: padding 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                min-height 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-topo {
     padding: 8px 0;
@@ -3216,9 +3219,10 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     height: 44px;
     background: var(--c-musgo);
     flex-shrink: 0;
+    /* Marca acompanha o ritmo da largura da sidebar (420ms out-expo). */
     transition: background 180ms ease, transform 280ms var(--ease-spring),
-                width 280ms cubic-bezier(0.32, 0.72, 0, 1),
-                height 280ms cubic-bezier(0.32, 0.72, 0, 1);
+                width 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                height 420ms cubic-bezier(0.22, 1, 0.36, 1);
     display: inline-block;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-logo-marca {
@@ -3247,19 +3251,23 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     transform: translateX(0);
     max-width: 200px;
     overflow: hidden;
-    transition: opacity 200ms ease 120ms,
-                transform 280ms var(--ease-spring) 120ms,
-                max-width 280ms cubic-bezier(0.32, 0.72, 0, 1) 80ms;
+    /* ESTADO BASE (expandido): textos chegam DEPOIS que a largura cresce.
+       delay 240-280ms == "fim" da animação de largura (420ms total).
+       Sensação: barra abre primeiro, palavras "vêm de dentro" depois. */
+    transition: opacity 240ms ease 280ms,
+                transform 320ms cubic-bezier(0.22, 1, 0.36, 1) 240ms,
+                max-width 360ms cubic-bezier(0.22, 1, 0.36, 1) 240ms;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-logo-wordmark {
-    /* Encolhe e desaparece em vez de display:none (que era brusco).
-       max-width animado + opacity + transform sincronizam com a anim
-       da largura da sidebar, dando sensação de "voltar pra dentro". */
+    /* COLAPSANDO: textos saem PRIMEIRO (sem delay). Quando a largura
+       começa a encolher, eles já estão indo embora. Sensação: "palavras
+       recolhem antes da barra fechar". */
     max-width: 0;
     opacity: 0;
-    transform: translateX(-6px);
-    transition: opacity 160ms ease, max-width 280ms cubic-bezier(0.32, 0.72, 0, 1),
-                transform 220ms var(--ease-spring);
+    transform: translateX(-8px);
+    transition: opacity 160ms ease 0ms,
+                transform 220ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
+                max-width 280ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-logo {
     gap: 0;
@@ -3371,12 +3379,17 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-    transition: opacity 200ms ease, max-width 280ms cubic-bezier(0.32, 0.72, 0, 1);
     max-width: 200px;
+    /* ESTADO BASE (expandido): labels chegam depois da largura abrir. */
+    transition: opacity 240ms ease 280ms,
+                max-width 360ms cubic-bezier(0.22, 1, 0.36, 1) 240ms;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-link-texto {
     opacity: 0;
     max-width: 0;
+    /* COLAPSANDO: labels saem primeiro, sem delay. */
+    transition: opacity 160ms ease 0ms,
+                max-width 280ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 
 /* Badge — vive dentro do .sidebar-link-icone (CP5-FIX 7).
@@ -3442,12 +3455,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     display: flex;
     align-items: center;
     position: relative;
-    /* Anima padding/gap/min-height na troca de estado. flex-direction
-       muda bruscamente, mas como .sidebar-user-info ja encolheu via
-       max-width antes, o "salto" visual fica quase imperceptível. */
-    transition: padding 280ms cubic-bezier(0.32, 0.72, 0, 1),
-                gap 280ms cubic-bezier(0.32, 0.72, 0, 1),
-                min-height 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    /* Anima padding/gap/min-height na troca de estado, na mesma cadência
+       da largura (420ms out-expo). flex-direction muda bruscamente, mas
+       como .sidebar-user-info ja encolheu primeiro (transition delay 0),
+       o "salto" visual fica imperceptível. */
+    transition: padding 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                gap 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                min-height 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .app-sidebar[data-estado="expandida"] .sidebar-rodape {
     flex-direction: row;
@@ -3534,11 +3548,9 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.15);
 }
 
-/* Bloco nome+cargo — anima entre estados em vez de display:none brusco.
-   No colapsado: max-width zera, opacity vai a 0 e o conteudo sai por
-   trás do avatar; o flex-direction column do .sidebar-rodape encaixa
-   o avatar acima e o toggle abaixo. Mesma cadência da animação da
-   largura da sidebar (~280ms ease-spring). */
+/* Bloco nome+cargo — segue a mesma orquestração dos outros textos:
+   ESTADO BASE (expandido): chega DEPOIS da largura crescer (delay 280ms).
+   COLAPSADO: sai ANTES da largura encolher (delay 0). */
 .sidebar-user-info {
     display: flex;
     flex-direction: column;
@@ -3549,18 +3561,18 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     max-width: 200px;
     opacity: 1;
     transform: translateX(0);
-    transition: opacity 200ms ease 100ms,
-                transform 280ms var(--ease-spring) 100ms,
-                max-width 280ms cubic-bezier(0.32, 0.72, 0, 1) 60ms;
+    transition: opacity 240ms ease 280ms,
+                transform 320ms cubic-bezier(0.22, 1, 0.36, 1) 240ms,
+                max-width 360ms cubic-bezier(0.22, 1, 0.36, 1) 240ms;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-user-info {
     max-width: 0;
     opacity: 0;
-    transform: translateX(-6px);
+    transform: translateX(-8px);
     margin: 0;
-    transition: opacity 140ms ease,
-                max-width 280ms cubic-bezier(0.32, 0.72, 0, 1),
-                transform 220ms var(--ease-spring);
+    transition: opacity 160ms ease 0ms,
+                transform 220ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
+                max-width 280ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
 }
 
 .sidebar-user-nome {
