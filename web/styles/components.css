@@ -1773,11 +1773,17 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     flex-direction: column;
     justify-content: center;
     padding: 0.2rem;
+    /* Recolhido: width acompanha o conteúdo (botão Filtros) -- sem
+       espaço sobrando lateral dentro do card. */
+    width: fit-content;
+    max-width: 100%;
 }
 .cx-acoes-row .filter-bar[data-aberto="true"] {
-    /* Aberto: header em cima, painel embaixo. Padding maior pros campos. */
+    /* Aberto: header em cima, painel embaixo. Padding maior pros campos.
+       Width 100% pra ocupar o slot que cresceu via :has(). */
     justify-content: flex-start;
     padding: 0.6rem 0.85rem 0.85rem;
+    width: 100%;
 }
 @media (max-width: 640px) {
     .cx-acoes-row {
