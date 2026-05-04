@@ -789,20 +789,24 @@
     line-height: 1.2;
 }
 
-/* Cada categoria pinta a tira lateral + define o tom do badge (pill). */
+/* Cada categoria pinta a tira lateral + define o tom do badge (pill).
+   Pill .lanc-categoria usa AS MESMAS cores do chip do carrossel
+   (resumo-dia-dist) -- color-mix(border, 14%, transparent) no fundo,
+   var(--cat-X-border) no texto. Cores canônicas das 6 categorias
+   ficam unificadas em todos os pontos visuais do caixa. */
 .lanc-row[data-cat="cartao"]      { --tira-cor: var(--cat-cartao-border); }
-.lanc-row[data-cat="cartao"]      .lanc-categoria { background: var(--cat-cartao-bg);    color: var(--cat-cartao-text); }
+.lanc-row[data-cat="cartao"]      .lanc-categoria { background: color-mix(in srgb, var(--cat-cartao-border) 14%, transparent);    color: var(--cat-cartao-border); }
 .lanc-row[data-cat="pix"]         { --tira-cor: var(--cat-pix-border); }
-.lanc-row[data-cat="pix"]         .lanc-categoria { background: var(--cat-pix-bg);       color: var(--cat-pix-text); }
+.lanc-row[data-cat="pix"]         .lanc-categoria { background: color-mix(in srgb, var(--cat-pix-border) 14%, transparent);       color: var(--cat-pix-border); }
 .lanc-row[data-cat="dinheiro"]    { --tira-cor: var(--cat-dinheiro-border); }
-.lanc-row[data-cat="dinheiro"]    .lanc-categoria { background: var(--cat-dinheiro-bg);  color: var(--cat-dinheiro-text); }
+.lanc-row[data-cat="dinheiro"]    .lanc-categoria { background: color-mix(in srgb, var(--cat-dinheiro-border) 14%, transparent);  color: var(--cat-dinheiro-border); }
 .lanc-row[data-cat="cancelado"]   { --tira-cor: var(--cat-cancelado-border); }
-.lanc-row[data-cat="cancelado"]   .lanc-categoria { background: var(--cat-cancelado-bg); color: var(--cat-cancelado-text); }
+.lanc-row[data-cat="cancelado"]   .lanc-categoria { background: color-mix(in srgb, var(--cat-cancelado-border) 12%, transparent); color: var(--cat-cancelado-border); }
 .lanc-row[data-cat="cancelado"]   .lanc-cliente, .lanc-row[data-cat="cancelado"] .lanc-valor { text-decoration: line-through; opacity: 0.7; }
 .lanc-row[data-cat="cartao_link"] { --tira-cor: var(--cat-link-border); }
-.lanc-row[data-cat="cartao_link"] .lanc-categoria { background: var(--cat-link-bg);      color: var(--cat-link-text); }
+.lanc-row[data-cat="cartao_link"] .lanc-categoria { background: color-mix(in srgb, var(--cat-link-border) 14%, transparent);      color: var(--cat-link-border); }
 .lanc-row[data-cat="obs"]         { --tira-cor: var(--cat-obs-border); }
-.lanc-row[data-cat="obs"]         .lanc-categoria { background: var(--cat-obs-bg);       color: var(--cat-obs-text); }
+.lanc-row[data-cat="obs"]         .lanc-categoria { background: color-mix(in srgb, var(--cat-obs-border) 16%, transparent);       color: var(--cat-obs-border); }
 
 /* Resolvido — pinta a tira lateral (bandeirinha) com tom oliva-musgo
    (--cat-resolvido-tira), mais terrestre que o emerald de --cat-resolvido.
@@ -849,8 +853,11 @@
     opacity: 0.65;
 }
 .lanc-row[data-estado-final="cancelado"] .lanc-categoria {
-    background: rgba(239, 68, 68, 0.16) !important;
-    color: #7f1d1d !important;
+    /* Cancelado pos-pagamento: pill da categoria original ganha
+       overlay vermelho da var --est-cancelado (mesma cor do chip
+       cancelado no carrossel + bolinha inline em .lanc-detalhes). */
+    background: color-mix(in srgb, var(--est-cancelado) 14%, transparent) !important;
+    color: var(--est-cancelado) !important;
 }
 .lanc-row[data-estado-final] .lanc-detalhes::before {
     content: '';
