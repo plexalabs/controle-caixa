@@ -1738,11 +1738,26 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     flex-wrap: wrap;
     gap: 0.7rem;
 }
+/* Harmoniza botões da .resumo-acao em altura e largura mínima:
+   - line-height: 1 igualado entre primary e fechar (fechar ja tinha; primary herdava)
+   - border ghost de 1.5px no primary compensa a borda do outline (.btn-fechar-caixa)
+     para footprint vertical idêntico
+   - min-width comum evita que "+ Novo lançamento" (largo), "Abrir caixa" (curto)
+     e "Fechar caixa" (médio) fiquem com larguras destoantes lado a lado */
+.resumo-acao .btn-primary,
+.resumo-acao .btn-fechar-caixa,
+.resumo-acao .hint-pendencias {
+    min-width: 11.5rem;
+    line-height: 1;
+}
+.resumo-acao .btn-primary {
+    border: 1.5px solid transparent;
+}
 @media (max-width: 480px) {
     .resumo-acao { justify-content: stretch; }
     .resumo-acao .btn-primary,
     .resumo-acao .btn-fechar-caixa,
-    .resumo-acao .hint-pendencias { width: 100%; justify-content: flex-start; }
+    .resumo-acao .hint-pendencias { width: 100%; min-width: 0; justify-content: flex-start; }
 }
 
 
