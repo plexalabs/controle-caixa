@@ -1782,25 +1782,47 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         text-overflow: ellipsis;
     }
 
-    /* FILTER ABERTO em mobile: slot vira overlay sobre a row inteira.
-       position:absolute + inset cobre os botões (ficam atrás via z-index),
-       filter-bar fica full-width, painel desce via grid-template-rows.
-       Sequência percebida: clica → slot expande horizontalmente cobrindo
-       os botões → painel desce verticalmente. */
+    /* FILTER ABERTO em mobile:
+       - O slot mantém os 44px no fluxo -- botões NÃO mudam de tamanho.
+       - O filter-bar vira position:absolute relativo à .cx-acoes-row
+         (slot vira position:static pra deixar de ser ancestral
+         posicionado), começando em left:0 right:0 -- ocupa largura full
+         em sobreposição.
+       - Ícone fica no mesmo lugar (left:0, dentro do header absolute).
+       - Texto "Filtro" aparece ao lado do ícone (sai do display:none).
+       - Botão vira pílula (border-radius:r-pill, padding horizontal).
+       - Painel desce abaixo do header via grid-template-rows. */
     .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .cx-filtros-slot {
+        position: static;
+    }
+    .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .filter-bar {
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        width: auto;        /* override do 44px recolhido */
-        flex: none;
+        width: auto;
         z-index: 10;
     }
-    .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .filter-bar {
-        width: 100%;
+    /* Header aberto: largura natural, alinhado à esquerda */
+    .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .filter-bar-header {
+        justify-content: flex-start;
+        gap: 0.5rem;
+        padding: 0 0.5rem;
     }
-    /* Botões ficam atrás visualmente -- não somem do DOM (acessibilidade
-       preservada), só são cobertos pelo overlay do filter. */
+    /* Botão filter aberto = pílula com ícone + texto "Filtro" */
+    .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .filter-bar-toggle-painel {
+        width: auto;
+        height: 44px;
+        padding: 0 0.95rem;
+        border-radius: var(--r-pill);
+        gap: 0.55rem;
+    }
+    .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .filter-bar-toggle-rotulo {
+        display: inline;
+        font-size: 0.88rem;
+    }
+    /* Botões da .resumo-acao mantém tamanho -- slot ainda reserva 44px
+       no fluxo. O overlay do filter passa por cima visualmente. */
     .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .resumo-acao {
         position: relative;
         z-index: 1;
