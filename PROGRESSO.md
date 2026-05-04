@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — STYLE-CAIXA-HEADER (resumo-dia carrossel + cores --est-* unificadas) mergeado.
+> Última atualização: 2026-05-04 — STYLE-SIDEBAR (toggle direita + click fora + mobile sem toggle) mergeado.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -322,6 +322,7 @@ paleta de cores em todo o /caixa/:data.
 
 ### Histórico de merges (recentes)
 
+- `2c92e4e` — `[STYLE-SIDEBAR] merge: toggle direita + click fora + mobile sem toggle`
 - `1c9d38d` — `[STYLE-CAIXA-HEADER] merge: resumo-dia carrossel + cores --est-* unificadas`
 - `00c55e1` — `[STYLE-CAIXA-HEADER] merge: refator mobile do header + filter overlay + resumo-dia clean`
 - `2800131` — `[STYLE-FILTER] merge: filter-bar colapsavel + inline com botoes de acao`
