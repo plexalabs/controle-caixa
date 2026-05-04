@@ -2760,7 +2760,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
     border-radius: var(--r-md);
-    padding: 0.4rem 0.6rem;
+    padding: 0.25rem 0.35rem;
     margin-bottom: 1.4rem;
     transition: padding 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
