@@ -1552,12 +1552,33 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     gap: 0.45rem;
     font-family: 'Manrope', sans-serif;
     line-height: 1.2;
-    transition: opacity 200ms ease;
+    /* Chip pílula com cor sutil — cada item ganha bg da própria cor
+       (estado ou categoria). color-mix com 12% deixa a tinta presente
+       sem dominar; primeiro item destaca, zerados ficam atenuados. */
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--r-pill);
+    background: var(--c-papel-2);
+    transition: opacity 200ms ease, background 200ms ease;
 }
-/* Items sem volume: atenuados pra hierarquia visual. */
+/* Items sem volume: chip neutro + atenuação geral. */
 .resumo-dia-linha li[data-zero="true"] {
-    opacity: 0.42;
+    opacity: 0.5;
+    background: transparent;
 }
+
+/* Cores de fundo dos chips — estados (.resumo-dia-estados) */
+.resumo-dia-estados li[data-tom="analise"]   { background: color-mix(in srgb, var(--c-musgo-3) 12%, transparent); }
+.resumo-dia-estados li[data-tom="curso"]     { background: color-mix(in srgb, var(--c-ambar-2) 14%, transparent); }
+.resumo-dia-estados li[data-tom="resolvido"] { background: color-mix(in srgb, #047857 14%, transparent); }
+.resumo-dia-estados li[data-tom="cancelado"] { background: color-mix(in srgb, #b91c1c 12%, transparent); }
+
+/* Cores de fundo dos chips — distribuição (.resumo-dia-dist) */
+.resumo-dia-dist li[data-cat="cartao"]      { background: color-mix(in srgb, var(--cat-cartao-border) 14%, transparent); }
+.resumo-dia-dist li[data-cat="pix"]         { background: color-mix(in srgb, var(--cat-pix-border) 14%, transparent); }
+.resumo-dia-dist li[data-cat="dinheiro"]    { background: color-mix(in srgb, var(--cat-dinheiro-border) 14%, transparent); }
+.resumo-dia-dist li[data-cat="cancelado"]   { background: color-mix(in srgb, var(--cat-cancelado-border) 12%, transparent); }
+.resumo-dia-dist li[data-cat="cartao_link"] { background: color-mix(in srgb, var(--cat-link-border) 14%, transparent); }
+.resumo-dia-dist li[data-cat="obs"]         { background: color-mix(in srgb, var(--cat-obs-border) 16%, transparent); }
 .resumo-dia-num {
     font-family: 'Fraunces', serif;
     font-style: italic;
@@ -1591,21 +1612,8 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 /* Distribuição: bolinha colorida pela categoria + nome + qtd. */
-.resumo-dia-dot {
-    display: inline-block;
-    width: 0.55rem;
-    height: 0.55rem;
-    border-radius: 50%;
-    background: var(--c-papel-3);
-    flex-shrink: 0;
-    transform: translateY(-1px);
-}
-.resumo-dia-dist li[data-cat="cartao"]      .resumo-dia-dot { background: var(--cat-cartao-border); }
-.resumo-dia-dist li[data-cat="pix"]         .resumo-dia-dot { background: var(--cat-pix-border); }
-.resumo-dia-dist li[data-cat="dinheiro"]    .resumo-dia-dot { background: var(--cat-dinheiro-border); }
-.resumo-dia-dist li[data-cat="cancelado"]   .resumo-dia-dot { background: var(--cat-cancelado-border); }
-.resumo-dia-dist li[data-cat="cartao_link"] .resumo-dia-dot { background: var(--cat-link-border); }
-.resumo-dia-dist li[data-cat="obs"]         .resumo-dia-dot { background: var(--cat-obs-border); }
+/* .resumo-dia-dot removido: cor agora vem do background do chip
+   inteiro (mais clean, sem bullet redundante). */
 
 @media (max-width: 640px) {
     .resumo-dia { padding: 0.95rem 1rem 1.05rem; }

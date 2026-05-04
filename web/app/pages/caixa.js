@@ -538,7 +538,6 @@ function atualizarRodape(lancamentos) {
     <ul class="resumo-dia-linha resumo-dia-dist">
       ${itensDist.map(i => `
         <li data-cat="${esc(i.cat)}" data-zero="${i.n === 0}">
-          <span class="resumo-dia-dot" aria-hidden="true"></span>
           <span class="resumo-dia-rotulo">${esc(i.nome)}</span>
           <span class="resumo-dia-num resumo-dia-num--small">${i.n}</span>
         </li>
