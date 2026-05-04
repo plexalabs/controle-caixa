@@ -297,11 +297,14 @@ function campoHtml(f, valor) {
   return '';
 }
 
-// Ícone funil (lucide-inspired strokes 1.5px, currentColor).
+// Ícone funil (lucide-inspired strokes 1.6px, currentColor).
+// Path centralizado no viewBox 24x24 -- bounding box [4,4]-[20,20]
+// (centro x=12, y=12), evitando desvio visual quando dentro do botão
+// circular do mobile.
 function svgFunil() {
   return `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M4 5 H20 L14 12.5 V19 L10 21 V12.5 Z"
+      <path d="M4 4 H20 L14 11.5 V18 L10 20 V11.5 Z"
             stroke="currentColor" stroke-width="1.6"
             stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;

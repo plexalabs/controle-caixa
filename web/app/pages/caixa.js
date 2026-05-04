@@ -22,6 +22,8 @@ let caixaIdAtual = null;
 let dataAlvoAtual = null;
 let lancCache = [];      // CP5.5: cache para filtros client-side
 let fbCtrl = null;
+let fbOverlayObs = null;        // observer do data-aberto (mobile overlay)
+let fbOverlayResizeFn = null;
 
 export async function renderCaixa({ params }) {
   desmontar();
@@ -39,21 +41,18 @@ export async function renderCaixa({ params }) {
     rotaAtiva: 'caixas',
     conteudo: `
     <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
-      <!-- Voltar para a lista -->
-      <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
+      <!-- Topbar: voltar + status na mesma linha (status some em mobile
+           só não fica numa linha sozinho do header) -->
+      <nav class="cx-topbar reveal reveal-1" aria-label="Voltar">
         <a href="/caixas" data-link class="btn-link" style="font-size:0.85rem">← Todos os caixas</a>
+        <span id="cab-status" class="badge-status"></span>
       </nav>
 
       <!-- Cabeçalho do dia -->
       <header class="mb-6 reveal reveal-2">
         <p class="h-eyebrow">Caixa de</p>
-        <div class="flex flex-wrap items-baseline justify-between gap-4 mt-1">
-          <h1 class="h-display text-3xl sm:text-4xl" style="font-style:normal;font-weight:500"
-              id="cab-data">${dataLonga(dataAlvo)}</h1>
-          <div class="flex items-center gap-3">
-            <span id="cab-status" class="badge-status"></span>
-          </div>
-        </div>
+        <h1 class="h-display text-3xl sm:text-4xl mt-1" style="font-style:normal;font-weight:500"
+            id="cab-data">${dataLonga(dataAlvo)}</h1>
       </header>
 
       <!-- Resumo do dia: contexto antes da leitura linha-a-linha -->
@@ -300,6 +299,50 @@ function garantirFilterBar() {
     ],
     onChange: () => renderListaFiltrada(),
   });
+
+  configurarOverlayFiltroMobile();
+}
+
+// Em mobile (<=640px), o slot do filter-bar vira overlay position:absolute
+// sobre a row quando o filter abre -- cobre os botões. Como ele sai do
+// fluxo, a .cx-acoes-row mantém altura natural da .resumo-acao (~44px) e
+// a lista de lançamentos NÃO seria empurnada naturalmente. Aqui medimos
+// a altura do filter-bar quando abre e aplicamos padding-bottom dinâmico
+// na row (--fb-overlay-h) -- a lista desce abaixo do filter expandido.
+function configurarOverlayFiltroMobile() {
+  const row = document.querySelector('.cx-acoes-row');
+  const fb  = row?.querySelector('.filter-bar');
+  if (!row || !fb) return;
+
+  const recalc = () => {
+    const ehMobile = window.innerWidth <= 640;
+    const aberto = fb.dataset.aberto === 'true';
+    if (!ehMobile || !aberto) {
+      row.style.setProperty('--fb-overlay-h', '0px');
+      return;
+    }
+    requestAnimationFrame(() => {
+      const h = fb.offsetHeight;
+      // 44px é a altura natural da row (botões mobile); o excesso é o
+      // que o filter aberto cresceu além dela.
+      const excesso = Math.max(0, h - 44);
+      row.style.setProperty('--fb-overlay-h', `${excesso}px`);
+    });
+  };
+
+  if (fbOverlayObs) fbOverlayObs.disconnect();
+  fbOverlayObs = new MutationObserver(() => {
+    // pequena espera pra animação grid-template-rows propagar a altura
+    setTimeout(recalc, 50);
+    setTimeout(recalc, 380);  // após a transição completa
+  });
+  fbOverlayObs.observe(fb, { attributes: true, attributeFilter: ['data-aberto'] });
+
+  if (fbOverlayResizeFn) window.removeEventListener('resize', fbOverlayResizeFn);
+  fbOverlayResizeFn = recalc;
+  window.addEventListener('resize', fbOverlayResizeFn);
+
+  recalc();
 }
 
 function renderListaFiltrada() {
@@ -454,51 +497,54 @@ function atualizarRodape(lancamentos) {
     dist[l.categoria] = (dist[l.categoria] || 0) + 1;
   }
 
+  // Layout clean: hierarquia tipográfica vertical sem tira "DO DIA",
+  // sem chips chromados. Apenas:
+  //   1) eyebrow + valor + qtd  (bloco principal)
+  //   2) linha de estados (só os com n>0, número colorido + label)
+  //   3) linha de distribuição (bolinha colorida + categoria · qtd)
+  const itensEstado = [
+    { tom: 'analise',   rotulo: 'em análise',  n: emAnalise.length },
+    { tom: 'curso',     rotulo: 'em curso',    n: emCurso.length },
+    { tom: 'resolvido', rotulo: 'resolvidas',  n: resolvidos.length },
+    { tom: 'cancelado', rotulo: 'canceladas',  n: cancelados.length },
+  ].filter(i => i.n > 0);
+
+  const itensDist = Object.entries(dist).map(([cat, n]) => ({
+    cat, n, nome: LABEL_CATEGORIA[cat] || cat,
+  }));
+
   rod.innerHTML = `
-    <div class="resumo-dia-bloco resumo-dia-bloco--total">
+    <div class="resumo-dia-cabec">
       <p class="h-eyebrow">Total do dia</p>
-      <div class="resumo-dia-total">
-        <span class="resumo-dia-total-valor">${formatBRL(total)}</span>
-        <span class="resumo-dia-total-quant">
-          ${validos.length} ${validos.length === 1 ? 'lançamento válido' : 'lançamentos válidos'}
-        </span>
+      <div class="resumo-dia-valor">
+        <span class="resumo-dia-valor-num">${formatBRL(total)}</span>
+        <span class="resumo-dia-valor-qtd">${validos.length} ${validos.length === 1 ? 'lançamento válido' : 'lançamentos válidos'}</span>
       </div>
     </div>
 
-    <div class="resumo-dia-bloco resumo-dia-bloco--estado">
-      <p class="h-eyebrow">Estado</p>
-      <div class="resumo-dia-chips">
-        ${chipEstado('analise',   'Em análise', emAnalise.length)}
-        ${chipEstado('curso',     'Em curso',   emCurso.length)}
-        ${chipEstado('resolvido', 'Resolvidas', resolvidos.length)}
-        ${chipEstado('cancelado', 'Canceladas', cancelados.length)}
-      </div>
-    </div>
+    ${itensEstado.length ? `
+      <ul class="resumo-dia-linha resumo-dia-estados">
+        ${itensEstado.map(i => `
+          <li data-tom="${i.tom}">
+            <span class="resumo-dia-num">${i.n}</span>
+            <span class="resumo-dia-rotulo">${i.rotulo}</span>
+          </li>
+        `).join('')}
+      </ul>
+    ` : ''}
 
-    ${Object.keys(dist).length ? `
-      <div class="resumo-dia-bloco resumo-dia-bloco--dist">
-        <p class="h-eyebrow">Distribuição</p>
-        <div class="resumo-dia-cats">
-          ${Object.entries(dist).map(([cat, n]) => `
-            <span class="rd-cat" data-cat="${esc(cat)}">
-              <span class="rd-cat-conteudo">
-                <span class="rd-cat-nome">${esc(LABEL_CATEGORIA[cat] || cat)}</span>
-                <span class="rd-cat-num">${n}</span>
-              </span>
-            </span>
-          `).join('')}
-        </div>
-      </div>
+    ${itensDist.length ? `
+      <ul class="resumo-dia-linha resumo-dia-dist">
+        ${itensDist.map(i => `
+          <li data-cat="${esc(i.cat)}">
+            <span class="resumo-dia-dot" aria-hidden="true"></span>
+            <span class="resumo-dia-rotulo">${esc(i.nome)}</span>
+            <span class="resumo-dia-num resumo-dia-num--small">${i.n}</span>
+          </li>
+        `).join('')}
+      </ul>
     ` : ''}
   `;
-}
-
-function chipEstado(tom, rotulo, n) {
-  return `
-    <span class="rd-chip" data-tom="${tom}" data-zero="${n === 0 ? 'true' : 'false'}">
-      <span class="rd-chip-num">${n}</span>
-      <span class="rd-chip-rotulo">${rotulo}</span>
-    </span>`;
 }
 
 function renderSemCaixa(dataAlvo) {
@@ -564,6 +610,14 @@ function desmontar() {
   if (fbCtrl) {
     fbCtrl.destruir();
     fbCtrl = null;
+  }
+  if (fbOverlayObs) {
+    fbOverlayObs.disconnect();
+    fbOverlayObs = null;
+  }
+  if (fbOverlayResizeFn) {
+    window.removeEventListener('resize', fbOverlayResizeFn);
+    fbOverlayResizeFn = null;
   }
   lancCache = [];
 }
