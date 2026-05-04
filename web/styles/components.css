@@ -1672,17 +1672,16 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 @media (max-width: 640px) {
     /* Mobile: filter circular ícone-only + botões dividindo o resto da
-       linha. Painel abre como OVERLAY position:absolute sobre os botões;
-       a lista de lançamentos é empurrada abaixo via padding-bottom
-       dinâmico aplicado por JS (--fb-overlay-h). */
+       linha. Quando o filter abre, o card EXPANDE DE SI MESMO (cresce
+       verticalmente); os botões à direita ficam alinhados pelo topo
+       (align-items:flex-start) e a lista de lançamentos é empurrada
+       naturalmente pela altura nova do .cx-acoes-row. Sem overlay,
+       sem JS de medição -- só animação de grid-template-rows do painel. */
     .cx-acoes-row {
         gap: 0.5rem;
         flex-wrap: nowrap;
-        align-items: center;
-        position: relative;
+        align-items: flex-start;
         min-width: 0;
-        padding-bottom: var(--fb-overlay-h, 0);
-        transition: padding-bottom 320ms cubic-bezier(0.22, 1, 0.36, 1);
     }
     .cx-filtros-slot {
         flex: 0 0 auto;
@@ -1691,7 +1690,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 
     /* Filtro: botão circular 44x44 com ícone funil. Texto "Filtros" e
        resumo somem; só ficam ícone + badge no canto. Header sem gap
-       (era 0.75rem -- somava 12px com items invisíveis e crescia o slot). */
+       (era 0.75rem -- somava 12px com items invisíveis). */
     .cx-acoes-row .filter-bar-header {
         gap: 0;
         flex-wrap: nowrap;
@@ -1708,8 +1707,6 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         position: relative;
         flex-shrink: 0;
         gap: 0;
-        /* explícito pra garantir centralizar o ícone funil dentro do
-           círculo, mesmo com algum filho herdando display/margin */
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -1743,10 +1740,10 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         border: 0;
     }
 
-    /* .resumo-acao ocupa o resto da linha; botões dentro dividem espaço
-       com flex:1 1 0 e min-width:0 -- encolhem juntos. Especificidade
-       extra (.cx-acoes-row .resumo-acao ...) garante que o min-width:11.5rem
-       herdado de .resumo-acao .btn-primary (regra desktop) seja zerado. */
+    /* .resumo-acao ocupa o resto da linha; botões dentro dividem espaço.
+       min-height:44px iguala à altura do círculo do filtro -- todos os
+       elementos da linha alinham visualmente. Padding vertical zerado
+       (altura controlada por min-height + flex centering). */
     .cx-acoes-row .resumo-acao {
         flex: 1 1 auto;
         min-width: 0;
@@ -1760,51 +1757,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         flex: 1 1 0;
         min-width: 0;
         max-width: 100%;
-        padding: 0.55rem 0.4rem;
+        min-height: 44px;
+        padding: 0 0.6rem;
         font-size: 0.82rem;
         justify-content: center;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-
-    /* PAINEL DO FILTRO em mobile = OVERLAY position:absolute sobre a
-       área dos botões. Começa logo após o círculo (44px + 0.5rem gap).
-       Lista é empurrada via --fb-overlay-h (JS). */
-    .cx-acoes-row .filter-bar-painel {
-        display: block;
-        grid-template-rows: none;
-        position: absolute;
-        top: 0;
-        left: calc(44px + 0.5rem);
-        right: 0;
-        max-height: 0;
-        overflow: hidden;
-        z-index: 10;
-        transition: max-height 320ms cubic-bezier(0.22, 1, 0.36, 1),
-                    padding 280ms cubic-bezier(0.22, 1, 0.36, 1),
-                    background 240ms ease,
-                    border-color 240ms ease,
-                    box-shadow 280ms ease;
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: var(--r-md);
-        padding: 0;
-    }
-    .cx-acoes-row .filter-bar[data-aberto="true"] .filter-bar-painel {
-        max-height: 70vh;
-        padding: 0.85rem;
-        background: var(--c-papel);
-        border-color: var(--c-papel-3);
-        box-shadow: 0 14px 28px -10px rgba(15, 76, 58, 0.22);
-    }
-    .cx-acoes-row .filter-bar[data-aberto="true"] {
-        padding: 0;
-        background: transparent;
-        border-color: transparent;
-    }
-    .cx-acoes-row .filter-bar-painel-conteudo {
-        overflow: visible;
     }
 }
 

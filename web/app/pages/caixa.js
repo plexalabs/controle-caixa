@@ -22,8 +22,6 @@ let caixaIdAtual = null;
 let dataAlvoAtual = null;
 let lancCache = [];      // CP5.5: cache para filtros client-side
 let fbCtrl = null;
-let fbOverlayObs = null;        // observer do data-aberto do filter-bar (mobile)
-let fbOverlayResizeFn = null;
 
 export async function renderCaixa({ params }) {
   desmontar();
@@ -299,47 +297,6 @@ function garantirFilterBar() {
     ],
     onChange: () => renderListaFiltrada(),
   });
-
-  configurarOverlayFiltroMobile();
-}
-
-// Em mobile (<=640px), o painel do filter-bar vira overlay sobre os
-// botões da .resumo-acao (position:absolute). Como ele sai do fluxo,
-// o conteúdo abaixo (lista de lançamentos) NÃO é empurrado naturalmente.
-// Aqui medimos a altura real do conteúdo do painel quando ele abre e
-// aplicamos `padding-bottom` na .cx-acoes-row via CSS var, empurrando
-// a lista pra baixo do overlay.
-function configurarOverlayFiltroMobile() {
-  const row = document.querySelector('.cx-acoes-row');
-  const fb  = row?.querySelector('.filter-bar');
-  if (!row || !fb) return;
-
-  const recalc = () => {
-    const ehMobile = window.innerWidth <= 640;
-    const aberto = fb.dataset.aberto === 'true';
-    if (!ehMobile || !aberto) {
-      row.style.setProperty('--fb-overlay-h', '0px');
-      return;
-    }
-    requestAnimationFrame(() => {
-      const conteudo = fb.querySelector('.filter-bar-painel-conteudo');
-      if (!conteudo) return;
-      // scrollHeight inclui padding interno; somamos pequeno buffer
-      // pra cobrir o padding do .filter-bar-painel (0.85rem * 2).
-      const h = conteudo.scrollHeight + 28;
-      row.style.setProperty('--fb-overlay-h', `${h}px`);
-    });
-  };
-
-  if (fbOverlayObs) fbOverlayObs.disconnect();
-  fbOverlayObs = new MutationObserver(recalc);
-  fbOverlayObs.observe(fb, { attributes: true, attributeFilter: ['data-aberto'] });
-
-  if (fbOverlayResizeFn) window.removeEventListener('resize', fbOverlayResizeFn);
-  fbOverlayResizeFn = recalc;
-  window.addEventListener('resize', fbOverlayResizeFn);
-
-  recalc();
 }
 
 function renderListaFiltrada() {
@@ -607,14 +564,6 @@ function desmontar() {
   if (fbCtrl) {
     fbCtrl.destruir();
     fbCtrl = null;
-  }
-  if (fbOverlayObs) {
-    fbOverlayObs.disconnect();
-    fbOverlayObs = null;
-  }
-  if (fbOverlayResizeFn) {
-    window.removeEventListener('resize', fbOverlayResizeFn);
-    fbOverlayResizeFn = null;
   }
   lancCache = [];
 }
