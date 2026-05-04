@@ -1636,19 +1636,15 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         -ms-overflow-style: none;         /* IE/Edge legado */
         /* Margem lateral negativa pra carrossel sangrar até a borda;
            padding-left maior dá respiro pro primeiro item descansar. */
-        margin-left: -1rem;
-        margin-right: -1rem;
-        /* Card .resumo-dia mobile tem padding-left:1rem. Carrossel
-           sangra com margin-left:-1rem (até o edge externo do card).
-           Padding simétrico (2.5rem cada lado) coloca primeiro e
-           último itens 1.5rem alem do edge interno -- respiro
-           confortavel nos dois lados, nada colado. */
-        padding-left: 2.5rem;
-        padding-right: 2.5rem;
-        /* Mask SÓ à direita, fade pequeno (0.75rem = 12px) -- apenas
-           hint de continuidade, NÃO corta texto do último item.
-           Como padding-right é generoso (2.5rem), o último item fica
-           bem antes do fade começar. */
+        /* SEM margin negativo -- linha respeita padding interno do card.
+           padding-left direto = respiro real do primeiro item ao edge
+           interno. Bem mais simples e previsível que sangrar+compensar. */
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 1.25rem;
+        padding-right: 1.5rem;
+        /* Mask SÓ à direita, fade discreto (0.75rem = 12px) -- hint
+           de continuidade sem cortar texto do último item. */
         mask-image: linear-gradient(to right,
                     #000 0,
                     #000 calc(100% - 0.75rem),
