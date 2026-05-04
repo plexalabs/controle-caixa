@@ -859,10 +859,15 @@
     border-radius: var(--r-pill);
     margin-right: 0.4rem;
     vertical-align: middle;
-    background: var(--cat-resolvido);
+    /* Bolinha inline antes do "· finalizado em DD/MM" usa a mesma
+       cor consolidada de estado resolvido (--est-resolvido = oliva-
+       musgo) que o chip do carrossel e a bandeirinha lateral. */
+    background: var(--est-resolvido);
 }
 .lanc-row[data-estado-final="cancelado"] .lanc-detalhes::before {
-    background: var(--cat-atrasado);
+    /* Cancelado pos-pagamento: mesma tinta vermelha do chip de
+       cancelado no carrossel e da pill .lanc-categoria cancelada. */
+    background: var(--est-cancelado);
 }
 
 
@@ -1566,11 +1571,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     background: transparent;
 }
 
-/* Cores de fundo dos chips — estados (.resumo-dia-estados) */
-.resumo-dia-estados li[data-tom="analise"]   { background: color-mix(in srgb, var(--c-musgo-3) 12%, transparent); }
-.resumo-dia-estados li[data-tom="curso"]     { background: color-mix(in srgb, var(--c-ambar-2) 14%, transparent); }
-.resumo-dia-estados li[data-tom="resolvido"] { background: color-mix(in srgb, #047857 14%, transparent); }
-.resumo-dia-estados li[data-tom="cancelado"] { background: color-mix(in srgb, #b91c1c 12%, transparent); }
+/* Cores de fundo dos chips — estados (.resumo-dia-estados).
+   Usa as mesmas vars --est-* da cor do número, garantindo coerência
+   visual entre tinta e fundo de cada chip. */
+.resumo-dia-estados li[data-tom="analise"]   { background: color-mix(in srgb, var(--est-analise) 12%, transparent); }
+.resumo-dia-estados li[data-tom="curso"]     { background: color-mix(in srgb, var(--est-curso) 14%, transparent); }
+.resumo-dia-estados li[data-tom="resolvido"] { background: color-mix(in srgb, var(--est-resolvido) 14%, transparent); }
+.resumo-dia-estados li[data-tom="cancelado"] { background: color-mix(in srgb, var(--est-cancelado) 12%, transparent); }
 
 /* Cores de fundo dos chips — distribuição (.resumo-dia-dist) */
 .resumo-dia-dist li[data-cat="cartao"]      { background: color-mix(in srgb, var(--cat-cartao-border) 14%, transparent); }
@@ -1600,11 +1607,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 /* Estados: número colorido conforme tom; cancelados ficam line-through
-   sutil pra ressaltar visual sem peso de borda. */
-.resumo-dia-estados li[data-tom="analise"]   .resumo-dia-num { color: var(--c-musgo-3); }
-.resumo-dia-estados li[data-tom="curso"]     .resumo-dia-num { color: var(--c-ambar-2); }
-.resumo-dia-estados li[data-tom="resolvido"] .resumo-dia-num { color: #047857; }
-.resumo-dia-estados li[data-tom="cancelado"] .resumo-dia-num { color: #b91c1c; }
+   sutil pra ressaltar visual sem peso de borda. Cores unificadas
+   via --est-* (mesmas vars usadas no chip de fundo abaixo + bolinhas
+   inline em .lanc-detalhes). */
+.resumo-dia-estados li[data-tom="analise"]   .resumo-dia-num { color: var(--est-analise); }
+.resumo-dia-estados li[data-tom="curso"]     .resumo-dia-num { color: var(--est-curso); }
+.resumo-dia-estados li[data-tom="resolvido"] .resumo-dia-num { color: var(--est-resolvido); }
+.resumo-dia-estados li[data-tom="cancelado"] .resumo-dia-num { color: var(--est-cancelado); }
 .resumo-dia-estados li[data-tom="cancelado"] .resumo-dia-rotulo {
     text-decoration: line-through;
     text-decoration-thickness: 1px;
