@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — CP-AUDIT-2 (CRÍTICO-002) mergeado; modelo legacy de papel eliminado das RLS.
+> Última atualização: 2026-05-04 — FEAT-002 (reabrir caixa) + FIX-VIZ (todos veem caixa) + STYLE-CAIXA-ACAO mergeados.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -152,8 +152,63 @@ sem filtro `ativo=true`. Migradas para `tem_permissao()`.
 - (Restam apenas refs legacy em `usuario_papel` para deteccao de
   super_admin, que é intencional)
 
+## Status — FEAT-002 + FIX-VIZ + STYLE-CAIXA-ACAO (2026-05-04)
+
+### FEAT-002 — Reabrir caixa fechado (FEATURE-002 do relatorio)
+
+Tira `caixa.reabrir_fechado` da fila de "permissao no catalogo sem
+implementacao" (SUGESTAO-015 do relatorio).
+
+- [x] RPC `reabrir_caixa(uuid, text)` com SECURITY DEFINER + check
+      `tem_permissao('caixa.reabrir_fechado')` + motivo >=10 chars
+- [x] Recusa caixas arquivados (estado terminal); preserva
+      fechado_em/fechado_por (auditavel); append em
+      observacao_fechamento mantem trilha
+- [x] Modal `web/components/modal-reabrir-caixa.js` com aviso +
+      textarea de motivo + traducao de erros
+- [x] `web/app/pages/caixa.js`: botao condicional na .resumo-acao
+      (aberto: Novo lancamento / fechado+permissao: Abrir caixa /
+      fechado sem permissao ou arquivado: esconde)
+- [x] Validado em PROD por Operador (admin)
+
+### FIX-VIZ — Todos os perfis veem todos os lancamentos do caixa
+
+Bug descoberto durante smoke do FEAT-002: conta operadora via caixa
+fechado vazio. Decisao de produto: visao ampla pra todos os perfis
+(operador/vendedor passam a ver lancamentos criados por outros).
+
+- [x] Nova permissao `lancamento.visualizar` atribuida aos 5 perfis
+- [x] `lancamento.visualizar_observacoes` estendida ao vendedor
+- [x] Policy `lancamento_select` reescrita pra `tem_permissao('lancamento.visualizar')`
+- [x] `lancamento.visualizar_todos` preservada (uso futuro:
+      relatorios consolidados, exports gerenciais)
+- [x] Migration reversa criada
+- [x] docs/RBAC_SESSAO6_ROLLBACK.md atualizado com Bloco F
+
+### STYLE-CAIXA-ACAO — Alinhamento dos botoes da .resumo-acao
+
+Ajuste visual: `+ Novo lancamento` e `Fechar caixa` ficavam com
+altura/largura levemente diferentes lado a lado.
+
+- [x] min-width 11.5rem nos 3 elementos da .resumo-acao
+- [x] line-height igualado + ghost border no btn-primary pra
+      compensar borda do outline (.btn-fechar-caixa)
+- [x] Escopo restrito a .resumo-acao (nao afeta btn-primary global)
+
+### Estado pos-merge
+
+- 43 → 44 permissoes catalogadas
+- 19 → 19 RLS policies usando `tem_permissao()` (FIX-VIZ so reescreveu
+  expressao da `lancamento_select`)
+- FEATURE-002 do relatorio: SAI da pendencia → entregue
+- SUGESTAO-015: catalogo `caixa.reabrir_fechado` deixa de ser dead
+  code (agora e checada na RPC reabrir_caixa)
+
 ### Histórico de merges (recentes)
 
+- `eb37cd6` — `[STYLE-CAIXA-ACAO] merge: alinha botoes Novo lancamento + Fechar caixa`
+- `2874d0e` — `[FIX-VIZ] merge: visualizacao ampla de lancamentos do caixa`
+- `af1744b` — `[FEAT-002] merge: reabrir caixa fechado (FEATURE-002 do relatorio)`
 - `469d8ea` — `[AUDIT-FIX-2] merge: CRITICO-002 do relatorio de auditoria`
 - `e7573b2` — `[AUDIT-FIX-1] merge: CRITICO-001 do relatorio de auditoria`
 - `f082c19` — `[F3-RBAC-6] merge: Sessao 6 do RBAC + DROP fn_tem_papel`
