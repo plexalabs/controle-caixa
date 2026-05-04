@@ -51,6 +51,12 @@
     --cat-obs-text:       #78350F;
 
     --cat-resolvido:      #10B981;
+    /* Tom oliva-musgo escuro pra tira lateral de lancamentos resolvidos.
+       Mais terrestre que --cat-resolvido (emerald), conversa com --c-musgo
+       sem competir com ele. Usado APENAS na bandeirinha do .lanc-row;
+       outras leituras de "resolvido" (ex: bolinha inline no texto de
+       detalhes) seguem com --cat-resolvido. */
+    --cat-resolvido-tira: #556B2F;
     --cat-atrasado:       #EF4444;
     --cat-pendente-bg:    #F3F4F6;
     --cat-pendente-text:  #6B7280;

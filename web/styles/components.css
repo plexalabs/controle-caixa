@@ -804,12 +804,13 @@
 .lanc-row[data-cat="obs"]         { --tira-cor: var(--cat-obs-border); }
 .lanc-row[data-cat="obs"]         .lanc-categoria { background: var(--cat-obs-bg);       color: var(--cat-obs-text); }
 
-/* Resolvido — pinta a tira lateral (bandeirinha) de verde. Mantém o
-   texto vertical da categoria no hover (mesma leitura visual do
+/* Resolvido — pinta a tira lateral (bandeirinha) com tom oliva-musgo
+   (--cat-resolvido-tira), mais terrestre que o emerald de --cat-resolvido.
+   Mantém o texto vertical da categoria no hover (mesma leitura visual do
    não-resolvido). NÃO altera .lanc-categoria (a pill embaixo do valor
    continua com a cor da categoria). */
 .lanc-row[data-resolvido="true"] {
-    --tira-cor: var(--cat-resolvido);
+    --tira-cor: var(--cat-resolvido-tira);
 }
 
 /* Atrasado — borda direita pulsante em vermelho, soma ao inset da categoria. */
