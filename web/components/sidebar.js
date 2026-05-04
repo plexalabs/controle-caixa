@@ -34,8 +34,10 @@ export async function renderSidebar(rotaAtiva) {
     : (persistido || 'expandida');
 
   const nomeCompleto = [meta.nome, meta.sobrenome].filter(Boolean).join(' ').trim() || nome;
-  // Primeiro nome só — o nome completo permanece em data-nome pra acessibilidade.
-  const primeiroNome = nomeCompleto.split(/\s+/)[0] || nomeCompleto;
+  // Nome exibido: usa meta.nome direto (preserva nomes do meio, exclui sobrenome).
+  // Ex.: meta.nome="Joao Pedro" + meta.sobrenome="Bueno" → exibe "Joao Pedro".
+  // O nomeCompleto (com sobrenome) permanece em aria-label e data-nome.
+  const nomeExibido = (meta.nome || nome).trim();
   // Cargo: nome do perfil RBAC (admin, gerente, operador, contador, vendedor).
   // Fallback "—" se RLS bloquear ou usuário ainda não tiver perfil atribuído.
   const cargo = await pegarCargo(sessao?.user?.id);
@@ -65,7 +67,7 @@ export async function renderSidebar(rotaAtiva) {
                 data-email="${esc(email)}">
           <span class="sidebar-user-avatar" aria-hidden="true">${esc(inicial)}</span>
           <span class="sidebar-user-info">
-            <span class="sidebar-user-nome">${esc(primeiroNome)}</span>
+            <span class="sidebar-user-nome">${esc(nomeExibido)}</span>
             <span class="sidebar-user-cargo">${esc(cargo)}</span>
           </span>
         </button>
