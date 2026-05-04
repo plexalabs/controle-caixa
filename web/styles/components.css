@@ -1734,6 +1734,20 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     .resumo-dia-total-valor { font-size: clamp(1.85rem, 8vw, 2.3rem); }
 }
 
+/* Topbar do /caixa/:data: link "voltar" à esquerda + badge de status
+   à direita, mesma linha. Antes o badge ficava no header e em mobile
+   quebrava pra linha de baixo do título. Agora ele compartilha a linha
+   do "← Todos os caixas", aproveitando o espaço lateral livre tanto
+   em mobile quanto em desktop. */
+.cx-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0 0 1.25rem 0;
+    flex-wrap: wrap;
+}
+
 /* Linha de ações do /caixa/:data: filtros à esquerda + botões à
    direita, mesma linha. align-items: flex-start permite o painel
    do filtro expandir verticalmente sem deslocar os botões. */

@@ -39,21 +39,18 @@ export async function renderCaixa({ params }) {
     rotaAtiva: 'caixas',
     conteudo: `
     <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
-      <!-- Voltar para a lista -->
-      <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
+      <!-- Topbar: voltar + status na mesma linha (status some em mobile
+           só não fica numa linha sozinho do header) -->
+      <nav class="cx-topbar reveal reveal-1" aria-label="Voltar">
         <a href="/caixas" data-link class="btn-link" style="font-size:0.85rem">← Todos os caixas</a>
+        <span id="cab-status" class="badge-status"></span>
       </nav>
 
       <!-- Cabeçalho do dia -->
       <header class="mb-6 reveal reveal-2">
         <p class="h-eyebrow">Caixa de</p>
-        <div class="flex flex-wrap items-baseline justify-between gap-4 mt-1">
-          <h1 class="h-display text-3xl sm:text-4xl" style="font-style:normal;font-weight:500"
-              id="cab-data">${dataLonga(dataAlvo)}</h1>
-          <div class="flex items-center gap-3">
-            <span id="cab-status" class="badge-status"></span>
-          </div>
-        </div>
+        <h1 class="h-display text-3xl sm:text-4xl mt-1" style="font-style:normal;font-weight:500"
+            id="cab-data">${dataLonga(dataAlvo)}</h1>
       </header>
 
       <!-- Resumo do dia: contexto antes da leitura linha-a-linha -->
