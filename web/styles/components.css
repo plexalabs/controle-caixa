@@ -1689,17 +1689,26 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         padding-bottom: var(--fb-overlay-h, 0);
         transition: padding-bottom 320ms cubic-bezier(0.22, 1, 0.36, 1);
     }
+    /* Slot mobile recolhido = exatamente 44x44 (do tamanho do círculo).
+       Sem isso, .filter-bar e .filter-bar-header (display:flex
+       block-level) esticavam pra largura natural do flex parent (~200px)
+       e empurravam os botões da .resumo-acao pra fora da tela. */
     .cx-filtros-slot {
-        flex: 0 0 auto;
-        min-width: 0;
+        flex: 0 0 44px;
+        width: 44px;
         position: relative;
         z-index: 1;
+    }
+    .cx-acoes-row .filter-bar,
+    .cx-acoes-row .filter-bar-header {
+        width: 100%;
     }
 
     /* Filtro recolhido: botão circular 44x44 com ícone funil. */
     .cx-acoes-row .filter-bar-header {
         gap: 0;
         flex-wrap: nowrap;
+        justify-content: center;
     }
     .cx-acoes-row .filter-bar-toggle-rotulo,
     .cx-acoes-row .filter-bar-resumo {
@@ -1783,6 +1792,8 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         top: 0;
         left: 0;
         right: 0;
+        width: auto;        /* override do 44px recolhido */
+        flex: none;
         z-index: 10;
     }
     .cx-acoes-row:has(.filter-bar[data-aberto="true"]) .filter-bar {
