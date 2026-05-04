@@ -61,6 +61,18 @@
     --cat-pendente-bg:    #F3F4F6;
     --cat-pendente-text:  #6B7280;
 
+    /* ────────────────────────────────────────────────────────────
+       Cores consolidadas dos 4 ESTADOS (vs categorias acima).
+       Usadas no carrossel do resumo-do-dia, bolinhas inline em
+       .lanc-detalhes::before, e qualquer marcador que indique
+       estado (em análise / em curso / resolvido / cancelado).
+       Reaproveita vars existentes pra coerência total.
+       ──────────────────────────────────────────────────────────── */
+    --est-analise:    var(--c-musgo-3);          /* #0A332A — verde escuro/quase preto */
+    --est-curso:      var(--c-ambar-2);          /* #B86A30 — âmbar quente */
+    --est-resolvido:  var(--cat-resolvido-tira); /* #556B2F — oliva-musgo */
+    --est-cancelado:  var(--cat-cancelado-border); /* #991B1B — vermelho profundo */
+
     /* Curvas e tempos */
     --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
     --ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);

@@ -789,20 +789,24 @@
     line-height: 1.2;
 }
 
-/* Cada categoria pinta a tira lateral + define o tom do badge (pill). */
+/* Cada categoria pinta a tira lateral + define o tom do badge (pill).
+   Pill .lanc-categoria usa AS MESMAS cores do chip do carrossel
+   (resumo-dia-dist) -- color-mix(border, 14%, transparent) no fundo,
+   var(--cat-X-border) no texto. Cores canônicas das 6 categorias
+   ficam unificadas em todos os pontos visuais do caixa. */
 .lanc-row[data-cat="cartao"]      { --tira-cor: var(--cat-cartao-border); }
-.lanc-row[data-cat="cartao"]      .lanc-categoria { background: var(--cat-cartao-bg);    color: var(--cat-cartao-text); }
+.lanc-row[data-cat="cartao"]      .lanc-categoria { background: color-mix(in srgb, var(--cat-cartao-border) 14%, transparent);    color: var(--cat-cartao-border); }
 .lanc-row[data-cat="pix"]         { --tira-cor: var(--cat-pix-border); }
-.lanc-row[data-cat="pix"]         .lanc-categoria { background: var(--cat-pix-bg);       color: var(--cat-pix-text); }
+.lanc-row[data-cat="pix"]         .lanc-categoria { background: color-mix(in srgb, var(--cat-pix-border) 14%, transparent);       color: var(--cat-pix-border); }
 .lanc-row[data-cat="dinheiro"]    { --tira-cor: var(--cat-dinheiro-border); }
-.lanc-row[data-cat="dinheiro"]    .lanc-categoria { background: var(--cat-dinheiro-bg);  color: var(--cat-dinheiro-text); }
+.lanc-row[data-cat="dinheiro"]    .lanc-categoria { background: color-mix(in srgb, var(--cat-dinheiro-border) 14%, transparent);  color: var(--cat-dinheiro-border); }
 .lanc-row[data-cat="cancelado"]   { --tira-cor: var(--cat-cancelado-border); }
-.lanc-row[data-cat="cancelado"]   .lanc-categoria { background: var(--cat-cancelado-bg); color: var(--cat-cancelado-text); }
+.lanc-row[data-cat="cancelado"]   .lanc-categoria { background: color-mix(in srgb, var(--cat-cancelado-border) 12%, transparent); color: var(--cat-cancelado-border); }
 .lanc-row[data-cat="cancelado"]   .lanc-cliente, .lanc-row[data-cat="cancelado"] .lanc-valor { text-decoration: line-through; opacity: 0.7; }
 .lanc-row[data-cat="cartao_link"] { --tira-cor: var(--cat-link-border); }
-.lanc-row[data-cat="cartao_link"] .lanc-categoria { background: var(--cat-link-bg);      color: var(--cat-link-text); }
+.lanc-row[data-cat="cartao_link"] .lanc-categoria { background: color-mix(in srgb, var(--cat-link-border) 14%, transparent);      color: var(--cat-link-border); }
 .lanc-row[data-cat="obs"]         { --tira-cor: var(--cat-obs-border); }
-.lanc-row[data-cat="obs"]         .lanc-categoria { background: var(--cat-obs-bg);       color: var(--cat-obs-text); }
+.lanc-row[data-cat="obs"]         .lanc-categoria { background: color-mix(in srgb, var(--cat-obs-border) 16%, transparent);       color: var(--cat-obs-border); }
 
 /* Resolvido — pinta a tira lateral (bandeirinha) com tom oliva-musgo
    (--cat-resolvido-tira), mais terrestre que o emerald de --cat-resolvido.
@@ -849,8 +853,11 @@
     opacity: 0.65;
 }
 .lanc-row[data-estado-final="cancelado"] .lanc-categoria {
-    background: rgba(239, 68, 68, 0.16) !important;
-    color: #7f1d1d !important;
+    /* Cancelado pos-pagamento: pill da categoria original ganha
+       overlay vermelho da var --est-cancelado (mesma cor do chip
+       cancelado no carrossel + bolinha inline em .lanc-detalhes). */
+    background: color-mix(in srgb, var(--est-cancelado) 14%, transparent) !important;
+    color: var(--est-cancelado) !important;
 }
 .lanc-row[data-estado-final] .lanc-detalhes::before {
     content: '';
@@ -859,10 +866,15 @@
     border-radius: var(--r-pill);
     margin-right: 0.4rem;
     vertical-align: middle;
-    background: var(--cat-resolvido);
+    /* Bolinha inline antes do "· finalizado em DD/MM" usa a mesma
+       cor consolidada de estado resolvido (--est-resolvido = oliva-
+       musgo) que o chip do carrossel e a bandeirinha lateral. */
+    background: var(--est-resolvido);
 }
 .lanc-row[data-estado-final="cancelado"] .lanc-detalhes::before {
-    background: var(--cat-atrasado);
+    /* Cancelado pos-pagamento: mesma tinta vermelha do chip de
+       cancelado no carrossel e da pill .lanc-categoria cancelada. */
+    background: var(--est-cancelado);
 }
 
 
@@ -1532,19 +1544,19 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     line-height: 1.3;
 }
 
-/* Linhas tipográficas (estados / distribuição) — listas inline com
-   separação por gap e linha de fluxo natural. Sem chips, sem cards
-   internos. Cada item: número + rótulo (estados); ou bolinha + cat +
-   número (distribuição). */
+/* Linhas tipográficas (estados / distribuição) — listas inline.
+   Desktop: wrap normal, separação generosa. Mobile: carrossel
+   horizontal (overflow-x:auto, nowrap) com snap pra cada item.
+   Items zerados atenuados (sempre) -- com qtd primeiro, zerados
+   ao fim do scroll. */
 .resumo-dia-linha {
     list-style: none;
-    margin: 0;
+    margin: 0.7rem 0 0 0;
     padding: 0.7rem 0 0 0;
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem 1.4rem;
     border-top: 1px solid var(--c-papel-2);
-    margin-top: 0.7rem;
 }
 .resumo-dia-linha li {
     display: inline-flex;
@@ -1552,7 +1564,35 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     gap: 0.45rem;
     font-family: 'Manrope', sans-serif;
     line-height: 1.2;
+    /* Chip pílula com cor sutil — cada item ganha bg da própria cor
+       (estado ou categoria). color-mix com 12% deixa a tinta presente
+       sem dominar; primeiro item destaca, zerados ficam atenuados. */
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--r-pill);
+    background: var(--c-papel-2);
+    transition: opacity 200ms ease, background 200ms ease;
 }
+/* Items sem volume: chip neutro + atenuação geral. */
+.resumo-dia-linha li[data-zero="true"] {
+    opacity: 0.5;
+    background: transparent;
+}
+
+/* Cores de fundo dos chips — estados (.resumo-dia-estados).
+   Usa as mesmas vars --est-* da cor do número, garantindo coerência
+   visual entre tinta e fundo de cada chip. */
+.resumo-dia-estados li[data-tom="analise"]   { background: color-mix(in srgb, var(--est-analise) 12%, transparent); }
+.resumo-dia-estados li[data-tom="curso"]     { background: color-mix(in srgb, var(--est-curso) 14%, transparent); }
+.resumo-dia-estados li[data-tom="resolvido"] { background: color-mix(in srgb, var(--est-resolvido) 14%, transparent); }
+.resumo-dia-estados li[data-tom="cancelado"] { background: color-mix(in srgb, var(--est-cancelado) 12%, transparent); }
+
+/* Cores de fundo dos chips — distribuição (.resumo-dia-dist) */
+.resumo-dia-dist li[data-cat="cartao"]      { background: color-mix(in srgb, var(--cat-cartao-border) 14%, transparent); }
+.resumo-dia-dist li[data-cat="pix"]         { background: color-mix(in srgb, var(--cat-pix-border) 14%, transparent); }
+.resumo-dia-dist li[data-cat="dinheiro"]    { background: color-mix(in srgb, var(--cat-dinheiro-border) 14%, transparent); }
+.resumo-dia-dist li[data-cat="cancelado"]   { background: color-mix(in srgb, var(--cat-cancelado-border) 12%, transparent); }
+.resumo-dia-dist li[data-cat="cartao_link"] { background: color-mix(in srgb, var(--cat-link-border) 14%, transparent); }
+.resumo-dia-dist li[data-cat="obs"]         { background: color-mix(in srgb, var(--cat-obs-border) 16%, transparent); }
 .resumo-dia-num {
     font-family: 'Fraunces', serif;
     font-style: italic;
@@ -1574,11 +1614,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 /* Estados: número colorido conforme tom; cancelados ficam line-through
-   sutil pra ressaltar visual sem peso de borda. */
-.resumo-dia-estados li[data-tom="analise"]   .resumo-dia-num { color: var(--c-musgo-3); }
-.resumo-dia-estados li[data-tom="curso"]     .resumo-dia-num { color: var(--c-ambar-2); }
-.resumo-dia-estados li[data-tom="resolvido"] .resumo-dia-num { color: #047857; }
-.resumo-dia-estados li[data-tom="cancelado"] .resumo-dia-num { color: #b91c1c; }
+   sutil pra ressaltar visual sem peso de borda. Cores unificadas
+   via --est-* (mesmas vars usadas no chip de fundo abaixo + bolinhas
+   inline em .lanc-detalhes). */
+.resumo-dia-estados li[data-tom="analise"]   .resumo-dia-num { color: var(--est-analise); }
+.resumo-dia-estados li[data-tom="curso"]     .resumo-dia-num { color: var(--est-curso); }
+.resumo-dia-estados li[data-tom="resolvido"] .resumo-dia-num { color: var(--est-resolvido); }
+.resumo-dia-estados li[data-tom="cancelado"] .resumo-dia-num { color: var(--est-cancelado); }
 .resumo-dia-estados li[data-tom="cancelado"] .resumo-dia-rotulo {
     text-decoration: line-through;
     text-decoration-thickness: 1px;
@@ -1586,25 +1628,59 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 
 /* Distribuição: bolinha colorida pela categoria + nome + qtd. */
-.resumo-dia-dot {
-    display: inline-block;
-    width: 0.55rem;
-    height: 0.55rem;
-    border-radius: 50%;
-    background: var(--c-papel-3);
-    flex-shrink: 0;
-    transform: translateY(-1px);
-}
-.resumo-dia-dist li[data-cat="cartao"]      .resumo-dia-dot { background: var(--cat-cartao-border); }
-.resumo-dia-dist li[data-cat="pix"]         .resumo-dia-dot { background: var(--cat-pix-border); }
-.resumo-dia-dist li[data-cat="dinheiro"]    .resumo-dia-dot { background: var(--cat-dinheiro-border); }
-.resumo-dia-dist li[data-cat="cancelado"]   .resumo-dia-dot { background: var(--cat-cancelado-border); }
-.resumo-dia-dist li[data-cat="cartao_link"] .resumo-dia-dot { background: var(--cat-link-border); }
-.resumo-dia-dist li[data-cat="obs"]         .resumo-dia-dot { background: var(--cat-obs-border); }
+/* .resumo-dia-dot removido: cor agora vem do background do chip
+   inteiro (mais clean, sem bullet redundante). */
 
 @media (max-width: 640px) {
     .resumo-dia { padding: 0.95rem 1rem 1.05rem; }
     .resumo-dia-valor-num { font-size: clamp(1.7rem, 8vw, 2.2rem); }
+
+    /* Linhas de estados/distribuição viram carrossel horizontal.
+       Items com n>0 ficam primeiro; zerados ao final do scroll.
+       Primeiro item sempre solido (sem fade à esquerda) -- só o
+       lado direito tem fade-out indicando que há mais conteúdo fora.
+       Scrollbars invisíveis em todos os browsers. */
+    .resumo-dia-linha {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 0 1.2rem;
+        padding-bottom: 0;
+        scroll-snap-type: x proximity;
+        /* Hide scrollbars (cross-browser) */
+        scrollbar-width: none;            /* Firefox */
+        -ms-overflow-style: none;         /* IE/Edge legado */
+        /* Margem lateral negativa pra carrossel sangrar até a borda;
+           padding-left maior dá respiro pro primeiro item descansar. */
+        /* SEM margin negativo -- linha respeita padding interno do card.
+           padding-left direto = respiro real do primeiro item ao edge
+           interno. Bem mais simples e previsível que sangrar+compensar. */
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 1.25rem;
+        padding-right: 1.5rem;
+        /* Mask SÓ à direita -- primeiro item sempre sólido em descanso;
+           fade indica conteúdo restante a explorar. Sem fade-left
+           (operador pediu pra primeiro item nunca ficar coberto). */
+        mask-image: linear-gradient(to right,
+                    #000 0,
+                    #000 calc(100% - 0.75rem),
+                    transparent 100%);
+        -webkit-mask-image: linear-gradient(to right,
+                    #000 0,
+                    #000 calc(100% - 0.75rem),
+                    transparent 100%);
+    }
+    .resumo-dia-linha::-webkit-scrollbar {
+        display: none;                    /* Chrome/Safari/Webkit */
+        width: 0;
+        height: 0;
+    }
+    .resumo-dia-linha li {
+        flex-shrink: 0;
+        scroll-snap-align: start;
+        white-space: nowrap;
+    }
 }
 
 /* Topbar do /caixa/:data: link "voltar" à esquerda + badge de status
