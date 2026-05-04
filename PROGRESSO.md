@@ -2,7 +2,7 @@
 
 > **Documento vivo.** Marcar com `[x]` itens concluídos e `[~]` itens em andamento.
 > Sempre que terminar uma fase, escrever na seção **Resumo de fase** o que ficou pronto e o que ficou pendente.
-> Última atualização: 2026-05-04 — STYLE-CAIXA-HEADER (refator mobile + filter overlay + resumo-dia clean) mergeado.
+> Última atualização: 2026-05-04 — STYLE-CAIXA-HEADER (resumo-dia carrossel + cores --est-* unificadas) mergeado.
 > Stack: Supabase Pro · HTML+JS vanilla+Tailwind CDN · `.xlsm` VBA · Cloudflare Pages · SSO SAML.
 > Idioma: pt-BR em UI, mensagens, validações, comentários, commits e nomes de variáveis de domínio.
 
@@ -300,8 +300,29 @@ focada em ergonomia mobile + clean-up visual.
       e distribuicao com bolinhas coloridas inline)
 - [x] Validado em PROD por Operador
 
+## Status — STYLE-CAIXA-HEADER carrossel + cores unificadas (2026-05-04)
+
+12 commits encadeados refinaram o resumo do dia e consolidaram a
+paleta de cores em todo o /caixa/:data.
+
+- [x] Resumo-do-dia: todas as 4 estados + 6 categorias canonicas
+      sempre renderizam (zerados atenuados); items com volume
+      ordenados primeiro
+- [x] Mobile: linhas viram carrossel horizontal com scroll-snap;
+      scrollbar invisivel cross-browser; mask fade so a direita
+- [x] Items viram chips coloridos via color-mix(border, 12-16%);
+      bolinha redundante removida
+- [x] 4 vars consolidadas em tokens.css: --est-analise (musgo-3),
+      --est-curso (ambar-2), --est-resolvido (oliva-musgo #556B2F),
+      --est-cancelado (vermelho-profundo #991B1B)
+- [x] Pill .lanc-categoria embaixo do valor agora usa as MESMAS
+      cores dos chips do carrossel (matiz unica por categoria
+      em todos os pontos visuais)
+- [x] Validado em PROD por Operador
+
 ### Histórico de merges (recentes)
 
+- `1c9d38d` — `[STYLE-CAIXA-HEADER] merge: resumo-dia carrossel + cores --est-* unificadas`
 - `00c55e1` — `[STYLE-CAIXA-HEADER] merge: refator mobile do header + filter overlay + resumo-dia clean`
 - `2800131` — `[STYLE-FILTER] merge: filter-bar colapsavel + inline com botoes de acao`
 - `c922ece` — `[STYLE-SIDEBAR] merge: refatoracao completa do topo + rodape da sidebar`
