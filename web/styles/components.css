@@ -1643,14 +1643,20 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         margin-right: 0;
         padding-left: 1.25rem;
         padding-right: 1.5rem;
-        /* Mask SÓ à direita, fade discreto (0.75rem = 12px) -- hint
-           de continuidade sem cortar texto do último item. */
+        /* Mask em DOIS lados (neblina nas bordas). Em estado de descanso
+           (scroll=0), primeiro item está em padding-left:1.25rem (20px),
+           ALÉM do range do fade-left (16px) -- fica sólido. Quando o
+           operador empurra o carrossel pra ver mais à direita, os itens
+           que entram/saem pela borda passam pela neblina, cobrindo a
+           transição em vez de aparecer/sumir abruptamente. */
         mask-image: linear-gradient(to right,
-                    #000 0,
+                    transparent 0,
+                    #000 1rem,
                     #000 calc(100% - 0.75rem),
                     transparent 100%);
         -webkit-mask-image: linear-gradient(to right,
-                    #000 0,
+                    transparent 0,
+                    #000 1rem,
                     #000 calc(100% - 0.75rem),
                     transparent 100%);
     }
