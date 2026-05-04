@@ -2,7 +2,13 @@
 // Suporta tipos: select, texto (busca debounced), toggle (boolean).
 // Estado é refletido na URL (querystring) — bookmarkable e F5-safe.
 //
-// Uso:
+// CP-FILTER-COLLAPSE: o painel de filtros agora vive recolhido por
+// default (só o cabeçalho com botão "Filtros" + contador é visível).
+// Clicar no botão expande os campos. Se a URL já trouxer filtros
+// aplicados, o painel abre automaticamente para o operador ver o que
+// está filtrando.
+//
+// Uso (sem mudança na API pública):
 //   import { instalarFilterBar } from '../components/filter-bar.js';
 //
 //   const fb = instalarFilterBar(container, {
@@ -48,7 +54,16 @@ export function instalarFilterBar(container, opcoes) {
     }
   }
 
+  // Painel começa aberto SE o operador já chegou com filtros na URL —
+  // assim ele vê o que está filtrando. Caso contrário fica recolhido.
+  const temFiltrosAtivos = cfg.filtros.some(f =>
+    (f.tipo === 'toggle' && estado[f.id]) ||
+    (f.tipo !== 'toggle' && estado[f.id] !== '')
+  );
+  let aberto = temFiltrosAtivos;
+
   container.classList.add('filter-bar');
+  container.dataset.aberto = String(aberto);
   container.innerHTML = corpoHtml(cfg, estado);
 
   // Pop-selects: instala em todos os <select> que existirem.
@@ -93,14 +108,22 @@ export function instalarFilterBar(container, opcoes) {
     destruidores.push(() => btnLimpar.removeEventListener('click', h));
   }
 
-  // Atualiza resumo inicial
-  atualizarResumo();
+  // Botão toggle do painel (CP-FILTER-COLLAPSE)
+  const btnToggle = container.querySelector('.filter-bar-toggle-painel');
+  if (btnToggle) {
+    const h = () => alternarPainel();
+    btnToggle.addEventListener('click', h);
+    destruidores.push(() => btnToggle.removeEventListener('click', h));
+  }
+
+  // Atualiza header inicial (badge + botão limpar)
+  atualizarHeader();
 
   function atualizar(id, valor) {
     estado[id] = valor;
     if (cfg.espelharNaUrl) escreverNaUrl();
     atualizarUiToggle();
-    atualizarResumo();
+    atualizarHeader();
     cfg.onChange({ ...estado });
   }
 
@@ -116,8 +139,15 @@ export function instalarFilterBar(container, opcoes) {
     }
     atualizarUiToggle();
     if (cfg.espelharNaUrl) escreverNaUrl();
-    atualizarResumo();
+    atualizarHeader();
     cfg.onChange({ ...estado });
+  }
+
+  function alternarPainel() {
+    aberto = !aberto;
+    container.dataset.aberto = String(aberto);
+    const btn = container.querySelector('.filter-bar-toggle-painel');
+    if (btn) btn.setAttribute('aria-expanded', String(aberto));
   }
 
   function atualizarUiToggle() {
@@ -128,18 +158,32 @@ export function instalarFilterBar(container, opcoes) {
     }
   }
 
-  function atualizarResumo() {
-    if (!cfg.mostrarResumo) return;
-    const resumoEl = container.querySelector('.filter-bar-resumo');
-    if (!resumoEl) return;
-    const ativos = cfg.filtros.filter(f =>
+  function contarAtivos() {
+    return cfg.filtros.filter(f =>
       (f.tipo === 'toggle' && estado[f.id]) ||
       (f.tipo !== 'toggle' && estado[f.id] && estado[f.id] !== '')
-    );
-    if (ativos.length === 0) {
-      resumoEl.textContent = 'Sem filtros aplicados.';
-    } else {
-      resumoEl.innerHTML = `<strong>${ativos.length}</strong> filtro${ativos.length > 1 ? 's' : ''} ativo${ativos.length > 1 ? 's' : ''}.`;
+    ).length;
+  }
+
+  function atualizarHeader() {
+    const ativos = contarAtivos();
+    // Badge no botão de filtro
+    const badge = container.querySelector('.filter-bar-badge');
+    if (badge) {
+      badge.textContent = String(ativos);
+      badge.dataset.zero = String(ativos === 0);
+    }
+    // Botão limpar só aparece se houver filtros ativos
+    const btnLimpar = container.querySelector('.filter-bar-limpar');
+    if (btnLimpar) btnLimpar.hidden = ativos === 0;
+    // Resumo (texto opcional)
+    if (cfg.mostrarResumo) {
+      const resumoEl = container.querySelector('.filter-bar-resumo');
+      if (resumoEl) {
+        resumoEl.textContent = ativos === 0
+          ? ''
+          : `${ativos} filtro${ativos > 1 ? 's' : ''} aplicado${ativos > 1 ? 's' : ''}`;
+      }
     }
   }
 
@@ -173,12 +217,13 @@ export function instalarFilterBar(container, opcoes) {
       }
       atualizarUiToggle();
       if (cfg.espelharNaUrl) escreverNaUrl();
-      atualizarResumo();
+      atualizarHeader();
     },
     destruir: () => {
       destruidores.forEach(d => { try { d(); } catch (e) {} });
       container.innerHTML = '';
       container.classList.remove('filter-bar');
+      delete container.dataset.aberto;
     },
   };
 }
@@ -200,20 +245,25 @@ function corpoHtml(cfg, estado) {
       </button>`)
     .join('');
 
-  const acessorio = (togglesHtml || cfg.mostrarResumo)
-    ? `
-      <div class="filter-bar-acessorio">
-        ${togglesHtml}
-        ${cfg.mostrarResumo ? `<span class="filter-bar-resumo"></span>` : ''}
-        <button type="button" class="filter-bar-limpar" style="margin-left:auto">Limpar filtros</button>
-      </div>`
-    : '';
-
   return `
-    <div class="filter-bar-grid">
-      ${camposHtml}
+    <div class="filter-bar-header">
+      <button type="button" class="filter-bar-toggle-painel"
+              aria-expanded="false" aria-controls="filter-bar-painel">
+        <span class="filter-bar-toggle-icone" aria-hidden="true">${svgFunil()}</span>
+        <span class="filter-bar-toggle-rotulo">Filtros</span>
+        <span class="filter-bar-badge" data-zero="true" aria-hidden="true">0</span>
+      </button>
+      ${cfg.mostrarResumo ? `<span class="filter-bar-resumo"></span>` : ''}
+      <button type="button" class="filter-bar-limpar" hidden>Limpar filtros</button>
     </div>
-    ${acessorio}
+    <div class="filter-bar-painel" id="filter-bar-painel" role="region" aria-label="Filtros">
+      <div class="filter-bar-painel-conteudo">
+        <div class="filter-bar-grid">
+          ${camposHtml}
+        </div>
+        ${togglesHtml ? `<div class="filter-bar-toggles">${togglesHtml}</div>` : ''}
+      </div>
+    </div>
   `;
 }
 
@@ -245,6 +295,16 @@ function campoHtml(f, valor) {
       </div>`;
   }
   return '';
+}
+
+// Ícone funil (lucide-inspired strokes 1.5px, currentColor).
+function svgFunil() {
+  return `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M4 5 H20 L14 12.5 V19 L10 21 V12.5 Z"
+            stroke="currentColor" stroke-width="1.6"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
 }
 
 function esc(s) {

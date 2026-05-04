@@ -2710,12 +2710,118 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    Reutilizado em /pendencias, /caixa/:data, /notificacoes.
    ============================================================ */
 
+/* CP-FILTER-COLLAPSE: filter-bar agora vive recolhido por default --
+   só o header (botão "Filtros" + badge de filtros ativos + Limpar) é
+   visível. Painel com os campos abre ao clicar no botão. Se a URL
+   tiver filtros ativos ao montar, o painel já abre automaticamente. */
 .filter-bar {
     background: var(--c-papel);
     border: 1px solid var(--c-papel-3);
     border-radius: var(--r-md);
-    padding: 0.85rem 1rem;
+    padding: 0.5rem 0.75rem;
     margin-bottom: 1.4rem;
+    transition: padding 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.filter-bar[data-aberto="true"] {
+    padding: 0.5rem 0.75rem 0.85rem;
+}
+
+/* Header: linha sempre visível com botão de toggle + resumo + limpar */
+.filter-bar-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.filter-bar-toggle-painel {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-pill);
+    padding: 0.4rem 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--c-tinta-2);
+    transition: background 200ms var(--ease-out),
+                border-color 200ms var(--ease-out),
+                color 200ms var(--ease-out);
+}
+.filter-bar-toggle-painel:hover {
+    border-color: var(--c-musgo);
+    color: var(--c-musgo);
+    background: rgba(15, 76, 58, 0.04);
+}
+.filter-bar-toggle-painel[aria-expanded="true"] {
+    background: var(--c-musgo);
+    border-color: var(--c-musgo);
+    color: var(--c-papel);
+}
+.filter-bar-toggle-icone {
+    display: inline-flex;
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.filter-bar-toggle-painel[aria-expanded="true"] .filter-bar-toggle-icone {
+    transform: rotate(180deg);
+}
+
+/* Badge com contador de filtros ativos. Some no zero. */
+.filter-bar-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    padding: 0 0.35rem;
+    border-radius: var(--r-pill);
+    background: var(--c-ambar);
+    color: var(--c-papel);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1;
+    transition: opacity 200ms ease, transform 200ms ease;
+}
+.filter-bar-badge[data-zero="true"] {
+    opacity: 0;
+    transform: scale(0.6);
+    width: 0;
+    min-width: 0;
+    padding: 0;
+    margin-left: -0.5rem;
+}
+/* Quando o botão está ativo (verde), badge inverte cor */
+.filter-bar-toggle-painel[aria-expanded="true"] .filter-bar-badge {
+    background: var(--c-papel);
+    color: var(--c-musgo);
+}
+
+/* Painel colapsável — usa grid-template-rows pra animar altura
+   dinâmica (não precisa de max-height hardcoded). Filho com
+   overflow:hidden recorta enquanto animar. */
+.filter-bar-painel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.filter-bar[data-aberto="true"] .filter-bar-painel {
+    grid-template-rows: 1fr;
+}
+.filter-bar-painel-conteudo {
+    overflow: hidden;
+    min-height: 0;
+}
+.filter-bar[data-aberto="true"] .filter-bar-painel-conteudo {
+    padding-top: 0.85rem;
+    margin-top: 0.6rem;
+    border-top: 1px dashed var(--c-papel-3);
 }
 
 .filter-bar-grid {
@@ -2747,6 +2853,14 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     pointer-events: none;
 }
 
+/* Toggles (boolean filters) — pílulas dentro de uma linha separada
+   embaixo do grid de campos. Sempre dentro do painel colapsável. */
+.filter-bar-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+}
 .filter-bar-toggle {
     display: inline-flex;
     align-items: center;
@@ -2769,27 +2883,13 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     border-color: var(--c-musgo);
 }
 
-.filter-bar-acessorio {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-top: 0.7rem;
-    padding-top: 0.7rem;
-    border-top: 1px dashed var(--c-papel-3);
-    flex-wrap: wrap;
-}
-
 .filter-bar-resumo {
     font-family: 'Manrope', sans-serif;
     font-size: 0.78rem;
     color: var(--c-tinta-3);
     font-style: italic;
 }
-.filter-bar-resumo strong {
-    color: var(--c-tinta);
-    font-style: normal;
-    font-weight: 600;
-}
+
 .filter-bar-limpar {
     appearance: none;
     background: transparent;
@@ -2802,8 +2902,10 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     text-underline-offset: 3px;
     text-decoration-color: rgba(15, 76, 58, 0.35);
     transition: text-decoration-color 200ms;
+    margin-left: auto;
 }
 .filter-bar-limpar:hover { text-decoration-color: var(--c-musgo); }
+.filter-bar-limpar[hidden] { display: none; }
 
 
 /* ============================================================
@@ -4736,6 +4838,8 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     .painel-fechar:hover { transform: none; }
     .config-item, .vd-card, .pend-row, .perfil-card { animation: none; }
     .bell-badge, .sidebar-link-badge { animation: none; }
+    .filter-bar, .filter-bar-painel, .filter-bar-toggle-painel,
+    .filter-bar-toggle-icone, .filter-bar-badge { transition: none; }
     .app-sidebar, .sidebar-link, .sidebar-toggle, .sidebar-logo-texto,
     .sidebar-link-texto, .sidebar-user-texto, .user-menu { transition: none; }
     .fechar-item, .fechar-card { transition: none; }
