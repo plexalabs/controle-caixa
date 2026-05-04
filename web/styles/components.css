@@ -3804,7 +3804,11 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     min-width: 0;
 }
 .app-sidebar[data-estado="expandida"] .sidebar-user {
-    flex: 1;
+    /* Largura natural (avatar + info) -- não estica até o toggle.
+       O justify-content:space-between da .sidebar-rodape empurra
+       o toggle pra borda direita, criando respiro entre o nome e
+       o botão de colapsar. */
+    flex: 0 1 auto;
     min-width: 0;
 }
 .app-sidebar[data-estado="expandida"] .sidebar-user:hover {
