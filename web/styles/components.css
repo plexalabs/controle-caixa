@@ -1632,19 +1632,22 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
         margin-right: -1rem;
         /* Card .resumo-dia mobile tem padding-left:1rem. Carrossel
            sangra com margin-left:-1rem (até o edge externo do card).
-           padding-left:2.5rem coloca o primeiro item 1.5rem alem do
-           edge interno do card -- respiro confortavel, nao colado. */
+           Padding simétrico (2.5rem cada lado) coloca primeiro e
+           último itens 1.5rem alem do edge interno -- respiro
+           confortavel nos dois lados, nada colado. */
         padding-left: 2.5rem;
-        padding-right: 1.5rem;
-        /* Mask SÓ à direita -- primeiro item sempre solido em estado
-           de descanso; fade indica conteúdo restante a explorar. */
+        padding-right: 2.5rem;
+        /* Mask SÓ à direita, fade pequeno (0.75rem = 12px) -- apenas
+           hint de continuidade, NÃO corta texto do último item.
+           Como padding-right é generoso (2.5rem), o último item fica
+           bem antes do fade começar. */
         mask-image: linear-gradient(to right,
                     #000 0,
-                    #000 calc(100% - 1.5rem),
+                    #000 calc(100% - 0.75rem),
                     transparent 100%);
         -webkit-mask-image: linear-gradient(to right,
                     #000 0,
-                    #000 calc(100% - 1.5rem),
+                    #000 calc(100% - 0.75rem),
                     transparent 100%);
     }
     .resumo-dia-linha::-webkit-scrollbar {
