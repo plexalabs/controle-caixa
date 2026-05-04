@@ -3771,10 +3771,16 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 }
 .app-sidebar[data-estado="expandida"] .sidebar-rodape {
     flex-direction: row;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 8px;
     padding: 10px 12px;
     min-height: 64px;
+}
+/* Toggle no canto direito da sidebar expandida -- margin-left:auto
+   empurra o botão até o fim do flex container, criando o respiro
+   maximo entre nome do usuário e o botão de colapsar. */
+.app-sidebar[data-estado="expandida"] .sidebar-toggle {
+    margin-left: auto;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-rodape {
     flex-direction: column;
