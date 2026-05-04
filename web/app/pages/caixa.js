@@ -497,21 +497,25 @@ function atualizarRodape(lancamentos) {
     dist[l.categoria] = (dist[l.categoria] || 0) + 1;
   }
 
-  // Layout clean: hierarquia tipográfica vertical sem tira "DO DIA",
-  // sem chips chromados. Apenas:
-  //   1) eyebrow + valor + qtd  (bloco principal)
-  //   2) linha de estados (só os com n>0, número colorido + label)
-  //   3) linha de distribuição (bolinha colorida + categoria · qtd)
+  // Layout clean: hierarquia tipográfica vertical + linhas de items.
+  // Mobile: linhas viram carrossel horizontal; com n>0 vêm primeiro,
+  // zerados ficam atenuados ao fim do scroll. Operador vê de relance
+  // o que tem volume e o que ainda não rolou no dia.
+  const ordenarPorPresenca = (a, b) => (b.n > 0 ? 1 : 0) - (a.n > 0 ? 1 : 0);
+
   const itensEstado = [
     { tom: 'analise',   rotulo: 'em análise',  n: emAnalise.length },
     { tom: 'curso',     rotulo: 'em curso',    n: emCurso.length },
     { tom: 'resolvido', rotulo: 'resolvidas',  n: resolvidos.length },
     { tom: 'cancelado', rotulo: 'canceladas',  n: cancelados.length },
-  ].filter(i => i.n > 0);
+  ].sort(ordenarPorPresenca);
 
-  const itensDist = Object.entries(dist).map(([cat, n]) => ({
-    cat, n, nome: LABEL_CATEGORIA[cat] || cat,
-  }));
+  // Distribuição: TODAS as 6 categorias canônicas (mesmo zeradas).
+  const itensDist = CATEGORIAS.map(c => ({
+    cat: c.valor,
+    n: dist[c.valor] || 0,
+    nome: c.rotulo,
+  })).sort(ordenarPorPresenca);
 
   rod.innerHTML = `
     <div class="resumo-dia-cabec">
@@ -522,28 +526,24 @@ function atualizarRodape(lancamentos) {
       </div>
     </div>
 
-    ${itensEstado.length ? `
-      <ul class="resumo-dia-linha resumo-dia-estados">
-        ${itensEstado.map(i => `
-          <li data-tom="${i.tom}">
-            <span class="resumo-dia-num">${i.n}</span>
-            <span class="resumo-dia-rotulo">${i.rotulo}</span>
-          </li>
-        `).join('')}
-      </ul>
-    ` : ''}
+    <ul class="resumo-dia-linha resumo-dia-estados">
+      ${itensEstado.map(i => `
+        <li data-tom="${i.tom}" data-zero="${i.n === 0}">
+          <span class="resumo-dia-num">${i.n}</span>
+          <span class="resumo-dia-rotulo">${i.rotulo}</span>
+        </li>
+      `).join('')}
+    </ul>
 
-    ${itensDist.length ? `
-      <ul class="resumo-dia-linha resumo-dia-dist">
-        ${itensDist.map(i => `
-          <li data-cat="${esc(i.cat)}">
-            <span class="resumo-dia-dot" aria-hidden="true"></span>
-            <span class="resumo-dia-rotulo">${esc(i.nome)}</span>
-            <span class="resumo-dia-num resumo-dia-num--small">${i.n}</span>
-          </li>
-        `).join('')}
-      </ul>
-    ` : ''}
+    <ul class="resumo-dia-linha resumo-dia-dist">
+      ${itensDist.map(i => `
+        <li data-cat="${esc(i.cat)}" data-zero="${i.n === 0}">
+          <span class="resumo-dia-dot" aria-hidden="true"></span>
+          <span class="resumo-dia-rotulo">${esc(i.nome)}</span>
+          <span class="resumo-dia-num resumo-dia-num--small">${i.n}</span>
+        </li>
+      `).join('')}
+    </ul>
   `;
 }
 

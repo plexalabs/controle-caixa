@@ -1532,19 +1532,19 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     line-height: 1.3;
 }
 
-/* Linhas tipográficas (estados / distribuição) — listas inline com
-   separação por gap e linha de fluxo natural. Sem chips, sem cards
-   internos. Cada item: número + rótulo (estados); ou bolinha + cat +
-   número (distribuição). */
+/* Linhas tipográficas (estados / distribuição) — listas inline.
+   Desktop: wrap normal, separação generosa. Mobile: carrossel
+   horizontal (overflow-x:auto, nowrap) com snap pra cada item.
+   Items zerados atenuados (sempre) -- com qtd primeiro, zerados
+   ao fim do scroll. */
 .resumo-dia-linha {
     list-style: none;
-    margin: 0;
+    margin: 0.7rem 0 0 0;
     padding: 0.7rem 0 0 0;
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem 1.4rem;
     border-top: 1px solid var(--c-papel-2);
-    margin-top: 0.7rem;
 }
 .resumo-dia-linha li {
     display: inline-flex;
@@ -1552,6 +1552,11 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     gap: 0.45rem;
     font-family: 'Manrope', sans-serif;
     line-height: 1.2;
+    transition: opacity 200ms ease;
+}
+/* Items sem volume: atenuados pra hierarquia visual. */
+.resumo-dia-linha li[data-zero="true"] {
+    opacity: 0.42;
 }
 .resumo-dia-num {
     font-family: 'Fraunces', serif;
@@ -1605,6 +1610,50 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 @media (max-width: 640px) {
     .resumo-dia { padding: 0.95rem 1rem 1.05rem; }
     .resumo-dia-valor-num { font-size: clamp(1.7rem, 8vw, 2.2rem); }
+
+    /* Linhas de estados/distribuição viram carrossel horizontal.
+       Items com n>0 ficam primeiro (sort no JS); zerados atenuados
+       ao final do scroll. Padding lateral negativo + edge-fades dão
+       a sensação de continuidade do conteúdo escapando da borda. */
+    .resumo-dia-linha {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 0 1.2rem;
+        padding-bottom: 0.4rem;     /* respiro pra scrollbar */
+        scroll-snap-type: x proximity;
+        scrollbar-width: thin;
+        scrollbar-color: var(--c-papel-3) transparent;
+        /* Margem lateral negativa pra carrossel sangrar até a borda
+           do card; padding restaura o início alinhado ao conteúdo. */
+        margin-left: -1rem;
+        margin-right: -1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        /* Mascara em fade nas pontas indica que há conteúdo fora */
+        mask-image: linear-gradient(to right,
+                    transparent 0,
+                    #000 1rem,
+                    #000 calc(100% - 1rem),
+                    transparent 100%);
+        -webkit-mask-image: linear-gradient(to right,
+                    transparent 0,
+                    #000 1rem,
+                    #000 calc(100% - 1rem),
+                    transparent 100%);
+    }
+    .resumo-dia-linha::-webkit-scrollbar {
+        height: 4px;
+    }
+    .resumo-dia-linha::-webkit-scrollbar-thumb {
+        background: var(--c-papel-3);
+        border-radius: 999px;
+    }
+    .resumo-dia-linha li {
+        flex-shrink: 0;
+        scroll-snap-align: start;
+        white-space: nowrap;
+    }
 }
 
 /* Topbar do /caixa/:data: link "voltar" à esquerda + badge de status
