@@ -3179,12 +3179,14 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 
 /* Topo da sidebar: logo (símbolo + wordmark expandido / só símbolo colapsado).
    Logo SEMPRE centralizado — visual harmônico tanto expandido quanto colapsado;
-   wordmark aparece à direita do símbolo no expandido, some no colapsado. */
+   wordmark aparece à direita do símbolo no expandido, some no colapsado.
+   Padding reduzido pra liberar espaço da marca + wordmark crescerem dentro
+   do mesmo container (min-height inalterado). */
 .sidebar-topo {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: 10px 12px;
     min-height: 72px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--c-papel-3);
@@ -3192,7 +3194,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
                 min-height 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-topo {
-    padding: 14px 0;
+    padding: 8px 0;
     min-height: 64px;
 }
 
@@ -3210,8 +3212,8 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
 .sidebar-logo:focus-visible { outline-offset: 4px; }
 
 .sidebar-logo-marca {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     background: var(--c-musgo);
     flex-shrink: 0;
     transition: background 180ms ease, transform 280ms var(--ease-spring),
@@ -3220,8 +3222,8 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     display: inline-block;
 }
 .app-sidebar[data-estado="colapsada"] .sidebar-logo-marca {
-    width: 28px;
-    height: 28px;
+    width: 40px;
+    height: 40px;
 }
 .sidebar-logo:hover .sidebar-logo-marca {
     background: var(--c-musgo-2);
@@ -3236,7 +3238,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     font-style: italic;
     font-weight: 400;
     font-variation-settings: "opsz" 144, "SOFT" 30;
-    font-size: 1.4rem;      /* ~22px — equilibra com a marca de 32px sem dominar */
+    font-size: 1.6rem;      /* ~26px — cresce junto com a marca de 44px */
     line-height: 1;
     letter-spacing: -0.005em;
     color: var(--c-tinta);
