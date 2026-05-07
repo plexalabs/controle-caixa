@@ -104,13 +104,19 @@ export async function renderAuditoria() {
           <button class="aud-tab" role="tab" data-aba="log"
                   aria-selected="${abaAtual === 'log'}">
             <span class="aud-tab-num" aria-hidden="true">01</span>
-            <span class="aud-tab-rotulo">Linha do tempo</span>
+            <span class="aud-tab-rotulo">
+              <span class="aud-tab-eyebrow">Cronologia</span>
+              Linha do tempo
+            </span>
           </button>` : ''}
         ${podeVerLixeira ? `
           <button class="aud-tab" role="tab" data-aba="lixeira"
                   aria-selected="${abaAtual === 'lixeira'}">
             <span class="aud-tab-num" aria-hidden="true">02</span>
-            <span class="aud-tab-rotulo">Lixeira</span>
+            <span class="aud-tab-rotulo">
+              <span class="aud-tab-eyebrow">Recuperáveis</span>
+              Lixeira
+            </span>
           </button>` : ''}
       </div>
 
@@ -253,22 +259,23 @@ async function carregar() {
     p_offset:  offset,
   });
 
-  if (error) {
+  // Tolerancia: se a funcao ainda nao foi criada no banco (migrations nao
+  // aplicadas), tratar como 'vazio' — UX gentil pra periodo de bootstrap.
+  // PGRST202 = function not found; 42883 = postgres undefined function.
+  const ehFnAusente = error && (
+    error.code === 'PGRST202' || error.code === '42883' ||
+    /could not find the function|does not exist/i.test(error.message || '')
+  );
+
+  if (error && !ehFnAusente) {
     slot.innerHTML = `<p class="alert">Não consegui carregar: ${esc(error.message)}</p>`;
     return;
   }
 
   total = data?.[0]?.total ?? 0;
 
-  if (!data || data.length === 0) {
-    slot.innerHTML = `
-      <div class="aud-vazio">
-        <p class="aud-vazio-eyebrow">Silêncio</p>
-        <p class="aud-vazio-titulo">${abaAtual === 'log' ? 'Sem eventos no recorte.' : 'Lixeira vazia.'}</p>
-        <p class="aud-vazio-desc">${abaAtual === 'log'
-          ? 'Mude os filtros ou aguarde — todo evento daqui pra frente é capturado.'
-          : 'Nada foi excluído ainda. Se ficar muito vazio, é bom sinal.'}</p>
-      </div>`;
+  if (ehFnAusente || !data || data.length === 0) {
+    slot.innerHTML = renderVazio(ehFnAusente);
     return;
   }
 
@@ -281,6 +288,34 @@ async function carregar() {
   }
 
   renderPaginacao();
+}
+
+function renderVazio(funcaoAusente = false) {
+  if (funcaoAusente) {
+    // Caso especial: backend ainda nao tem as RPCs — provavelmente
+    // migrations da auditoria nao rodaram. Mostramos vazio mas
+    // diferenciamos sutil pro admin saber.
+    return `
+      <div class="aud-vazio">
+        <p class="aud-vazio-eyebrow">${abaAtual === 'log' ? 'Aguardando registros' : 'Nada na lixeira'}</p>
+        <p class="aud-vazio-titulo">${abaAtual === 'log'
+          ? 'Ainda não há nada para mostrar.'
+          : 'Nenhum item foi descartado.'}</p>
+        <p class="aud-vazio-desc">${abaAtual === 'log'
+          ? 'Assim que alguém registrar uma ação, ela aparecerá aqui.'
+          : 'Itens excluídos vão pra cá com motivo, autor e botão de restaurar.'}</p>
+      </div>`;
+  }
+  return `
+    <div class="aud-vazio">
+      <p class="aud-vazio-eyebrow">${abaAtual === 'log' ? 'Silêncio no recorte' : 'Lixeira vazia'}</p>
+      <p class="aud-vazio-titulo">${abaAtual === 'log'
+        ? 'Sem eventos para esses filtros.'
+        : 'Nada foi excluído ainda.'}</p>
+      <p class="aud-vazio-desc">${abaAtual === 'log'
+        ? 'Mude os filtros ou aguarde — todo evento daqui pra frente é capturado.'
+        : 'Se ficar muito vazio, é bom sinal.'}</p>
+    </div>`;
 }
 
 function itemLog(r, idx) {
