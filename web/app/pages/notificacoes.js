@@ -10,6 +10,7 @@ import { mostrarToast } from '../notifications.js';
 import { navegar } from '../router.js';
 import { destinoNotificacao, enriquecerNotificacoes } from '../notificacao-router.js';
 import { log } from '../log.js';
+import { estadoPush, ativarPush, desativarPush, inscritoAtualmente } from '../push.js';
 
 const POR_PAGINA = 20;
 let fbCtrl = null;
@@ -35,6 +36,7 @@ export async function renderNotificacoes() {
         </div>
       </header>
 
+      <section id="notif-push-banner" class="reveal reveal-2" aria-live="polite"></section>
       <div id="notif-filtros" class="reveal reveal-2"></div>
       <section id="notif-lista" class="reveal reveal-3"></section>
       <nav id="notif-pag" class="reveal reveal-4 mt-6 flex items-center justify-between"
@@ -70,6 +72,73 @@ export async function renderNotificacoes() {
 
   await carregar();
   ligarRealtime();
+  await renderBannerPush();
+}
+
+/**
+ * Banner discreto que aparece quando o usuário ainda não ativou
+ * notificações no SO. Some quando já está inscrito ou bloqueou.
+ */
+async function renderBannerPush() {
+  const slot = document.querySelector('#notif-push-banner');
+  if (!slot) return;
+  const e = estadoPush();
+  if (!e.suporte_notif) {
+    slot.innerHTML = '';
+    return;
+  }
+
+  const inscrito = await inscritoAtualmente();
+
+  if (e.permission === 'denied') {
+    slot.innerHTML = `
+      <div class="alert alert--info" style="margin-bottom:1.25rem">
+        <strong>Notificações bloqueadas pelo navegador.</strong>
+        Para reativar, abra as configurações do site no navegador e permita "Notificações".
+      </div>`;
+    return;
+  }
+
+  if (e.permission === 'granted' && inscrito) {
+    slot.innerHTML = `
+      <div class="alert alert--info" style="margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <span>Avisos no desktop ativos neste dispositivo.</span>
+        <button type="button" id="push-desativar" class="vd-card-btn">Desativar</button>
+      </div>`;
+    document.querySelector('#push-desativar')?.addEventListener('click', async (ev) => {
+      ev.target.disabled = true;
+      ev.target.textContent = 'Desativando…';
+      const r = await desativarPush();
+      if (r.ok) mostrarToast('Avisos no desktop desativados.', 'ok', 2200);
+      else mostrarToast('Não consegui desativar.', 'erro', 3000);
+      await renderBannerPush();
+    });
+    return;
+  }
+
+  // permission default ou granted-mas-não-inscrito → oferecer ativação
+  slot.innerHTML = `
+    <div class="alert alert--info" style="margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div>
+        <strong>Receba avisos no desktop</strong> — mesmo com a aba fechada.
+        ${e.suporte_push ? '' : '<br><small>Seu navegador só notifica enquanto a aba estiver aberta.</small>'}
+      </div>
+      <button type="button" id="push-ativar" class="vd-card-btn">Ativar</button>
+    </div>`;
+  document.querySelector('#push-ativar')?.addEventListener('click', async (ev) => {
+    ev.target.disabled = true;
+    ev.target.textContent = 'Ativando…';
+    const r = await ativarPush();
+    if (r.ok) {
+      mostrarToast(
+        r.modo === 'push' ? 'Avisos no desktop ativos!' : 'Notificações ativas (apenas com aba aberta).',
+        'ok', 2400,
+      );
+    } else {
+      mostrarToast(`Não consegui ativar: ${r.motivo}`, 'erro', 4000);
+    }
+    await renderBannerPush();
+  });
 }
 
 async function carregar() {
@@ -147,25 +216,35 @@ async function carregar() {
 
   // Navegação ao item: router decide destino com base no tipo + payload
   // resolvido. Marca como lida automaticamente antes de navegar.
+  // role=button + tabindex permitem ativar via Enter/Space.
+  const navegarParaItem = async (el) => {
+    const id = el.dataset.notifId;
+    const notif = enriquecidas.find(n => n.id === id);
+    if (!notif) return;
+
+    if (el.dataset.lida === 'false') marcarLida(id);
+
+    const { url, motivo, erro } = destinoNotificacao(notif);
+    if (motivo === 'ok') {
+      navegar(url);
+    } else if (motivo === 'invalida') {
+      log.warn(`notificação ${id} (${notif.tipo}) com payload inválido`,
+               { tipo: notif.tipo, caixa_id: notif.caixa_id, lancamento_id: notif.lancamento_id, erro });
+      mostrarToast('Esta notificação não tem destino válido.', 'erro', 3500);
+    } else {
+      mostrarToast('Aviso informativo, sem ação direta.', 'info', 2200);
+    }
+  };
   lista.querySelectorAll('[data-notif-id]').forEach(el => {
-    el.addEventListener('click', async (e) => {
+    el.addEventListener('click', (e) => {
       if (e.target.closest('[data-acao]')) return;
-      const id = el.dataset.notifId;
-      const notif = enriquecidas.find(n => n.id === id);
-      if (!notif) return;
-
-      if (el.dataset.lida === 'false') marcarLida(id);
-
-      const { url, motivo, erro } = destinoNotificacao(notif);
-      if (motivo === 'ok') {
-        navegar(url);
-      } else if (motivo === 'invalida') {
-        log.warn(`notificação ${id} (${notif.tipo}) com payload inválido`,
-                 { tipo: notif.tipo, caixa_id: notif.caixa_id, lancamento_id: notif.lancamento_id, erro });
-        mostrarToast('Esta notificação não tem destino válido.', 'erro', 3500);
-      } else {
-        // 'sem_destino' — informativa, não navega.
-        mostrarToast('Aviso informativo, sem ação direta.', 'info', 2200);
+      navegarParaItem(el);
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.target.closest('[data-acao]')) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        navegarParaItem(el);
       }
     });
   });
@@ -193,13 +272,17 @@ async function carregar() {
 function itemHtml(n) {
   const lida = !!n.lida_em;
   const descartada = !!n.descartada_em;
-  // Destino é resolvido no momento do click via destinoNotificacao() —
-  // não há mais data-alvo precomputado (legado bugado: usava caixa_id UUID).
-
+  // Item raiz é div role=button (NÃO <button>) -- HTML inválido tem
+  // <button> dentro de <button>, e o browser normaliza movendo os
+  // filhos pro fluxo do pai, fazendo o click do "Descartar" cair no
+  // handler do item inteiro (que abre navegação). Com role=button +
+  // tabindex + keydown handler, mantemos a semântica acessível sem o
+  // problema do nesting.
   return `
     <li>
-      <button class="notif-item" data-notif-id="${esc(n.id)}"
-              data-severidade="${esc(n.severidade)}" data-lida="${lida}">
+      <div class="notif-item" data-notif-id="${esc(n.id)}"
+           data-severidade="${esc(n.severidade)}" data-lida="${lida}"
+           role="button" tabindex="0">
         <div class="notif-item-cabec">
           <strong class="notif-item-titulo">${esc(n.titulo)}</strong>
           <time class="notif-item-tempo" title="${esc(n.criada_em)}">${tempoRelativo(n.criada_em)}</time>
@@ -209,7 +292,7 @@ function itemHtml(n) {
           ${!lida && !descartada ? '<button type="button" class="notif-item-acao" data-acao="marcar-lida">Marcar como lida</button>' : ''}
           ${!descartada ? '<button type="button" class="notif-item-acao" data-acao="descartar" style="color:var(--c-alerta)">Descartar</button>' : '<span class="notif-item-acao" style="opacity:0.6;cursor:default">descartada</span>'}
         </div>
-      </button>
+      </div>
     </li>`;
 }
 

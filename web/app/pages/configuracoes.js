@@ -67,15 +67,6 @@ function itens() {
       ativo: true,
     },
     {
-      slug: 'relatorios',
-      eyebrow: 'Auditoria',
-      titulo: 'Relatórios',
-      desc: 'Exportação de períodos por categoria, estado e formato. Base pra contação mensal e auditoria.',
-      href: '/relatorios',
-      ativo: true,
-      permissao: 'relatorio.diario',
-    },
-    {
       slug: 'feriados',
       eyebrow: 'Calendário',
       titulo: 'Feriados',
@@ -110,6 +101,15 @@ function itens() {
       href: '/configuracoes/sistema',
       ativo: true,
       permissao: 'config.editar_sistema',
+    },
+    {
+      slug: 'auditoria',
+      eyebrow: 'Forense',
+      titulo: 'Auditoria & Lixeira',
+      desc: 'Linha do tempo de tudo que aconteceu — quem, quando, o quê e por quê — e a lixeira pra restaurar o que foi excluído.',
+      href: '/configuracoes/auditoria',
+      ativo: true,
+      permissao: 'auditoria.visualizar',
     },
   ].filter(it => !it.permissao || temPermissaoSync(it.permissao));
 }
