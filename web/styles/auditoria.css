@@ -1,0 +1,457 @@
+/* auditoria.css — Tela /configuracoes/auditoria
+   Aesthetic editorial-forense: timeline serif + bullets coloridos +
+   IDs em mono, contraste alto. Layout assimetrico (numero da aba flutua
+   bem grande a esquerda, conteudo respira a direita).
+*/
+
+.aud-main {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+}
+@media (min-width: 640px) {
+    .aud-main { padding: 3rem 2rem 5rem; }
+}
+
+.aud-breadcrumb { margin-bottom: 1rem; }
+
+.aud-cabec {
+    border-top: 1px solid var(--c-tinta-15);
+    padding-top: 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+}
+.aud-cabec::after {
+    content: 'AUD-LOG';
+    position: absolute;
+    top: 1.4rem; right: 0;
+    font-family: 'Manrope', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    color: var(--c-tinta-3);
+    opacity: 0.55;
+}
+.aud-titulo {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 80;
+    font-size: clamp(2.1rem, 5vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    color: var(--c-tinta);
+    margin: 0.4rem 0 0.6rem;
+}
+.aud-sub {
+    font-family: 'Manrope', sans-serif;
+    color: var(--c-tinta-3);
+    max-width: 38rem;
+    line-height: 1.55;
+    font-size: 0.93rem;
+}
+
+/* Tabs grandes editoriais */
+.aud-tabs {
+    display: flex;
+    gap: 0;
+    border-top: 1px solid var(--c-tinta-15);
+    border-bottom: 1px solid var(--c-tinta-15);
+    margin: 2rem 0 1.5rem;
+}
+.aud-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 1.1rem 1rem;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: baseline;
+    gap: 0.85rem;
+    color: var(--c-tinta-3);
+    transition: color 220ms ease, background 220ms ease;
+    border-right: 1px solid var(--c-tinta-15);
+    position: relative;
+}
+.aud-tab:last-child { border-right: none; }
+.aud-tab:hover { color: var(--c-tinta); background: rgba(15,76,58,0.03); }
+.aud-tab[aria-selected="true"] {
+    color: var(--c-tinta);
+    background: rgba(15,76,58,0.04);
+}
+.aud-tab[aria-selected="true"]::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: var(--c-musgo);
+}
+.aud-tab-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 1.6rem;
+    color: var(--c-musgo);
+    opacity: 0.7;
+    line-height: 1;
+}
+.aud-tab-rotulo {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+}
+
+/* Filtros */
+.aud-filtros { margin-bottom: 1.5rem; }
+.aud-filtros-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.85rem 1rem;
+    align-items: end;
+}
+.aud-field {
+    display: flex; flex-direction: column;
+    gap: 0.3rem;
+}
+.aud-field--wide { grid-column: 1 / -1; }
+@media (min-width: 768px) {
+    .aud-field--wide { grid-column: span 2; }
+}
+.aud-field-label {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--c-tinta-3);
+    font-weight: 600;
+}
+.aud-input {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    padding: 0.55rem 0.7rem;
+    background: var(--c-papel);
+    border: 1px solid var(--c-tinta-15);
+    border-radius: 4px;
+    color: var(--c-tinta);
+    transition: border-color 180ms ease;
+}
+.aud-input:focus {
+    outline: none;
+    border-color: var(--c-musgo);
+    box-shadow: 0 0 0 3px rgba(15,76,58,0.08);
+}
+.aud-filtros-acoes {
+    display: flex;
+    gap: 0.5rem;
+    align-self: end;
+}
+
+/* Timeline (aba log) */
+.aud-timeline {
+    list-style: none;
+    margin: 0; padding: 0;
+    position: relative;
+}
+.aud-timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px; top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom,
+        transparent 0,
+        var(--c-tinta-15) 14px,
+        var(--c-tinta-15) calc(100% - 14px),
+        transparent 100%);
+}
+.aud-row {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 1.2rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    position: relative;
+}
+.aud-row:last-child { border-bottom: none; }
+.aud-row-bullet {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--aud-bullet, var(--c-tinta-3));
+    margin-top: 0.5rem;
+    box-shadow: 0 0 0 3px var(--c-papel),
+                0 0 0 4px var(--aud-bullet, var(--c-tinta-3));
+    transition: transform 220ms cubic-bezier(.2,.7,.3,1);
+}
+.aud-row:hover .aud-row-bullet { transform: scale(1.15); }
+
+.aud-row-corpo { min-width: 0; }
+.aud-row-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+.aud-row-acao {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--aud-bullet, var(--c-tinta));
+    text-transform: uppercase;
+    padding: 0.18rem 0.5rem;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+}
+.aud-row-entidade {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-style: italic;
+    color: var(--c-tinta);
+    font-size: 1.02rem;
+}
+.aud-row-id {
+    font-family: 'Manrope', monospace;
+    font-size: 0.72rem;
+    color: var(--c-tinta-3);
+    background: rgba(0,0,0,0.04);
+    padding: 0.12rem 0.4rem;
+    border-radius: 3px;
+}
+.aud-row-tempo {
+    margin-left: auto;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    color: var(--c-tinta-3);
+    font-variant-numeric: tabular-nums;
+}
+.aud-row-autor {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+    margin-bottom: 0.3rem;
+}
+.aud-row-autor strong { color: var(--c-tinta); font-weight: 600; }
+.aud-row-motivo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--c-tinta);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0.3rem 0 0.5rem;
+    padding: 0.5rem 0.85rem;
+    border-left: 2px solid var(--c-musgo);
+    background: rgba(15,76,58,0.04);
+}
+.aud-row-detalhes {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--c-musgo);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-bottom: 1px solid currentColor;
+    margin-top: 0.2rem;
+    transition: color 180ms ease, opacity 180ms ease;
+}
+.aud-row-detalhes:hover { color: var(--c-tinta); }
+
+/* Lixeira */
+.aud-lixeira {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+.aud-trash {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem 1.1rem;
+    background: var(--c-papel);
+    border: 1px solid var(--c-tinta-15);
+    border-radius: 6px;
+    transition: border-color 200ms ease, transform 200ms ease;
+}
+.aud-trash:hover {
+    border-color: var(--c-tinta-3);
+    transform: translateY(-1px);
+}
+.aud-trash-corpo { min-width: 0; }
+.aud-trash-cabec {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+}
+.aud-trash-chip {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+}
+.aud-trash-chip[data-tipo="lancamento"]        { color: var(--c-musgo); }
+.aud-trash-chip[data-tipo="notificacao"]       { color: #a07b1c; }
+.aud-trash-chip[data-tipo="push_subscription"] { color: #6a3aa0; }
+.aud-trash-rotulo {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-style: italic;
+    color: var(--c-tinta);
+    font-size: 1.05rem;
+}
+.aud-trash-detalhe {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+    margin: 0 0 0.4rem;
+}
+.aud-trash-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    color: var(--c-tinta-3);
+    align-items: center;
+}
+.aud-trash-meta time { font-variant-numeric: tabular-nums; }
+.aud-trash-meta strong { color: var(--c-tinta); font-weight: 600; }
+.aud-trash-motivo {
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta);
+    border-left: 1px solid var(--c-tinta-15);
+    padding-left: 0.7rem;
+    margin-left: 0.3rem;
+}
+.aud-trash-acoes { display: flex; gap: 0.5rem; }
+.aud-trash-locked {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.72rem;
+    color: var(--c-tinta-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+}
+
+/* Estado vazio + skeleton */
+.aud-vazio {
+    text-align: center;
+    padding: 4rem 1rem;
+    border: 1px dashed var(--c-tinta-15);
+    border-radius: 8px;
+}
+.aud-vazio-titulo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 1.3rem;
+    color: var(--c-tinta);
+    margin: 0 0 0.4rem;
+}
+.aud-vazio-desc {
+    font-family: 'Manrope', sans-serif;
+    color: var(--c-tinta-3);
+    font-size: 0.92rem;
+}
+
+/* Paginacao */
+.aud-pag {
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--c-tinta-15);
+}
+.aud-pag-info {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+}
+.aud-pag-info strong {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    color: var(--c-tinta);
+}
+.aud-pag-total { opacity: 0.7; }
+.aud-pag-btns { display: flex; gap: 0.5rem; }
+
+/* Modal de detalhes (lateral) */
+.aud-modal {
+    font-family: 'Manrope', sans-serif;
+    color: var(--c-tinta);
+}
+.aud-modal-meta {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.4rem 1rem;
+    margin-bottom: 1.4rem;
+    padding-bottom: 1.4rem;
+    border-bottom: 1px solid var(--c-tinta-15);
+}
+.aud-modal-meta dt {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--c-tinta-3);
+    font-weight: 600;
+}
+.aud-modal-meta dd {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--c-tinta);
+    word-break: break-word;
+}
+.aud-modal-meta code {
+    font-family: 'Manrope', monospace;
+    font-size: 0.78rem;
+}
+.aud-modal-h {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--c-musgo);
+    margin: 1.2rem 0 0.5rem;
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+}
+.aud-modal-pre {
+    font-family: 'Manrope', monospace;
+    font-size: 0.74rem;
+    line-height: 1.55;
+    background: rgba(0,0,0,0.04);
+    color: var(--c-tinta);
+    padding: 0.7rem 0.85rem;
+    border-radius: 4px;
+    border: 1px solid var(--c-tinta-15);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    max-height: 22rem;
+    overflow-y: auto;
+}
+
+.aud-restaurar p {
+    font-family: 'Manrope', sans-serif;
+    color: var(--c-tinta);
+    line-height: 1.55;
+}

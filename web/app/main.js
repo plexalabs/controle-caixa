@@ -9,6 +9,7 @@ import '../styles/tailwind.css';
 import '../styles/tokens.css';
 import '../styles/components.css';
 import '../styles/auth.css';
+import '../styles/auditoria.css';
 
 import * as Sentry              from '@sentry/browser';
 import { despachar }            from './router.js';

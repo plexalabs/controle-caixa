@@ -16,6 +16,7 @@ import { renderUsuarios }      from './pages/configuracoes-usuarios.js';
 import { renderPermissoes }    from './pages/configuracoes-permissoes.js';
 import { renderFeriados }      from './pages/configuracoes-feriados.js';
 import { renderSistema }       from './pages/configuracoes-sistema.js';
+import { renderAuditoria }     from './pages/configuracoes-auditoria.js';
 import { renderRelatorios }    from './pages/relatorios.js';
 import { renderPendencias }    from './pages/pendencias.js';
 import { renderNotificacoes }  from './pages/notificacoes.js';
@@ -46,6 +47,7 @@ const rotas = [
   { padrao: /^\/configuracoes\/permissoes$/,  handler: renderPermissoes },
   { padrao: /^\/configuracoes\/feriados$/,    handler: renderFeriados },
   { padrao: /^\/configuracoes\/sistema$/,     handler: renderSistema },
+  { padrao: /^\/configuracoes\/auditoria$/,   handler: renderAuditoria },
   { padrao: /^\/relatorios$/,                 handler: renderRelatorios },
   { padrao: /^\/pendencias$/,                 handler: renderPendencias },
   { padrao: /^\/notificacoes$/,               handler: renderNotificacoes },

@@ -102,6 +102,15 @@ function itens() {
       ativo: true,
       permissao: 'config.editar_sistema',
     },
+    {
+      slug: 'auditoria',
+      eyebrow: 'Forense',
+      titulo: 'Auditoria & Lixeira',
+      desc: 'Linha do tempo de tudo que aconteceu — quem, quando, o quê e por quê — e a lixeira pra restaurar o que foi excluído.',
+      href: '/configuracoes/auditoria',
+      ativo: true,
+      permissao: 'auditoria.visualizar',
+    },
   ].filter(it => !it.permissao || temPermissaoSync(it.permissao));
 }
 
