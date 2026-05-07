@@ -25,6 +25,25 @@ import { mostrarToast } from '../app/notifications.js';
 import { debounce } from '../app/utils.js';
 import { instalarPopSelectsEm } from './pop-select.js';
 import { instalarPopDatasEm }   from './pop-data.js';
+import { temPermissaoSync }     from '../app/papeis.js';
+
+// Janela default (em minutos) pra editar categoria após criação.
+// Se a config lancamento.editar_categoria_minutos estiver setada
+// no banco, prevalece. Esta constante e' fallback.
+const JANELA_EDITAR_CAT_MIN_DEFAULT = 30;
+let janelaEditarCategoriaMin = JANELA_EDITAR_CAT_MIN_DEFAULT;
+
+// Carrega a janela do config (executa silenciosamente em background).
+(async () => {
+  try {
+    const { data } = await supabase
+      .from('config')
+      .select('valor')
+      .eq('chave', 'lancamento.editar_categoria_minutos')
+      .maybeSingle();
+    if (data?.valor != null) janelaEditarCategoriaMin = Number(data.valor) || JANELA_EDITAR_CAT_MIN_DEFAULT;
+  } catch (_) { /* fallback default */ }
+})();
 
 // Estado interno do drawer (limpo a cada abertura).
 let estado = null;
@@ -440,6 +459,16 @@ function construirPayload(form) {
 
 function traduzirErroBanco(error) {
   const m = (error.message || '').toLowerCase();
+  // Editar/excluir
+  if (m.includes('motivo da edição') || m.includes('motivo da exclusão')) return 'O motivo precisa ter pelo menos 10 caracteres.';
+  if (m.includes('janela para editar categoria expirou')) return error.message;
+  if (m.includes('nenhum campo enviado para edição')) return 'Nenhum campo foi alterado.';
+  if (m.includes('lancamento.editar_categoria') || m.includes('permissão negada (lancamento.editar_categoria')) return 'Você não tem permissão para alterar a categoria.';
+  if (m.includes('lancamento.editar') || m.includes('permissão negada (lancamento.editar')) return 'Você não tem permissão para editar lançamentos.';
+  if (m.includes('lancamento.excluir') || m.includes('permissão negada (lancamento.excluir')) return 'Você não tem permissão para excluir lançamentos.';
+  if (m.includes('lançamentos com estado')) return error.message;
+  if (m.includes('já está excluido')) return 'Este lançamento já foi excluído.';
+  // Categorizar/upsert
   if (m.includes('numero_nf') && m.includes('duplic')) return 'Já existe lançamento com este número de NF neste caixa.';
   if (m.includes('lancamento_nf_caixa_uk'))           return 'Já existe lançamento com este número de NF neste caixa.';
   if (m.includes('cartão incompletos') || m.includes('cartao incompletos'))    return 'Preencha todos os campos obrigatórios da categoria Cartão.';
@@ -548,17 +577,29 @@ function corpoGerenciar() {
 function rodapeGerenciar() {
   const l  = estado.lancamento;
   const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
+  const podeEditar = temPermissaoSync('lancamento.editar');
+  const podeExcluir = temPermissaoSync('lancamento.excluir');
+
   if (finalizadoOuCancelado) {
     const ehCancelado = ['cancelado_pos','cancelado'].includes(l.estado);
-    return `<div class="painel-rodape-acoes">
-      <span class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3)">
+    return `<div class="painel-rodape-acoes" style="flex-wrap:wrap;gap:0.5rem">
+      <span class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3);flex:1 1 100%;margin-bottom:0.4rem">
         Lançamento ${ehCancelado ? 'cancelado' : 'finalizado'}. Apenas observações continuam editáveis.
       </span>
-      <button type="button" id="btn-fechar-leitura" class="btn-link">Fechar</button>
+      ${podeExcluir ? `
+        <button type="button" id="btn-excluir" class="btn-link" style="color:var(--c-alerta);text-decoration-color:rgba(154,42,31,0.4)">
+          Excluir lançamento
+        </button>` : ''}
+      <button type="button" id="btn-fechar-leitura" class="btn-link" style="margin-left:auto">Fechar</button>
     </div>`;
   }
   return `
     <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
+    ${(podeEditar || podeExcluir) ? `
+      <div class="painel-acoes-secundarias">
+        ${podeEditar ? `<button type="button" id="btn-editar" class="btn-link">✎ Editar lançamento</button>` : ''}
+        ${podeExcluir ? `<button type="button" id="btn-excluir" class="btn-link" style="color:var(--c-alerta);text-decoration-color:rgba(154,42,31,0.4)">Excluir lançamento</button>` : ''}
+      </div>` : ''}
     <div class="painel-acoes-finais">
       <button type="button" id="btn-cancelar-pos" class="btn-secundario btn-secundario--alerta">
         ✕ Marcar como cancelado
@@ -743,6 +784,9 @@ function ligarGerenciar() {
     });
   }
 
+  // Botão Excluir aparece em qualquer modo gerenciar/finalizado se tem permissão
+  document.querySelector('#btn-excluir')?.addEventListener('click', () => abrirSubModoExcluir());
+
   // Modos finalizado/cancelado: so botao fechar.
   if (finalizadoOuCancelado) {
     document.querySelector('#btn-fechar-leitura')?.addEventListener('click', () => {
@@ -751,7 +795,8 @@ function ligarGerenciar() {
     return;
   }
 
-  // Modo gerenciar: liga botoes finalizar / cancelar-pos.
+  // Modo gerenciar: liga botoes finalizar / cancelar-pos / editar.
+  document.querySelector('#btn-editar')?.addEventListener('click', () => abrirSubModoEditar());
   document.querySelector('#btn-finalizar')?.addEventListener('click', async () => {
     if (!confirm('Confirma que o cliente buscou e o lançamento está finalizado?')) return;
     await chamarMarcarFinalizado();
@@ -764,6 +809,277 @@ function ligarGerenciar() {
       return;
     }
     await chamarMarcarCanceladoPos(motivo.trim());
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SUB-MODOS — Editar e Excluir (lançamento ja categorizado/finalizado)
+// Substituem o conteudo do drawer atual; "Voltar" volta pro modo
+// gerenciar (re-renderiza). Realtime de observacao e desligado durante
+// estes sub-modos pra evitar estado intermediario.
+// ════════════════════════════════════════════════════════════════════════
+
+function abrirSubModoEditar() {
+  const l = estado.lancamento;
+  desligarRealtimeObs();
+
+  // Janela ativa pra editar categoria? (criado_em + janela_min em minutos)
+  const idadeMin = (Date.now() - new Date(l.criado_em).getTime()) / 60000;
+  const janelaAtiva = idadeMin <= janelaEditarCategoriaMin;
+  const podeEditarCategoria = temPermissaoSync('lancamento.editar_categoria') && janelaAtiva;
+  const minRestantes = Math.max(0, Math.ceil(janelaEditarCategoriaMin - idadeMin));
+
+  abrirModal({
+    lateral: true,
+    eyebrow: `NF ${l.numero_nf} · editar`,
+    titulo:  'Editar lançamento.',
+    conteudo: `
+      <p class="text-body" style="font-size:0.9rem;color:var(--c-tinta-3);margin-bottom:1.2rem;line-height:1.5">
+        Edição de campos preserva o histórico do lançamento — toda alteração
+        gera observação registrada com motivo e autor.
+      </p>
+
+      <form id="form-editar" novalidate>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="ed-numero_nf">Número da NF</label>
+            <input id="ed-numero_nf" name="numero_nf" maxlength="15" class="field-input"
+                   value="${esc(l.numero_nf || '')}" />
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="ed-codigo_pedido">Código do pedido</label>
+            <input id="ed-codigo_pedido" name="codigo_pedido" maxlength="20" class="field-input"
+                   value="${esc(l.codigo_pedido || '')}" />
+          </div>
+        </div>
+        <div class="field mt-5">
+          <label class="field-label" for="ed-cliente_nome">Cliente</label>
+          <input id="ed-cliente_nome" name="cliente_nome" maxlength="120" class="field-input"
+                 value="${esc(l.cliente_nome || '')}" />
+        </div>
+        <div class="field mt-5">
+          <label class="field-label" for="ed-valor_nf">Valor (R$)</label>
+          <input id="ed-valor_nf" name="valor_nf" type="number" step="0.01" min="0.01" class="field-input"
+                 inputmode="decimal" value="${esc(l.valor_nf ?? '')}" />
+        </div>
+
+        <div class="mt-7 pt-6" style="border-top:1px solid var(--c-papel-3)">
+          <p class="h-eyebrow" style="margin:0 0 0.5rem">Forma de pagamento</p>
+          ${podeEditarCategoria ? `
+            <p class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3);margin-bottom:0.85rem">
+              Janela de edição: ${minRestantes} min restante${minRestantes === 1 ? '' : 's'}
+              (até ${janelaEditarCategoriaMin} min após criação).
+            </p>
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label" for="ed-categoria">Categoria</label>
+              <select id="ed-categoria" name="categoria" class="field-input">
+                ${CATEGORIAS.map(c => `
+                  <option value="${c.valor}" ${c.valor === l.categoria ? 'selected' : ''}>${c.rotulo}</option>
+                `).join('')}
+              </select>
+            </div>
+            <p class="text-body" style="font-size:0.78rem;color:var(--c-tinta-3);margin-top:0.5rem;font-style:italic">
+              Para alterar detalhes específicos da categoria (chave Pix, autorização do cartão, etc),
+              use a tela completa do lançamento após salvar a categoria nova.
+            </p>
+          ` : `
+            <p class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3);margin-bottom:0">
+              ${!temPermissaoSync('lancamento.editar_categoria')
+                ? 'Você não tem permissão para alterar a categoria.'
+                : `Janela de ${janelaEditarCategoriaMin} min para editar a categoria já expirou. Para corrigir, exclua e relance.`}
+            </p>
+          `}
+        </div>
+
+        <div class="field mt-7 pt-6" style="border-top:1px solid var(--c-papel-3);margin-bottom:0">
+          <label class="field-label" for="ed-motivo">
+            Motivo da edição <span style="color:var(--c-alerta)">*</span>
+            <span style="font-weight:400;color:var(--c-tinta-3);font-size:0.82rem">(mínimo 10 caracteres)</span>
+          </label>
+          <textarea id="ed-motivo" name="motivo" rows="3" minlength="10" maxlength="500" required
+                    class="field-input" style="resize:vertical"
+                    placeholder="Ex.: cliente informou valor correto após emissão"></textarea>
+        </div>
+      </form>
+    `,
+    rodape: `
+      <div id="erro-edit" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
+      <div class="painel-rodape-acoes">
+        <button type="button" id="btn-edit-voltar" class="btn-link">← Voltar</button>
+        <button type="submit" form="form-editar" id="btn-edit-salvar" class="btn-primary" disabled>
+          Salvar edição
+        </button>
+      </div>`,
+    onConfirmarFechar: () => true,
+  });
+
+  ligarSubModoEditar(podeEditarCategoria);
+}
+
+function ligarSubModoEditar(podeEditarCategoria) {
+  const form = document.querySelector('#form-editar');
+  if (!form) return;
+  instalarPopSelectsEm(form);
+
+  const l = estado.lancamento;
+  const f = (id) => document.querySelector(`#${id}`);
+  const erroEl = f('erro-edit');
+  const btnSalvar = f('btn-edit-salvar');
+  const motivoEl = f('ed-motivo');
+
+  setTimeout(() => f('ed-numero_nf')?.focus(), 360);
+
+  // Habilita Salvar quando tem alteração + motivo válido
+  const reavaliar = () => {
+    const motivoOk = (motivoEl?.value || '').trim().length >= 10;
+    btnSalvar.disabled = !motivoOk;
+  };
+  form.addEventListener('input', reavaliar);
+
+  f('btn-edit-voltar').addEventListener('click', () => {
+    // Volta pro modo gerenciar (re-renderiza)
+    abrirModoGerenciarOuFinalizado();
+  });
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    erroEl.classList.add('hidden');
+
+    const dados = {};
+    const novoNumero  = f('ed-numero_nf').value.trim();
+    const novoCodigo  = f('ed-codigo_pedido').value.trim();
+    const novoCliente = f('ed-cliente_nome').value.trim();
+    const novoValor   = Number(f('ed-valor_nf').value);
+    const novaCat     = podeEditarCategoria ? f('ed-categoria')?.value : null;
+
+    if (novoNumero  && novoNumero  !== (l.numero_nf || ''))     dados.numero_nf     = novoNumero;
+    if (novoCodigo  && novoCodigo  !== (l.codigo_pedido || '')) dados.codigo_pedido = novoCodigo;
+    if (novoCliente && novoCliente !== (l.cliente_nome || ''))  dados.cliente_nome  = novoCliente;
+    if (novoValor   && novoValor   !== Number(l.valor_nf))      dados.valor_nf      = novoValor;
+    if (novaCat     && novaCat     !== l.categoria)             dados.categoria     = novaCat;
+
+    if (Object.keys(dados).length === 0) {
+      erroEl.classList.remove('hidden');
+      erroEl.textContent = 'Nenhum campo foi alterado.';
+      return;
+    }
+
+    btnSalvar.setAttribute('aria-busy', 'true');
+    btnSalvar.disabled = true;
+
+    const { data, error } = await supabase.rpc('editar_lancamento', {
+      p_lancamento_id: l.id,
+      p_dados:         dados,
+      p_motivo:        motivoEl.value.trim(),
+    });
+
+    btnSalvar.removeAttribute('aria-busy');
+
+    if (error) {
+      btnSalvar.disabled = false;
+      erroEl.classList.remove('hidden');
+      erroEl.textContent = traduzirErroBanco(error);
+      log.warn('falha ao editar lancamento', { code: error.code, msg: error.message });
+      return;
+    }
+
+    estado.lancamento = data;
+    mostrarToast('Lançamento editado.', 'ok', 2200);
+    estado.aoSalvar();
+    fecharModal(true);
+  });
+}
+
+function abrirSubModoExcluir() {
+  const l = estado.lancamento;
+  desligarRealtimeObs();
+
+  abrirModal({
+    lateral: true,
+    eyebrow: `NF ${l.numero_nf} · excluir`,
+    titulo:  'Excluir lançamento.',
+    conteudo: `
+      <div class="alert" style="margin-bottom:1.1rem;background:var(--c-alerta-bg);border-left:3px solid var(--c-alerta);color:var(--c-alerta);padding:0.85rem 1rem;border-radius:var(--r-sm)">
+        Esta ação remove o lançamento da lista do caixa. O registro permanece
+        no histórico (soft-delete) e pode ser auditado, mas não aparece mais
+        em telas operacionais.
+      </div>
+
+      <p class="text-body" style="font-size:0.9rem;color:var(--c-tinta-2);margin-bottom:1.2rem;line-height:1.5">
+        <strong style="color:var(--c-tinta)">${esc(l.cliente_nome || '— sem cliente —')}</strong>
+        · NF ${esc(l.numero_nf)} · ${formatBRL(l.valor_nf)}
+        ${l.categoria ? ` · ${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}` : ''}
+      </p>
+
+      <form id="form-excluir" novalidate>
+        <div class="field" style="margin-bottom:0">
+          <label class="field-label" for="ex-motivo">
+            Motivo da exclusão <span style="color:var(--c-alerta)">*</span>
+            <span style="font-weight:400;color:var(--c-tinta-3);font-size:0.82rem">(mínimo 10 caracteres)</span>
+          </label>
+          <textarea id="ex-motivo" name="motivo" rows="3" minlength="10" maxlength="500" required
+                    class="field-input" style="resize:vertical"
+                    placeholder="Ex.: lançamento duplicado em erro, NF cancelada na origem"></textarea>
+        </div>
+      </form>
+    `,
+    rodape: `
+      <div id="erro-exc" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
+      <div class="painel-rodape-acoes">
+        <button type="button" id="btn-exc-voltar" class="btn-link">← Voltar</button>
+        <button type="submit" form="form-excluir" id="btn-exc-confirmar"
+                class="btn-secundario btn-secundario--alerta" disabled>
+          ✕ Excluir lançamento
+        </button>
+      </div>`,
+    onConfirmarFechar: () => true,
+  });
+
+  ligarSubModoExcluir();
+}
+
+function ligarSubModoExcluir() {
+  const form = document.querySelector('#form-excluir');
+  if (!form) return;
+  const f = (id) => document.querySelector(`#${id}`);
+  const erroEl = f('erro-exc');
+  const btn = f('btn-exc-confirmar');
+  const motivoEl = f('ex-motivo');
+
+  setTimeout(() => motivoEl?.focus(), 360);
+
+  motivoEl.addEventListener('input', () => {
+    btn.disabled = motivoEl.value.trim().length < 10;
+  });
+
+  f('btn-exc-voltar').addEventListener('click', () => {
+    abrirModoGerenciarOuFinalizado();
+  });
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    erroEl.classList.add('hidden');
+    btn.setAttribute('aria-busy', 'true');
+    btn.disabled = true;
+
+    const { error } = await supabase.rpc('excluir_lancamento', {
+      p_lancamento_id: estado.lancamento.id,
+      p_motivo:        motivoEl.value.trim(),
+    });
+
+    btn.removeAttribute('aria-busy');
+
+    if (error) {
+      btn.disabled = false;
+      erroEl.classList.remove('hidden');
+      erroEl.textContent = traduzirErroBanco(error);
+      log.warn('falha ao excluir lancamento', { code: error.code, msg: error.message });
+      return;
+    }
+
+    mostrarToast('Lançamento excluído.', 'ok', 2200);
+    estado.aoSalvar();
+    fecharModal(true);
   });
 }
 
