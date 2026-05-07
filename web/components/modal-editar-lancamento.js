@@ -79,6 +79,12 @@ function detectarModo(l) {
 // ════════════════════════════════════════════════════════════════════════
 function abrirModoCategorizar() {
   const l = estado.lancamento;
+  // Em estado pendente, lancamento existente também pode ser editado
+  // sem categorizar OU excluído (com motivo). Sub-modos disponíveis
+  // pelo gating de permissão no rodapé.
+  const podeEditar = l && temPermissaoSync('lancamento.editar');
+  const podeExcluir = l && temPermissaoSync('lancamento.excluir');
+
   abrirModal({
     lateral: true,
     eyebrow: l ? `NF ${l.numero_nf} · em análise` : `Novo lançamento · ${formatarDataPt(estado.dataCaixa)}`,
@@ -86,6 +92,11 @@ function abrirModoCategorizar() {
     conteudo: corpoFormCategorizar(),
     rodape: `
       <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
+      ${(podeEditar || podeExcluir) ? `
+        <div class="painel-acoes-secundarias">
+          ${podeEditar  ? `<button type="button" id="btn-editar"  class="btn-link">✎ Editar sem categorizar</button>` : ''}
+          ${podeExcluir ? `<button type="button" id="btn-excluir" class="btn-link" style="color:var(--c-alerta);text-decoration-color:rgba(154,42,31,0.4)">Excluir lançamento</button>` : ''}
+        </div>` : ''}
       <div class="painel-rodape-acoes">
         <button type="button" id="btn-cancel" class="btn-link">Cancelar</button>
         <button type="submit" form="form-lanc" id="btn-salvar" class="btn-primary" disabled>Salvar categorização</button>
@@ -97,6 +108,11 @@ function abrirModoCategorizar() {
   });
 
   ligarCategorizar();
+  // Botões secundários: só aparecem pra lancamento existente em
+  // pendente. Sub-modos editar/excluir reaproveitam funções do modo
+  // gerenciar.
+  document.querySelector('#btn-editar')?.addEventListener('click', () => abrirSubModoEditar());
+  document.querySelector('#btn-excluir')?.addEventListener('click', () => abrirSubModoExcluir());
 }
 
 function corpoFormCategorizar() {
@@ -813,11 +829,22 @@ function ligarGerenciar() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// SUB-MODOS — Editar e Excluir (lançamento ja categorizado/finalizado)
-// Substituem o conteudo do drawer atual; "Voltar" volta pro modo
-// gerenciar (re-renderiza). Realtime de observacao e desligado durante
-// estes sub-modos pra evitar estado intermediario.
+// SUB-MODOS — Editar e Excluir (disponiveis em pendente/completo/finalizado).
+// Substituem o conteudo do drawer atual; "Voltar" usa voltarAoModoOriginal()
+// que decide entre categorizar (pendente) e gerenciar (completo+).
+// Realtime de observacao e desligado durante estes sub-modos pra evitar
+// estado intermediario.
 // ════════════════════════════════════════════════════════════════════════
+
+function voltarAoModoOriginal() {
+  const l = estado.lancamento;
+  if (!l) return fecharModal(false);
+  // Modo categorizar pra pendente/em_preenchimento; gerenciar/finalizado pro resto
+  if (l.estado === 'pendente' || l.estado === 'em_preenchimento') {
+    return abrirModoCategorizar();
+  }
+  return abrirModoGerenciarOuFinalizado();
+}
 
 function abrirSubModoEditar() {
   const l = estado.lancamento;
@@ -936,10 +963,7 @@ function ligarSubModoEditar(podeEditarCategoria) {
   };
   form.addEventListener('input', reavaliar);
 
-  f('btn-edit-voltar').addEventListener('click', () => {
-    // Volta pro modo gerenciar (re-renderiza)
-    abrirModoGerenciarOuFinalizado();
-  });
+  f('btn-edit-voltar').addEventListener('click', () => voltarAoModoOriginal());
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -1052,9 +1076,7 @@ function ligarSubModoExcluir() {
     btn.disabled = motivoEl.value.trim().length < 10;
   });
 
-  f('btn-exc-voltar').addEventListener('click', () => {
-    abrirModoGerenciarOuFinalizado();
-  });
+  f('btn-exc-voltar').addEventListener('click', () => voltarAoModoOriginal());
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
