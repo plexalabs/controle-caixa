@@ -18,6 +18,7 @@ import { renderShell, ligarShell } from '../shell.js';
 import { mostrarToast } from '../notifications.js';
 import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
 import { abrirModal, fecharModal } from '../../components/modal.js';
+import { instalarPopDatasEm } from '../../components/pop-data.js';
 
 const POR_PAGINA = 30;
 
@@ -126,11 +127,11 @@ function ligarTabs() {
 
 function fieldHtml(id, label, html) {
   return `
-    <label class="field" for="${id}">
-      <span class="field-label">${label}</span>
+    <div class="field">
+      <label class="field-label" for="${id}">${label}</label>
       ${html}
       <span class="field-underline"></span>
-    </label>`;
+    </div>`;
 }
 
 function renderFiltros() {
@@ -181,6 +182,9 @@ function renderFiltros() {
         <button id="f-limpar"  class="btn-link"    style="font-size:0.85rem">Limpar</button>
       </div>
     </div>`;
+
+  // Substitui inputs date pelo pop-data custom (calendario papel/musgo)
+  instalarPopDatasEm(slot);
 
   document.querySelector('#f-aplicar')?.addEventListener('click', async () => {
     filtros = lerFiltros();
@@ -388,12 +392,12 @@ function abrirRestauracao(lancamentoId) {
       <div class="aud-restaurar">
         <p>Volta o lançamento pro estado <strong>pendente</strong> pra
         re-categorização. A restauração também fica registrada no log.</p>
-        <label class="field" for="r-motivo" style="margin-top:1.2rem">
-          <span class="field-label">Motivo (mínimo 10 caracteres)</span>
+        <div class="field" style="margin-top:1.2rem">
+          <label class="field-label" for="r-motivo">Motivo (mínimo 10 caracteres)</label>
           <textarea id="r-motivo" class="field-input" rows="3"
                     placeholder="Ex: lançamento foi excluído por engano, é a NF do pedido X que ainda precisa ser categorizada."></textarea>
           <span class="field-underline"></span>
-        </label>
+        </div>
         <div style="display:flex;gap:0.7rem;justify-content:flex-end;margin-top:1.5rem">
           <button id="r-cancelar" class="btn-link">Cancelar</button>
           <button id="r-confirmar" class="btn-primary" style="padding:0.6rem 1.1rem;font-size:0.85rem">Restaurar</button>

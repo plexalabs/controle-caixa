@@ -15,30 +15,30 @@
     gap: 0;
     border-top: 1px solid var(--c-papel-3);
     border-bottom: 1px solid var(--c-papel-3);
-    margin: 0 0 1.6rem;
+    margin: 0 0 1.8rem;
 }
 
 .aud-tab {
     flex: 1;
     background: none;
     border: 0;
-    padding: 1.1rem 1rem 1.05rem;
+    padding: 1.25rem 1.2rem;
     cursor: pointer;
     text-align: left;
     display: flex;
     align-items: baseline;
-    gap: 0.9rem;
+    gap: 1.1rem;
     color: var(--c-tinta-3);
     border-right: 1px solid var(--c-papel-3);
     position: relative;
-    transition: color 240ms var(--ease-out), background 240ms var(--ease-out);
+    transition: color 260ms var(--ease-out), background 260ms var(--ease-out);
     font-family: 'Manrope', sans-serif;
 }
 .aud-tab:last-child { border-right: 0; }
 .aud-tab:hover { color: var(--c-tinta); background: rgba(15, 76, 58, 0.025); }
 .aud-tab[aria-selected="true"] {
     color: var(--c-tinta);
-    background: rgba(15, 76, 58, 0.04);
+    background: rgba(15, 76, 58, 0.045);
 }
 .aud-tab[aria-selected="true"]::after {
     content: '';
@@ -52,17 +52,24 @@
     font-weight: 300;
     font-style: italic;
     font-variation-settings: "opsz" 144, "SOFT" 50;
-    font-size: 1.7rem;
+    font-size: 2.2rem;
     color: var(--c-musgo);
-    opacity: 0.55;
-    line-height: 1;
-    transition: opacity 240ms var(--ease-out);
+    opacity: 0.45;
+    line-height: 0.85;
+    transition: opacity 260ms var(--ease-out), transform 260ms var(--ease-out);
 }
 .aud-tab[aria-selected="true"] .aud-tab-num { opacity: 1; }
+.aud-tab:hover .aud-tab-num { opacity: 0.8; }
 .aud-tab-rotulo {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1rem;
     letter-spacing: 0.005em;
+    line-height: 1.1;
+}
+@media (max-width: 480px) {
+    .aud-tab { padding: 1rem 0.85rem; gap: 0.7rem; }
+    .aud-tab-num { font-size: 1.7rem; }
+    .aud-tab-rotulo { font-size: 0.88rem; }
 }
 
 /* ============================================================
@@ -70,22 +77,80 @@
    do projeto). So precisa do grid responsivo + container de acoes.
    ============================================================ */
 
-.aud-filtros { margin-bottom: 1.4rem; }
+/* ============================================================
+   Filtros — uniformizados em estilo "caixa" pra harmonizar
+   pop-data-trigger + select + input dentro do mesmo grid.
+   Em outras telas o .field-input mantem o estilo underline.
+   ============================================================ */
+
+.aud-filtros { margin-bottom: 1.6rem; }
 .aud-filtros-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    gap: 0.4rem 1.4rem;
+    gap: 0.95rem 1rem;
     align-items: end;
 }
-/* Field padrao tem margin-bottom: 1.25rem — anula no grid
-   pra deixar o gap controlar o espacamento */
 .aud-filtros-grid .field { margin-bottom: 0; }
+.aud-filtros-grid .field-label {
+    margin-bottom: 0.4rem;
+    color: var(--c-musgo);
+    letter-spacing: 0.16em;
+    font-size: 0.68rem;
+}
+/* Inputs e selects ficam em caixa — visual ja casa com pop-data-trigger
+   (mesmo padding, border, radius, hover/focus). */
+.aud-filtros-grid .field-input,
+.aud-filtros-grid .pop-data-trigger {
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-sm);
+    padding: 0.62rem 0.85rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    color: var(--c-tinta);
+    width: 100%;
+    transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+    font-variant-numeric: tabular-nums;
+}
+.aud-filtros-grid .field-input:hover,
+.aud-filtros-grid .pop-data-trigger:hover {
+    border-color: var(--c-tinta-3);
+}
+.aud-filtros-grid .field-input:focus,
+.aud-filtros-grid .pop-data-trigger:focus-visible,
+.aud-filtros-grid .pop-data-trigger[aria-expanded="true"] {
+    outline: 0;
+    border-color: var(--c-musgo);
+    box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+}
+/* Select com seta SVG custom (papel/musgo) */
+.aud-filtros-grid select.field-input {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1l4 4 4-4' stroke='%230F4C3A' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 9px 5px;
+    cursor: pointer;
+}
+.aud-filtros-grid input.field-input::placeholder {
+    color: var(--c-tinta-3);
+    opacity: 0.55;
+}
+/* Anula o underline animado dentro dos filtros — ja temos border completa */
+.aud-filtros-grid .field-underline { display: none; }
+
 .aud-filtros-acoes {
     display: flex;
     align-items: center;
-    gap: 0.9rem;
+    gap: 1rem;
     align-self: end;
-    padding-bottom: 0.4rem;
+}
+.aud-filtros-acoes .btn-primary {
+    padding: 0.62rem 1.2rem !important;
+    font-size: 0.85rem !important;
+    border-radius: var(--r-sm);
 }
 
 /* ============================================================
@@ -113,24 +178,26 @@
 .aud-row {
     display: grid;
     grid-template-columns: 14px 1fr;
-    gap: 1.25rem;
-    padding: 1.05rem 0 1.05rem 0;
+    gap: 1.4rem;
+    padding: 1.1rem 0;
     border-bottom: 1px solid var(--c-papel-2);
     position: relative;
-    animation: fade-up 600ms var(--ease-out) backwards;
+    animation: fade-up 620ms var(--ease-out) backwards;
 }
 .aud-row:last-child { border-bottom: 0; }
+.aud-row:first-child { padding-top: 0.4rem; }
 
 .aud-row-bullet {
-    width: 12px; height: 12px;
+    width: 10px; height: 10px;
     border-radius: 50%;
     background: var(--aud-cor, var(--c-tinta-3));
-    margin-top: 0.55rem;
+    margin-top: 0.65rem;
+    margin-left: 1px;
     box-shadow: 0 0 0 3px var(--c-papel),
                 0 0 0 4px var(--aud-cor, var(--c-tinta-3));
-    transition: transform 280ms var(--ease-out);
+    transition: transform 320ms var(--ease-out);
 }
-.aud-row:hover .aud-row-bullet { transform: scale(1.18); }
+.aud-row:hover .aud-row-bullet { transform: scale(1.25); }
 
 /* Cromatica por acao — usa tokens do sistema */
 .aud-acao--insert         { --aud-cor: var(--c-musgo); }
@@ -511,8 +578,33 @@
     font-family: 'Manrope', sans-serif;
     color: var(--c-tinta-2);
     line-height: 1.6;
+    font-size: 0.94rem;
 }
 .aud-restaurar p strong { color: var(--c-musgo); font-weight: 600; }
+/* Textarea precisa de caixa pra ficar legivel — sobrescreve underline */
+.aud-restaurar .field-input {
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: var(--r-sm);
+    padding: 0.7rem 0.85rem;
+    font-size: 0.93rem;
+    line-height: 1.55;
+    width: 100%;
+    resize: vertical;
+    min-height: 4.5rem;
+    transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+}
+.aud-restaurar .field-input:focus {
+    outline: 0;
+    border-color: var(--c-musgo);
+    box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+}
+.aud-restaurar .field-underline { display: none; }
+.aud-restaurar .field-label {
+    color: var(--c-musgo);
+    letter-spacing: 0.16em;
+    font-size: 0.68rem;
+}
 
 
 /* Reduce motion */
