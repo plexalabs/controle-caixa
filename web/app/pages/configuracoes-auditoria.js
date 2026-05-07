@@ -28,16 +28,34 @@ let filtros = {};
 let pagina = 1;
 let total = 0;
 
+// Codigo (esquerda) e o nome real da tabela/acao no backend — vai pro RPC.
+// Rotulo (direita) e o que aparece pro humano no dropdown.
 const ENTIDADES = [
-  'lancamento', 'lancamento_observacao', 'caixa', 'notificacao',
-  'push_subscription', 'config', 'vendedora', 'feriado',
-  'perfil', 'perfil_permissao', 'usuario_perfil', 'usuario_permissao_extra',
+  { codigo: 'lancamento',                rotulo: 'Lançamento' },
+  { codigo: 'lancamento_observacao',     rotulo: 'Observação' },
+  { codigo: 'caixa',                     rotulo: 'Caixa' },
+  { codigo: 'notificacao',               rotulo: 'Notificação' },
+  { codigo: 'push_subscription',         rotulo: 'Push (device)' },
+  { codigo: 'config',                    rotulo: 'Configuração' },
+  { codigo: 'vendedora',                 rotulo: 'Vendedora' },
+  { codigo: 'feriado',                   rotulo: 'Feriado' },
+  { codigo: 'perfil',                    rotulo: 'Perfil (RBAC)' },
+  { codigo: 'perfil_permissao',          rotulo: 'Permissão de perfil' },
+  { codigo: 'usuario_perfil',            rotulo: 'Perfil de usuário' },
+  { codigo: 'usuario_permissao_extra',   rotulo: 'Permissão extra' },
 ];
 
 const ACOES = [
-  'INSERT', 'UPDATE', 'DELETE',
-  'SOFT_DELETE', 'RESTAURACAO',
-  'LOGIN', 'LOGOUT', 'RPC', 'PUSH_ENVIADO', 'CONFIG_ALTERADA',
+  { codigo: 'INSERT',          rotulo: 'Criação' },
+  { codigo: 'UPDATE',          rotulo: 'Edição' },
+  { codigo: 'SOFT_DELETE',     rotulo: 'Exclusão (lixeira)' },
+  { codigo: 'DELETE',          rotulo: 'Exclusão definitiva' },
+  { codigo: 'RESTAURACAO',     rotulo: 'Restauração' },
+  { codigo: 'LOGIN',           rotulo: 'Entrada (login)' },
+  { codigo: 'LOGOUT',          rotulo: 'Saída (logout)' },
+  { codigo: 'RPC',             rotulo: 'Operação de sistema' },
+  { codigo: 'PUSH_ENVIADO',    rotulo: 'Push enviado' },
+  { codigo: 'CONFIG_ALTERADA', rotulo: 'Configuração alterada' },
 ];
 
 export async function renderAuditoria() {
@@ -148,12 +166,12 @@ function renderFiltros() {
       ${fieldHtml('f-entidade', 'Entidade', `
         <select id="f-entidade" class="field-input">
           <option value="">Todas</option>
-          ${ENTIDADES.map(e => `<option value="${e}" ${filtros.entidade === e ? 'selected' : ''}>${e}</option>`).join('')}
+          ${ENTIDADES.map(e => `<option value="${e.codigo}" ${filtros.entidade === e.codigo ? 'selected' : ''}>${e.rotulo}</option>`).join('')}
         </select>`)}
       ${fieldHtml('f-acao', 'Ação', `
         <select id="f-acao" class="field-input">
           <option value="">Todas</option>
-          ${ACOES.map(a => `<option value="${a}" ${filtros.acao === a ? 'selected' : ''}>${a}</option>`).join('')}
+          ${ACOES.map(a => `<option value="${a.codigo}" ${filtros.acao === a.codigo ? 'selected' : ''}>${a.rotulo}</option>`).join('')}
         </select>`)}
       ${fieldHtml('f-busca', 'Buscar (motivo / e-mail)',
          `<input type="text" id="f-busca" class="field-input" value="${esc(filtros.busca || '')}" placeholder="ex: cancelamento, joaonora@…">`)}`;
@@ -281,7 +299,7 @@ function itemLog(r, idx) {
       <div class="aud-row-corpo">
         <div class="aud-row-meta">
           <span class="aud-row-acao">${rotuloAcao(r.acao)}</span>
-          <span class="aud-row-entidade">${esc(r.entidade)}</span>
+          <span class="aud-row-entidade">${esc(nomeEntidade(r.entidade))}</span>
           ${r.entidade_id ? `<code class="aud-row-id">${esc(String(r.entidade_id).slice(0, 8))}</code>` : ''}
           <time class="aud-row-tempo" title="${esc(r.ts)}">${dt}</time>
         </div>
@@ -298,6 +316,8 @@ function itemLog(r, idx) {
     </li>`;
 }
 
+// Verbo curto na linha do log (timeline). Diferente de ACOES.rotulo
+// que e o nome do filtro — aqui queremos linguagem narrativa.
 function rotuloAcao(a) {
   return ({
     INSERT: 'criou', UPDATE: 'editou', DELETE: 'apagou',
@@ -306,6 +326,18 @@ function rotuloAcao(a) {
     RPC: 'rpc', PUSH_ENVIADO: 'push enviado',
     CONFIG_ALTERADA: 'config',
   })[a] || a.toLowerCase();
+}
+
+// Nome amigavel da entidade — fallback no codigo bruto se nao mapeado
+const _MAP_ENTIDADE = Object.fromEntries(
+  // construido sob demanda na 1a chamada (ENTIDADES esta logo acima no modulo)
+  []
+);
+function nomeEntidade(codigo) {
+  if (!Object.keys(_MAP_ENTIDADE).length) {
+    for (const e of ENTIDADES) _MAP_ENTIDADE[e.codigo] = e.rotulo;
+  }
+  return _MAP_ENTIDADE[codigo] || codigo;
 }
 
 function itemLixeira(r, idx) {
@@ -353,7 +385,7 @@ function ligarLog(slot, data) {
 function abrirDetalhesLog(r) {
   abrirModal({
     eyebrow: 'Forense · Delta',
-    titulo: `${rotuloAcao(r.acao)} · ${r.entidade}`,
+    titulo: `${rotuloAcao(r.acao)} · ${nomeEntidade(r.entidade)}`,
     lateral: true,
     conteudo: `
       <div class="aud-modal">
