@@ -2464,6 +2464,25 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     .painel-acoes-finais { grid-template-columns: 1fr; }
 }
 
+/* Linha de ações secundárias (Editar / Excluir) -- aparece no rodapé
+   do modo gerenciar quando usuário tem essas permissões. Visualmente
+   discreto: links pequenos, separados, alinhados em direções opostas.
+   Excluir tem cor de alerta pra reforçar destrutivo. */
+.painel-acoes-secundarias {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    padding-bottom: 0.85rem;
+    margin-bottom: 0.85rem;
+    border-bottom: 1px dashed var(--c-papel-3);
+    flex-wrap: wrap;
+}
+.painel-acoes-secundarias .btn-link {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
 .btn-secundario {
     display: inline-flex;
     align-items: center;
