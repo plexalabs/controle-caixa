@@ -1,0 +1,130 @@
+/* fora-do-horario.css — tela /fora-do-horario
+   Editorial silencioso: cartao papel grande centralizado, fundo
+   degrade muito sutil pro vinho/musgo, glifo entre tracos.
+*/
+
+.fdh-fundo {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 2rem 1rem;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(199, 122, 63, 0.08) 0, transparent 38%),
+      radial-gradient(circle at 82% 88%, rgba(15, 76, 58, 0.07) 0, transparent 42%),
+      var(--c-papel-2);
+}
+
+.fdh-main {
+    width: 100%;
+    max-width: 32rem;
+    margin: 0 auto;
+}
+
+.fdh-card {
+    background: var(--c-papel);
+    border: 1px solid var(--c-papel-3);
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    padding: 2.4rem 2rem 2.2rem;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+}
+.fdh-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--c-ambar) 0%, var(--c-musgo) 100%);
+}
+@media (min-width: 640px) {
+    .fdh-card { padding: 3rem 2.6rem 2.6rem 2.8rem; }
+}
+
+.fdh-eyebrow {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--c-musgo);
+    margin: 0 0 1.1rem;
+}
+
+.fdh-titulo {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 90, "WONK" 1;
+    font-size: clamp(2.4rem, 7vw, 3.6rem);
+    line-height: 0.96;
+    color: var(--c-tinta);
+    margin: 0;
+    letter-spacing: -0.018em;
+}
+.fdh-titulo-fora { display: block; color: var(--c-tinta-3); }
+.fdh-titulo-horario { display: block; color: var(--c-tinta); }
+
+.fdh-divisor {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin: 1.7rem 0 1.4rem;
+    color: var(--c-ambar);
+}
+.fdh-divisor-traco {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--c-papel-3), transparent);
+}
+.fdh-divisor-glifo {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--c-ambar);
+    opacity: 0.85;
+}
+
+.fdh-corpo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: var(--c-tinta-2);
+    margin: 0 0 1.4rem;
+}
+.fdh-corpo strong {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    color: var(--c-musgo);
+    font-variation-settings: "opsz" 144;
+    font-size: 1.08em;
+}
+
+.fdh-meta {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--c-tinta-3);
+    margin: 0 0 1.4rem;
+}
+.fdh-meta strong {
+    color: var(--c-tinta);
+    font-weight: 600;
+}
+
+.fdh-relogio {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    color: var(--c-tinta-3);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing: 0.02em;
+    margin: 0;
+    padding-top: 1.2rem;
+    border-top: 1px dashed var(--c-papel-3);
+    text-transform: lowercase;
+    opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fdh-card { animation: none; }
+}

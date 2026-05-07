@@ -17,6 +17,8 @@ import { renderPermissoes }    from './pages/configuracoes-permissoes.js';
 import { renderFeriados }      from './pages/configuracoes-feriados.js';
 import { renderSistema }       from './pages/configuracoes-sistema.js';
 import { renderAuditoria }     from './pages/configuracoes-auditoria.js';
+import { renderForaDoHorario } from './pages/fora-do-horario.js';
+import { dentroDaJanela }      from './janela.js';
 import { renderRelatorios }    from './pages/relatorios.js';
 import { renderPendencias }    from './pages/pendencias.js';
 import { renderNotificacoes }  from './pages/notificacoes.js';
@@ -53,6 +55,7 @@ const rotas = [
   { padrao: /^\/notificacoes$/,               handler: renderNotificacoes },
   { padrao: /^\/perfil$/,                     handler: renderPerfil },
   { padrao: /^\/erros\/404$/,                 handler: renderErro404, aberta: true },
+  { padrao: /^\/fora-do-horario$/,            handler: renderForaDoHorario, aberta: true },
   // Catch-all editorial — sempre o último. Se chegou aqui é 404.
   { padrao: /.*/,                              handler: renderErro404, aberta: true },
 ];
@@ -71,6 +74,14 @@ export async function despachar() {
   // `ligarShell()` que reativa o data-shell. Páginas auth (login etc.)
   // ficam em layout cheio.
   document.querySelector('#app')?.removeAttribute('data-shell');
+
+  // GATE da janela operacional: fora do horario, redireciona TUDO pra
+  // /fora-do-horario (exceto a propria pagina + /erros/404 pra evitar loop).
+  if (url !== '/fora-do-horario' && url !== '/erros/404') {
+    if (!(await dentroDaJanela())) {
+      return navegar('/fora-do-horario');
+    }
+  }
 
   for (const rota of rotas) {
     const m = url.match(rota.padrao);
