@@ -29,6 +29,12 @@ DECLARE
   v_codigo_perfil text;
   v_perfil_id uuid;
 BEGIN
+  -- Pula trigger trg_janela_op durante este processamento — signup
+  -- precisa funcionar fora do horario operacional pra bootstrap.
+  -- session_replication_role=replica desativa todos os triggers
+  -- nao-replica nesta tx. SET LOCAL volta automatico no fim.
+  SET LOCAL session_replication_role = replica;
+
   SELECT count(*) INTO v_total_super
   FROM public.usuario_papel
   WHERE papel = 'super_admin';
