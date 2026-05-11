@@ -609,10 +609,14 @@ function rodapeGerenciar() {
       <button type="button" id="btn-fechar-leitura" class="btn-link" style="margin-left:auto">Fechar</button>
     </div>`;
   }
+  const ehObs = l.categoria === 'obs';
+  const podeResolver = ehObs && temPermissaoSync('lancamento.editar_categoria');
+
   return `
     <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
-    ${(podeEditar || podeExcluir) ? `
+    ${(podeEditar || podeExcluir || podeResolver) ? `
       <div class="painel-acoes-secundarias">
+        ${podeResolver ? `<button type="button" id="btn-resolver-obs" class="btn-link" style="color:var(--c-musgo);font-weight:600">↻ Resolver OBS</button>` : ''}
         ${podeEditar ? `<button type="button" id="btn-editar" class="btn-link">✎ Editar lançamento</button>` : ''}
         ${podeExcluir ? `<button type="button" id="btn-excluir" class="btn-link" style="color:var(--c-alerta);text-decoration-color:rgba(154,42,31,0.4)">Excluir lançamento</button>` : ''}
       </div>` : ''}
@@ -802,6 +806,8 @@ function ligarGerenciar() {
 
   // Botão Excluir aparece em qualquer modo gerenciar/finalizado se tem permissão
   document.querySelector('#btn-excluir')?.addEventListener('click', () => abrirSubModoExcluir());
+  // Botão Resolver OBS — só aparece se categoria='obs' (gating no HTML)
+  document.querySelector('#btn-resolver-obs')?.addEventListener('click', () => abrirSubModoResolverObs());
 
   // Modos finalizado/cancelado: so botao fechar.
   if (finalizadoOuCancelado) {
@@ -1100,6 +1106,137 @@ function ligarSubModoExcluir() {
     }
 
     mostrarToast('Lançamento excluído.', 'ok', 2200);
+    estado.aoSalvar();
+    fecharModal(true);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SUB-MODO — Resolver OBS
+// Disponivel quando categoria atual = 'obs'. Permite trocar pra categoria
+// definitiva SEM janela de 30min, exigindo devolutiva (>=10c) que vira
+// observacao com fonte=resolucao_obs registrando como o problema foi
+// resolvido. RPC: resolver_obs_lancamento.
+// ════════════════════════════════════════════════════════════════════════
+
+function abrirSubModoResolverObs() {
+  const l = estado.lancamento;
+  desligarRealtimeObs();
+
+  // Catalogo filtrado — sem 'obs' (a resolucao nao pode ir pra obs de novo).
+  const opcoes = CATEGORIAS
+    .filter(c => c.valor !== 'obs')
+    .map(c => `<option value="${c.valor}">${c.rotulo}</option>`)
+    .join('');
+
+  abrirModal({
+    lateral: true,
+    eyebrow: `NF ${l.numero_nf} · resolver OBS`,
+    titulo:  'Resolver categoria.',
+    conteudo: `
+      <div class="alert alert--info" style="margin-bottom:1.2rem;display:flex;gap:0.7rem;align-items:flex-start;padding:0.85rem 1rem;border-radius:0 var(--r-md) var(--r-md) 0">
+        <span style="font-family:'Fraunces',serif;font-style:italic;font-size:1.3rem;line-height:1;color:var(--c-musgo);margin-top:-0.05rem">↻</span>
+        <span style="font-family:'Manrope',sans-serif;font-size:0.88rem;line-height:1.5;color:var(--c-tinta-2)">
+          Esta nota está como <strong style="color:var(--c-ambar-2);font-weight:600">OBS</strong>
+          desde a categorização — informação faltando ou pendência interna.
+          Agora você pode dar a categoria definitiva. <strong>A devolutiva é obrigatória</strong>
+          e fica registrada no histórico como o problema foi resolvido.
+        </span>
+      </div>
+
+      <p class="text-body" style="font-size:0.88rem;color:var(--c-tinta-2);margin-bottom:1.4rem;line-height:1.55">
+        <strong style="color:var(--c-tinta)">${esc(l.cliente_nome || '— sem cliente —')}</strong>
+        · NF ${esc(l.numero_nf)} · ${formatBRL(l.valor_nf)}
+      </p>
+
+      <form id="form-resolver-obs" novalidate>
+        <div class="field">
+          <label class="field-label" for="ro-categoria">
+            Nova categoria <span style="color:var(--c-alerta)">*</span>
+          </label>
+          <select id="ro-categoria" name="categoria" class="field-input" required>
+            <option value="" disabled selected>— escolher categoria —</option>
+            ${opcoes}
+          </select>
+          <span class="field-underline"></span>
+        </div>
+
+        <div class="field mt-6">
+          <label class="field-label" for="ro-devolutiva">
+            Devolutiva — o problema da OBS foi resolvido como?
+            <span style="color:var(--c-alerta)">*</span>
+            <span style="font-weight:400;color:var(--c-tinta-3);font-size:0.82rem;display:block;margin-top:0.2rem">
+              Mínimo 10 caracteres. Fica no histórico do lançamento para auditoria.
+            </span>
+          </label>
+          <textarea id="ro-devolutiva" name="devolutiva" rows="4" minlength="10" maxlength="1000" required
+                    class="field-input" style="resize:vertical;margin-top:0.45rem"
+                    placeholder="Ex.: cliente confirmou pagamento via Pix em 08/05, comprovante anexado ao físico"></textarea>
+        </div>
+      </form>
+    `,
+    rodape: `
+      <div id="erro-ro" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
+      <div class="painel-rodape-acoes">
+        <button type="button" id="btn-ro-voltar" class="btn-link">← Voltar</button>
+        <button type="submit" form="form-resolver-obs" id="btn-ro-confirmar"
+                class="btn-primary" disabled>
+          ↻ Resolver categoria
+        </button>
+      </div>`,
+    onConfirmarFechar: () => true,
+  });
+
+  ligarSubModoResolverObs();
+}
+
+function ligarSubModoResolverObs() {
+  const form = document.querySelector('#form-resolver-obs');
+  if (!form) return;
+  instalarPopSelectsEm(form);
+
+  const f = (id) => document.querySelector(`#${id}`);
+  const erroEl = f('erro-ro');
+  const btn = f('btn-ro-confirmar');
+  const catEl = f('ro-categoria');
+  const devEl = f('ro-devolutiva');
+
+  setTimeout(() => catEl?.focus(), 360);
+
+  const reavaliar = () => {
+    const catOk = catEl?.value && catEl.value !== 'obs';
+    const devOk = (devEl?.value || '').trim().length >= 10;
+    btn.disabled = !(catOk && devOk);
+  };
+  form.addEventListener('input', reavaliar);
+  form.addEventListener('change', reavaliar);
+
+  f('btn-ro-voltar').addEventListener('click', () => voltarAoModoOriginal());
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    erroEl.classList.add('hidden');
+    btn.setAttribute('aria-busy', 'true');
+    btn.disabled = true;
+
+    const { error } = await supabase.rpc('resolver_obs_lancamento', {
+      p_lancamento_id:   estado.lancamento.id,
+      p_categoria_nova:  catEl.value,
+      p_dados:           {},
+      p_devolutiva:      devEl.value.trim(),
+    });
+
+    btn.removeAttribute('aria-busy');
+
+    if (error) {
+      btn.disabled = false;
+      erroEl.classList.remove('hidden');
+      erroEl.textContent = traduzirErroBanco(error);
+      log.warn('falha ao resolver obs', { code: error.code, msg: error.message });
+      return;
+    }
+
+    mostrarToast('Categoria resolvida com sucesso.', 'ok', 2200);
     estado.aoSalvar();
     fecharModal(true);
   });

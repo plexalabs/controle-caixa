@@ -2,12 +2,13 @@
 // categorias, listas para selects, helpers de formato comuns.
 
 export const CATEGORIAS = [
-  { valor: 'cartao',      rotulo: 'Cartão' },
-  { valor: 'pix',         rotulo: 'Pix' },
-  { valor: 'dinheiro',    rotulo: 'Dinheiro' },
-  { valor: 'cancelado',   rotulo: 'Cancelado' },
-  { valor: 'cartao_link', rotulo: 'Cartão Link' },
-  { valor: 'obs',         rotulo: 'Observação' },
+  { valor: 'cartao',              rotulo: 'Cartão' },
+  { valor: 'pix',                 rotulo: 'Pix' },
+  { valor: 'dinheiro',            rotulo: 'Dinheiro' },
+  { valor: 'cancelado',           rotulo: 'Cancelado' },
+  { valor: 'cartao_link',         rotulo: 'Cartão Link' },
+  { valor: 'disponivel_retirada', rotulo: 'Disponível p/ retirada' },
+  { valor: 'obs',                 rotulo: 'Observação' },
 ];
 
 export const LABEL_CATEGORIA = Object.fromEntries(
@@ -18,12 +19,13 @@ export const LABEL_CATEGORIA = Object.fromEntries(
 // vira "LINK", "OBSERVAÇÃO" vira "OBS". Em uppercase já que vai pra
 // .lanc-row::after via CSS letter-spacing maiúsculo.
 export const LABEL_CATEGORIA_CURTA = {
-  cartao:      'CARTÃO',
-  pix:         'PIX',
-  dinheiro:    'DINHEIRO',
-  cancelado:   'CANCELADO',
-  cartao_link: 'LINK',
-  obs:         'OBS',
+  cartao:              'CARTÃO',
+  pix:                 'PIX',
+  dinheiro:            'DINHEIRO',
+  cancelado:           'CANCELADO',
+  cartao_link:         'LINK',
+  disponivel_retirada: 'RETIRAR',
+  obs:                 'OBS',
 };
 
 export const ESTADOS = {
@@ -111,6 +113,11 @@ export function resumoDetalhes(categoria, dados) {
              ((dados.motivo_cancelamento || '').length > 80 ? '…' : '');
     case 'cartao_link':
       return [dados.status_link, (dados.link_url || '').slice(0, 40) + '…'].filter(Boolean).join(' · ');
+    case 'disponivel_retirada':
+      return [
+        dados.motivo_interno ? `Motivo: ${String(dados.motivo_interno).slice(0, 50)}` : null,
+        dados.previsao_retirada ? `Prev: ${dados.previsao_retirada}` : null,
+      ].filter(Boolean).join(' · ') || 'Aguardando retirada';
     case 'obs':
       return [dados.tipo_obs, (dados.descricao || '').slice(0, 60) + '…'].filter(Boolean).join(' · ');
     default:

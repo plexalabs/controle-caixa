@@ -1,0 +1,36 @@
+/* cat-retirada.css — paleta sépia/linho para a 7a categoria
+   'disponivel_retirada'. Mantemos as 6 originais inalteradas
+   (regra inviolavel) e adicionamos as regras correspondentes
+   em todos os componentes que usam data-cat.
+*/
+
+/* Lanc-row: tira lateral + chip de categoria */
+.lanc-row[data-cat="disponivel_retirada"] {
+    --tira-cor: var(--cat-retirada-border);
+}
+.lanc-row[data-cat="disponivel_retirada"] .lanc-categoria {
+    background: color-mix(in srgb, var(--cat-retirada-border) 14%, transparent);
+    color: var(--cat-retirada-border);
+}
+
+/* Resumo do dia — distribuicao */
+.resumo-dia-dist li[data-cat="disponivel_retirada"] {
+    background: color-mix(in srgb, var(--cat-retirada-border) 14%, transparent);
+}
+
+/* Pendencias — chip de categoria */
+.pend-row-cat[data-cat="disponivel_retirada"] {
+    background: var(--cat-retirada-bg);
+    color: var(--cat-retirada-text);
+    border-color: var(--cat-retirada-border);
+}
+
+/* Leitura do lancamento — cabecalho */
+.lanc-cabec[data-cat="disponivel_retirada"] {
+    border-left-color: var(--cat-retirada-border);
+}
+
+/* Charts — barra de distribuicao */
+.chart-dist-barra[data-cat="disponivel_retirada"] {
+    background: var(--cat-retirada-border);
+}

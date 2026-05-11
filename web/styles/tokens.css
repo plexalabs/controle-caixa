@@ -50,6 +50,13 @@
     --cat-obs-border:     #92400E;
     --cat-obs-text:       #78350F;
 
+    /* CAT-7 — disponivel para retirada: paleta sépia/linho, distinta
+       das 6 originais (regra inviolável das 6 mantida). Sugere
+       "aguardando, em pausa": tom areia âmbar + sépia escuro. */
+    --cat-retirada-bg:    #F5E1CB;
+    --cat-retirada-border:#8B5A2B;
+    --cat-retirada-text:  #5C3D1F;
+
     --cat-resolvido:      #10B981;
     /* Tom oliva-musgo escuro pra tira lateral de lancamentos resolvidos.
        Mais terrestre que --cat-resolvido (emerald), conversa com --c-musgo

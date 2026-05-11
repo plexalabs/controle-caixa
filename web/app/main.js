@@ -11,6 +11,7 @@ import '../styles/components.css';
 import '../styles/auth.css';
 import '../styles/auditoria.css';
 import '../styles/fora-do-horario.css';
+import '../styles/cat-retirada.css';
 
 import * as Sentry              from '@sentry/browser';
 import { despachar }            from './router.js';
