@@ -1,100 +1,89 @@
-// sidebar.js — navegação lateral colapsável (CP5-FIX 2).
-// Substitui o header horizontal antigo. Estado (expandida/colapsada)
-// persiste em IndexedDB. Em mobile (<768px) vira off-canvas com hamburguer.
+// sidebar.js — navegação lateral v2 (refator "Clean Profissional").
+// Sidebar fixa 248px no desktop, off-canvas no mobile (<768px).
+// Sem estado colapsada — visual mais simples e previsível.
 //
-// API:
-//   await renderSidebar(rotaAtiva)  → string HTML para <aside>
-//   ligarSidebar()                  → ata listeners (toggle, nav, hamburguer, user-menu)
-//   atualizarBadgeSidebar(n)        → muda contagem do bell na sidebar (chamado pelo bell)
+// API preservada (chamadores nao precisam mudar):
+//   await renderSidebar(rotaAtiva)  -> HTML
+//   ligarSidebar()                  -> ata listeners
+//   desmontarSidebar()              -> remove listeners + bell
+//
+// Classes novas: namespace .sb-* (sidebar v2). Os legados .sidebar-*
+// ficam orphans no components.css e podem ser removidos depois.
 
 import { supabase, pegarSessao } from '../app/supabase.js';
 import { sair } from '../app/auth.js';
 import { navegar } from '../app/router.js';
-import { lerPref, gravarPref } from '../app/ui-prefs.js';
 import { abrirUserMenu } from './user-menu.js';
 import { montarSino, desmontarSino } from './notification-bell.js';
 
-const URL_LOGO = '/assets/logo.svg';
-const PREF_ESTADO = 'ui_sidebar_estado';
 const BREAKPOINT_MOBILE = 768;
 
 // ─── Render ─────────────────────────────────────────────────────────
 export async function renderSidebar(rotaAtiva) {
   const sessao = await pegarSessao();
   const meta   = sessao?.user?.user_metadata ?? {};
-  const nome   = (meta.nome || sessao?.user?.email?.split('@')[0] || 'Operador').trim();
-  const inicial = (meta.nome?.[0] || sessao?.user?.email?.[0] || '?').toUpperCase();
-  const email = sessao?.user?.email || '';
-
-  // Estado inicial: pref persistida ou default por viewport.
-  const persistido = await lerPref(PREF_ESTADO, null);
-  const ehMobile = window.innerWidth < BREAKPOINT_MOBILE;
-  const estado = ehMobile
-    ? 'mobile-fechado'
-    : (persistido || 'expandida');
-
+  const email  = sessao?.user?.email || '';
+  const nome   = (meta.nome || email.split('@')[0] || 'Operador').trim();
   const nomeCompleto = [meta.nome, meta.sobrenome].filter(Boolean).join(' ').trim() || nome;
-  // Nome exibido: usa meta.nome direto (preserva nomes do meio, exclui sobrenome).
-  // Ex.: meta.nome="Joao Pedro" + meta.sobrenome="Bueno" → exibe "Joao Pedro".
-  // O nomeCompleto (com sobrenome) permanece em aria-label e data-nome.
-  const nomeExibido = (meta.nome || nome).trim();
-  // Cargo: nome do perfil RBAC (admin, gerente, operador, contador, vendedor).
-  // Fallback "—" se RLS bloquear ou usuário ainda não tiver perfil atribuído.
+  const inicial = ((meta.nome?.[0] || email?.[0]) || '?').toUpperCase();
   const cargo = await pegarCargo(sessao?.user?.id);
 
   return `
-    <aside class="app-sidebar" data-estado="${estado}" role="navigation" aria-label="Menu principal">
-      <div class="sidebar-topo">
-        <a href="/dashboard" data-link class="sidebar-logo" aria-label="Caixa Boti — início" title="Início">
-          <span class="sidebar-logo-marca" aria-hidden="true"
-                style="-webkit-mask:url(${URL_LOGO}) no-repeat center / contain; mask:url(${URL_LOGO}) no-repeat center / contain"></span>
-          <span class="sidebar-logo-wordmark">Caixa Boti</span>
+    <aside class="sb" data-mobile="fechado" role="navigation" aria-label="Menu principal">
+      <div class="sb-brand">
+        <a href="/dashboard" data-link class="sb-brand-link" aria-label="Caixa Boti — início">
+          <span class="sb-brand-mark" aria-hidden="true">B</span>
+          <span class="sb-brand-meta">
+            <span class="sb-brand-name">Caixa Boti</span>
+            <span class="sb-brand-tag">Auditoria diária</span>
+          </span>
         </a>
       </div>
 
-      <nav class="sidebar-nav" aria-label="Seções">
-        ${linkSidebar('caixas',        '/caixas',         'Caixas',       svgCaixa(), rotaAtiva)}
-        ${linkSidebar('pendencias',    '/pendencias',     'Pendências',   svgRelogio(), rotaAtiva)}
-        ${linkSidebar('relatorios',    '/relatorios',     'Relatórios',   svgRelatorio(), rotaAtiva)}
-        ${linkSidebar('notificacoes',  '/notificacoes',   'Notificações', svgSino(), rotaAtiva, { bellSlot: true })}
+      <nav class="sb-nav" aria-label="Seções">
+        <div class="sb-nav-group">
+          <p class="sb-nav-group-label">Operação</p>
+          ${navItem('dashboard',    '/dashboard',    'Painel',       svgPainel(),  rotaAtiva)}
+          ${navItem('caixas',       '/caixas',       'Caixas',       svgCaixa(),   rotaAtiva)}
+          ${navItem('pendencias',   '/pendencias',   'Pendências',   svgRelogio(), rotaAtiva)}
+          ${navItem('notificacoes', '/notificacoes', 'Notificações', svgSino(),    rotaAtiva, { bellSlot: true })}
+        </div>
+
+        <div class="sb-nav-group">
+          <p class="sb-nav-group-label">Análise</p>
+          ${navItem('relatorios', '/relatorios', 'Relatórios', svgRelatorio(), rotaAtiva)}
+        </div>
+
+        <div class="sb-nav-group">
+          <p class="sb-nav-group-label">Sistema</p>
+          ${navItem('config', '/configuracoes', 'Configurações', svgGear(), rotaAtiva)}
+        </div>
       </nav>
 
-      <div class="sidebar-rodape">
-        <button id="sidebar-user" type="button" class="sidebar-user"
+      <div class="sb-foot">
+        <button id="sb-user" type="button" class="sb-user"
                 aria-haspopup="menu" aria-expanded="false"
                 aria-label="Abrir menu de ${esc(nomeCompleto)}"
                 data-nome="${esc(nomeCompleto)}"
                 data-email="${esc(email)}">
-          <span class="sidebar-user-avatar" aria-hidden="true">${esc(inicial)}</span>
-          <span class="sidebar-user-info">
-            <span class="sidebar-user-nome">${esc(nomeExibido)}</span>
-            <span class="sidebar-user-cargo">${esc(cargo)}</span>
+          <span class="sb-user-avatar" aria-hidden="true">${esc(inicial)}</span>
+          <span class="sb-user-meta">
+            <span class="sb-user-name">${esc(nome)}</span>
+            <span class="sb-user-role">${esc(cargo)}</span>
           </span>
-        </button>
-
-        <button id="sidebar-toggle" type="button" class="sidebar-toggle"
-                aria-label="${estado === 'colapsada' ? 'Expandir menu' : 'Colapsar menu'}"
-                title="${estado === 'colapsada' ? 'Expandir' : 'Colapsar'}">
-          ${svgChevron()}
+          <span class="sb-user-dots" aria-hidden="true">${svgDots()}</span>
         </button>
       </div>
     </aside>
 
-    <button id="app-mobile-toggle" type="button" class="app-mobile-toggle"
+    <button id="sb-mobile-toggle" type="button" class="sb-mobile-toggle"
             aria-label="Abrir menu" aria-expanded="false">
       ${svgHamburguer()}
     </button>
-    <div id="app-mobile-overlay" class="app-mobile-overlay" hidden></div>
-
-    <div id="sidebar-tooltip" class="sidebar-tooltip" role="tooltip" aria-hidden="true"></div>
+    <div id="sb-mobile-overlay" class="sb-mobile-overlay" hidden></div>
   `;
 }
 
-/**
- * Busca o cargo (nome do perfil RBAC) do usuário autenticado.
- * Retorna o nome do perfil (ex: "Administrador", "Operador") ou "—" se
- * o usuário não tem perfil atribuído ou se a query falhar (RLS, rede).
- */
 async function pegarCargo(uid) {
   if (!uid) return '—';
   try {
@@ -104,75 +93,47 @@ async function pegarCargo(uid) {
       .eq('usuario_id', uid)
       .maybeSingle();
     return data?.perfil?.nome || '—';
-  } catch (_) {
-    return '—';
-  }
+  } catch { return '—'; }
 }
 
-function linkSidebar(chave, href, label, icone, rotaAtiva, opcoes = {}) {
+function navItem(chave, href, label, icone, rotaAtiva, opcoes = {}) {
   const ativo = rotaAtiva === chave;
-  // Badge no item Notificações: vive DENTRO do .sidebar-link-icone para que,
-  // no estado colapsado, fique grudado no canto superior direito do ícone.
-  // No expandido, é deslocado para a borda direita do item via CSS.
-  const iconeHtml = opcoes.bellSlot
-    ? `<span class="sidebar-link-icone" aria-hidden="true">${icone}<span id="sidebar-bell-badge" class="sidebar-link-badge" data-zero="true">0</span></span>`
-    : `<span class="sidebar-link-icone" aria-hidden="true">${icone}</span>`;
+  const badge = opcoes.bellSlot
+    ? `<span id="sidebar-bell-badge" class="sb-nav-badge" data-zero="true">0</span>`
+    : '';
   return `
-    <a href="${href}" data-link class="sidebar-link"
+    <a href="${href}" data-link class="sb-nav-item"
        data-rota="${chave}"
-       ${ativo ? 'aria-current="page"' : ''}
-       data-tooltip="${esc(label)}">
-      ${iconeHtml}
-      <span class="sidebar-link-texto">${esc(label)}</span>
+       ${ativo ? 'aria-current="page"' : ''}>
+      <span class="sb-nav-icon" aria-hidden="true">${icone}</span>
+      <span class="sb-nav-label">${esc(label)}</span>
+      ${badge}
     </a>`;
 }
 
 // ─── Listeners ──────────────────────────────────────────────────────
 export function ligarSidebar() {
-  const aside = document.querySelector('.app-sidebar');
+  const aside = document.querySelector('.sb');
   if (!aside) return;
 
-  // Toggle (desktop colapsa/expande, mobile fecha o off-canvas)
-  document.querySelector('#sidebar-toggle')?.addEventListener('click', () => {
-    const ehMobile = window.innerWidth < BREAKPOINT_MOBILE;
-    if (ehMobile) {
-      definirEstado('mobile-fechado');
-    } else {
-      const atual = aside.dataset.estado;
-      const novo = atual === 'colapsada' ? 'expandida' : 'colapsada';
-      definirEstado(novo);
-      gravarPref(PREF_ESTADO, novo);
-    }
+  document.querySelector('#sb-mobile-toggle')?.addEventListener('click', () => {
+    const atual = aside.dataset.mobile;
+    setMobile(atual === 'aberto' ? 'fechado' : 'aberto');
   });
 
-  // Hamburguer mobile
-  document.querySelector('#app-mobile-toggle')?.addEventListener('click', () => {
-    const atual = aside.dataset.estado;
-    definirEstado(atual === 'mobile-aberto' ? 'mobile-fechado' : 'mobile-aberto');
+  document.querySelector('#sb-mobile-overlay')?.addEventListener('click', () => {
+    setMobile('fechado');
   });
 
-  // Click no overlay fecha o off-canvas
-  document.querySelector('#app-mobile-overlay')?.addEventListener('click', () => {
-    definirEstado('mobile-fechado');
-  });
-
-  // ESC fecha o off-canvas se aberto
   document.addEventListener('keydown', escFechaMobile);
 
-  // Click fora da sidebar (desktop expandida) -> colapsa.
-  // Em mobile, .app-mobile-overlay já cuida disso. Em desktop sem
-  // overlay, captura via document mousedown e checa contains.
-  document.addEventListener('mousedown', clickForaColapsa);
-
-  // Click em link mobile fecha o off-canvas
-  aside.querySelectorAll('.sidebar-link').forEach(a => {
+  aside.querySelectorAll('.sb-nav-item').forEach(a => {
     a.addEventListener('click', () => {
-      if (window.innerWidth < BREAKPOINT_MOBILE) definirEstado('mobile-fechado');
+      if (window.innerWidth < BREAKPOINT_MOBILE) setMobile('fechado');
     });
   });
 
-  // User-menu
-  document.querySelector('#sidebar-user')?.addEventListener('click', (e) => {
+  document.querySelector('#sb-user')?.addEventListener('click', (e) => {
     e.stopPropagation();
     abrirUserMenu({
       onSair: async () => {
@@ -183,186 +144,62 @@ export function ligarSidebar() {
     });
   });
 
-  // Bell na sidebar — montar (atualiza o badge específico do sidebar)
   montarSino({ slotBadge: '#sidebar-bell-badge' }).catch(e =>
-    console.warn('[sidebar] bell falhou:', e));
-
-  // Tooltip dos links — só dispara no estado colapsado, com 400ms de delay
-  ligarTooltips(aside);
-
-  // Resize: troca default de mobile pra desktop e vice-versa
-  window.addEventListener('resize', onResize);
-}
-
-// ─── Tooltip custom (CP5-FIX 9) ─────────────────────────────────────
-let tooltipTimer = null;
-
-function ligarTooltips(aside) {
-  const tip = document.querySelector('#sidebar-tooltip');
-  if (!tip) return;
-
-  aside.querySelectorAll('.sidebar-link').forEach(el => {
-    el.addEventListener('mouseenter', () => agendarTooltip(el, el.dataset.tooltip));
-    el.addEventListener('mouseleave', esconderTooltip);
-    el.addEventListener('focus',  () => mostrarTooltip(el, el.dataset.tooltip));
-    el.addEventListener('blur',   esconderTooltip);
-  });
-  // Esconde imediatamente em qualquer click — UX limpa
-  aside.addEventListener('click', esconderTooltip, true);
-}
-
-function agendarTooltip(alvo, texto) {
-  const aside = document.querySelector('.app-sidebar');
-  if (!aside || aside.dataset.estado !== 'colapsada') return;
-  clearTimeout(tooltipTimer);
-  tooltipTimer = setTimeout(() => mostrarTooltip(alvo, texto), 400);
-}
-
-function mostrarTooltip(alvo, texto) {
-  const aside = document.querySelector('.app-sidebar');
-  if (!aside || aside.dataset.estado !== 'colapsada') return;
-  const tip = document.querySelector('#sidebar-tooltip');
-  if (!tip || !texto) return;
-  const r = alvo.getBoundingClientRect();
-  tip.textContent = texto;
-  tip.style.left = `${r.right + 10}px`;
-  tip.style.top  = `${r.top + r.height / 2}px`;
-  tip.dataset.visivel = 'true';
-  tip.setAttribute('aria-hidden', 'false');
-}
-
-function esconderTooltip() {
-  clearTimeout(tooltipTimer);
-  tooltipTimer = null;
-  const tip = document.querySelector('#sidebar-tooltip');
-  if (!tip) return;
-  tip.dataset.visivel = 'false';
-  tip.setAttribute('aria-hidden', 'true');
+    console.warn('[sb] bell falhou:', e));
 }
 
 function escFechaMobile(e) {
   if (e.key !== 'Escape') return;
-  const aside = document.querySelector('.app-sidebar');
-  if (!aside) return;
-  if (aside.dataset.estado === 'mobile-aberto') definirEstado('mobile-fechado');
+  const aside = document.querySelector('.sb');
+  if (aside?.dataset.mobile === 'aberto') setMobile('fechado');
 }
 
-// Click fora da sidebar em desktop expandida -> colapsa
-// (em mobile-aberto o overlay já cuida via app-mobile-overlay).
-function clickForaColapsa(e) {
-  const aside = document.querySelector('.app-sidebar');
+function setMobile(novo) {
+  const aside = document.querySelector('.sb');
+  const overlay = document.querySelector('#sb-mobile-overlay');
+  const tog = document.querySelector('#sb-mobile-toggle');
   if (!aside) return;
-  // Mobile: overlay já trata
-  if (window.innerWidth < BREAKPOINT_MOBILE) return;
-  // Só colapsa se estiver expandida
-  if (aside.dataset.estado !== 'expandida') return;
-  // Click dentro da sidebar ou no toggle: ignora
-  if (aside.contains(e.target)) return;
-  // Click fora -> colapsa e persiste pref
-  definirEstado('colapsada');
-  gravarPref(PREF_ESTADO, 'colapsada');
-}
-
-function onResize() {
-  const aside = document.querySelector('.app-sidebar');
-  if (!aside) return;
-  const ehMobile = window.innerWidth < BREAKPOINT_MOBILE;
-  const atual = aside.dataset.estado;
-  if (ehMobile && atual !== 'mobile-aberto' && atual !== 'mobile-fechado') {
-    definirEstado('mobile-fechado');
-  } else if (!ehMobile && (atual === 'mobile-aberto' || atual === 'mobile-fechado')) {
-    // volta ao estado persistido ou default
-    lerPref(PREF_ESTADO, 'expandida').then(p => definirEstado(p || 'expandida'));
-  }
-}
-
-function definirEstado(novo) {
-  const aside = document.querySelector('.app-sidebar');
-  const overlay = document.querySelector('#app-mobile-overlay');
-  const tog = document.querySelector('#sidebar-toggle');
-  const ham = document.querySelector('#app-mobile-toggle');
-  if (!aside) return;
-  aside.dataset.estado = novo;
-
-  // Overlay só aparece no mobile-aberto
-  if (overlay) overlay.hidden = (novo !== 'mobile-aberto');
-
-  // Atualiza aria-labels
+  aside.dataset.mobile = novo;
+  if (overlay) overlay.hidden = (novo !== 'aberto');
   if (tog) {
-    const lbl = novo === 'colapsada' ? 'Expandir menu' : 'Colapsar menu';
-    tog.setAttribute('aria-label', lbl);
-    tog.setAttribute('title', novo === 'colapsada' ? 'Expandir' : 'Colapsar');
-  }
-  if (ham) {
-    ham.setAttribute('aria-expanded', String(novo === 'mobile-aberto'));
-    ham.setAttribute('aria-label', novo === 'mobile-aberto' ? 'Fechar menu' : 'Abrir menu');
+    tog.setAttribute('aria-expanded', String(novo === 'aberto'));
+    tog.setAttribute('aria-label', novo === 'aberto' ? 'Fechar menu' : 'Abrir menu');
   }
 }
 
 export function desmontarSidebar() {
   desmontarSino();
   document.removeEventListener('keydown', escFechaMobile);
-  document.removeEventListener('mousedown', clickForaColapsa);
-  window.removeEventListener('resize', onResize);
 }
 
 // ─── SVGs ───────────────────────────────────────────────────────────
-// Lucide-inspired strokes 1.5px, currentColor.
+// Lucide-style 1.5 stroke, 16x16 — matching demo-visual aesthetic.
 
-function svgChevron() {
-  return `
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M10 12 L6 8 L10 4" stroke="currentColor" stroke-width="1.5"
-            stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
+const SVG_ATTRS = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"`;
+
+function svgPainel() {
+  return `<svg ${SVG_ATTRS}><rect x="2" y="2" width="5.5" height="6" rx="1"/><rect x="2" y="9.5" width="5.5" height="4.5" rx="1"/><rect x="8.5" y="2" width="5.5" height="4.5" rx="1"/><rect x="8.5" y="8" width="5.5" height="6" rx="1"/></svg>`;
 }
-
 function svgCaixa() {
-  // Pasta/gaveta com 3 linhas internas representando páginas.
-  return `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <rect x="3.5" y="4.5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/>
-      <path d="M7 9 H17 M7 12.5 H14 M7 16 H12" stroke="currentColor"
-            stroke-width="1.5" stroke-linecap="round"/>
-    </svg>`;
+  return `<svg ${SVG_ATTRS}><path d="M2 4.5 8 2l6 2.5v7L8 14l-6-2.5v-7Z"/><path d="M2 4.5 8 7l6-2.5"/><path d="M8 7v7"/></svg>`;
 }
-
 function svgRelogio() {
-  // Relógio com ponteiros — pendências = atraso.
-  return `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.5"/>
-      <path d="M12 7.5 V12 L15 14" stroke="currentColor" stroke-width="1.5"
-            stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
+  return `<svg ${SVG_ATTRS}><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.5 1.5"/></svg>`;
 }
-
-function svgRelatorio() {
-  // Página com gráfico de barras pequeno — métrica/relatório.
-  return `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path d="M5 3.5 H14 L19 8.5 V20.5 H5 Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-      <path d="M14 3.5 V8.5 H19" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-      <path d="M8.5 16.5 V13 M11.5 16.5 V11 M14.5 16.5 V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>`;
-}
-
 function svgSino() {
-  return `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path d="M12 3.5 C9 3.5 7 5.5 7 8.5 V11.5 L5.5 14 H18.5 L17 11.5 V8.5 C17 5.5 15 3.5 12 3.5 Z"
-            stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-      <path d="M10.5 17 C10.5 18 11.2 18.5 12 18.5 C12.8 18.5 13.5 18 13.5 17"
-            stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>`;
+  return `<svg ${SVG_ATTRS}><path d="M3 6a5 5 0 0 1 10 0v3l1.5 2H1.5L3 9V6Z"/><path d="M6 13a2 2 0 0 0 4 0"/></svg>`;
 }
-
+function svgRelatorio() {
+  return `<svg ${SVG_ATTRS}><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5 10V7M8 10V5M11 10V8"/></svg>`;
+}
+function svgGear() {
+  return `<svg ${SVG_ATTRS}><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v1.4M8 13.1v1.4M3.4 3.4l1 1M11.6 11.6l1 1M1.5 8h1.4M13.1 8h1.4M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>`;
+}
+function svgDots() {
+  return `<svg ${SVG_ATTRS} stroke-width="1.7"><circle cx="3" cy="8" r="0.8" fill="currentColor"/><circle cx="8" cy="8" r="0.8" fill="currentColor"/><circle cx="13" cy="8" r="0.8" fill="currentColor"/></svg>`;
+}
 function svgHamburguer() {
-  return `
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <path d="M4 7 H20 M4 12 H20 M4 17 H20" stroke="currentColor"
-            stroke-width="1.5" stroke-linecap="round"/>
-    </svg>`;
+  return `<svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7 H18 M4 11 H18 M4 15 H18"/></svg>`;
 }
 
 function esc(s) {

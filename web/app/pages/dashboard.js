@@ -1,6 +1,15 @@
-// dashboard.js — Tela /dashboard (CP3.1, Fase 2).
-// Saudação por hora, 4 cards de resumo, notificações realtime, pendências
-// críticas, botão grande para o caixa do dia.
+// dashboard.js — Tela /dashboard (refator visual v2 "Clean Profissional").
+// Logica de dados PRESERVADA (queries, RPCs, realtime). Markup novo
+// usando namespace .dash2-* + tokens --ui-*. Sidebar nova ja vem via shell.
+//
+// Layout:
+//   header (data + saudacao + acao primaria)
+//   KPIs (4 cards: hoje, pendentes, retiradas, caixa de ontem)
+//   2 colunas: Avisos + Distribuicao mensal
+//   Pendencias criticas (so aparece se houver)
+//
+// Charts de movimento do mes ficaram fora desta iteracao — podem voltar
+// se solicitado.
 
 import { supabase, pegarSessao } from '../supabase.js';
 import { destinoNotificacao, enriquecerNotificacoes } from '../notificacao-router.js';
@@ -14,7 +23,6 @@ import { navegar } from '../router.js';
 let canalNotif = null;
 
 export async function renderDashboard() {
-  // Limpa subscriptions de visualizações anteriores (se houver).
   desmontar();
 
   const sessao = await pegarSessao();
@@ -26,95 +34,65 @@ export async function renderDashboard() {
   document.querySelector('#app').innerHTML = await renderShell({
     rotaAtiva: 'dashboard',
     conteudo: `
-    <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
-      <!-- Saudação editorial -->
-      <div class="reveal reveal-1">
-        <p class="saudacao-data">${dataLonga(hoje)}</p>
-        <h1 class="saudacao-titulo">${saudacaoPorHora(hoje)}, <strong>${esc(nome)}</strong>.</h1>
-      </div>
+    <main id="main" class="dash2">
+      <header class="dash2-header">
+        <div class="dash2-header-left">
+          <p class="dash2-header-data">${dataLonga(hoje)}</p>
+          <h1 class="dash2-header-title">
+            ${saudacaoPorHora(hoje)}, <span class="dash2-header-name">${esc(nome)}</span>.
+          </h1>
+        </div>
+        <div class="dash2-header-actions">
+          <a href="/pendencias" data-link class="dash2-btn dash2-btn--ghost">Pendências</a>
+          <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary">
+            ${svgPlus()} Abrir caixa de hoje
+          </a>
+        </div>
+      </header>
 
-      <!-- Cards de resumo (skeleton até carregar) -->
-      <section class="stat-grid mt-10 reveal reveal-2" aria-label="Resumo do dia">
-        ${cardSkel()}${cardSkel()}${cardSkel()}${cardSkel()}
-      </section>
-      <div id="stat-cards" class="hidden"></div>
-
-      <!-- Linha de ação: botão principal + atalhos -->
-      <section class="mt-8 flex flex-wrap items-center gap-4 reveal reveal-3">
-        <a href="/caixa/hoje" data-link class="btn-primary" style="padding:1rem 1.75rem;font-size:1rem">
-          Abrir caixa de hoje
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-            <path d="M3 9 H15 M11 5 L15 9 L11 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </a>
-        <a href="/pendencias" data-link class="btn-link">Ver pendências</a>
+      <section class="dash2-kpis" aria-label="Resumo do dia">
+        ${kpiSkel()}${kpiSkel()}${kpiSkel()}${kpiSkel()}
       </section>
 
-      <!-- Linha 1: dois quadros lado a lado — Avisos + Por categoria -->
-      <div class="dash-grid mt-12 reveal reveal-4">
-        <!-- Quadro: Avisos (5 últimos + ver todos) -->
-        <article id="bloco-avisos" class="dash-quadro" aria-labelledby="h-notif">
-          <header class="dash-quadro-cabec">
+      <div class="dash2-split">
+        <article id="bloco-avisos" class="dash2-card" aria-labelledby="h-avisos">
+          <header class="dash2-card-head">
             <div>
-              <p class="h-eyebrow">Atenção</p>
-              <h2 id="h-notif" class="dash-quadro-titulo">Avisos</h2>
+              <h2 id="h-avisos" class="dash2-card-title">Avisos</h2>
+              <p class="dash2-card-sub" id="contagem-notif">—</p>
             </div>
-            <span id="contagem-notif" class="dash-quadro-meta"></span>
+            <a href="/notificacoes" data-link class="dash2-link">Ver todos →</a>
           </header>
-          <div id="lista-notif" class="dash-quadro-corpo">
+          <div id="lista-notif" class="dash2-card-body">
             ${blocoSkel()}
           </div>
-          <footer class="dash-quadro-rodape">
-            <a href="/notificacoes" data-link class="dash-quadro-cta">
-              Ver todos os avisos
-              <svg width="14" height="10" viewBox="0 0 14 10" fill="none" aria-hidden="true">
-                <path d="M1 5 H12 M8 1 L12 5 L8 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </a>
-          </footer>
         </article>
 
-        <!-- Quadro: Distribuição por categoria -->
-        <article id="bloco-distribuicao" class="dash-quadro" aria-labelledby="h-dist">
-          <header class="dash-quadro-cabec">
+        <article id="bloco-distribuicao" class="dash2-card" aria-labelledby="h-dist">
+          <header class="dash2-card-head">
             <div>
-              <p class="h-eyebrow">Distribuição</p>
-              <h2 id="h-dist" class="dash-quadro-titulo">Por categoria</h2>
+              <h2 id="h-dist" class="dash2-card-title">Distribuição do mês</h2>
+              <p class="dash2-card-sub" id="dist-mes-rotulo">—</p>
             </div>
-            <span id="dist-mes-rotulo" class="dash-quadro-meta"></span>
           </header>
-          <div id="dist-conteudo" class="dash-quadro-corpo">
-            <div class="skel" style="height:8rem"></div>
+          <div id="dist-conteudo" class="dash2-card-body">
+            ${blocoSkel()}
           </div>
         </article>
       </div>
 
-      <!-- Pendências críticas (>3 dias úteis) — só renderiza se houver -->
-      <section id="bloco-criticas" class="mt-8 hidden reveal reveal-5" aria-labelledby="h-crit">
-        <header class="flex items-baseline justify-between mb-4">
-          <h2 id="h-crit" class="h-display text-2xl" style="font-style:normal;font-weight:500">
-            Pendências críticas
-          </h2>
-          <a href="/pendencias" data-link class="btn-link">Ver todas</a>
-        </header>
-        <div id="lista-criticas" class="space-y-2"></div>
-      </section>
-
-      <!-- Linha 2: Movimento do mês corrente (largura inteira) -->
-      <article id="bloco-movimento" class="dash-quadro dash-quadro--full mt-8 reveal reveal-6" aria-labelledby="h-mov">
-        <header class="dash-quadro-cabec">
+      <article id="bloco-criticas" class="dash2-card dash2-card--alert hidden" aria-labelledby="h-crit">
+        <header class="dash2-card-head">
           <div>
-            <p class="h-eyebrow">Movimento</p>
-            <h2 id="h-mov" class="dash-quadro-titulo">Carregando…</h2>
+            <h2 id="h-crit" class="dash2-card-title">Pendências críticas</h2>
+            <p class="dash2-card-sub">Mais de 3 dias úteis sem resolução</p>
           </div>
-          <span id="mov-resumo" class="dash-quadro-meta"></span>
+          <a href="/pendencias" data-link class="dash2-link">Ver todas →</a>
         </header>
-        <div id="mov-conteudo" class="dash-quadro-corpo">
-          <div class="skel" style="height:6rem"></div>
-        </div>
+        <div id="lista-criticas" class="dash2-criticas"></div>
       </article>
     </main>
-  `,
+    `,
   });
 
   ligarShell();
@@ -122,11 +100,199 @@ export async function renderDashboard() {
   await carregarNotificacoes();
   await carregarCriticas();
   await carregarDistribuicaoCategoria();
-  await carregarMovimentoMes();
   ligarRealtime();
 }
 
-// ─── CP6.4: Distribuição por categoria (mês corrente, fallback mês anterior) ──
+// ─── KPIs ─────────────────────────────────────────────────────────────
+async function carregarResumo(hojeISO) {
+  const ontem = new Date();
+  ontem.setDate(ontem.getDate() - 1);
+  const ontemISO = isoData(ontem);
+
+  const { data: caixaHoje } = await supabase
+    .from('caixa')
+    .select('id, total_lancamentos, total_valor, total_pendentes, estado')
+    .eq('data', hojeISO)
+    .maybeSingle();
+
+  const { data: caixaOntem } = await supabase
+    .from('caixa')
+    .select('id, estado, data')
+    .eq('data', ontemISO)
+    .maybeSingle();
+
+  const { count: resolvidasHoje } = await supabase
+    .from('lancamento')
+    .select('id', { count: 'exact', head: true })
+    .gte('resolvido_em', hojeISO + 'T00:00:00')
+    .lt('resolvido_em',  hojeISO + 'T23:59:59');
+
+  const pendentes = caixaHoje?.total_pendentes ?? 0;
+  const ontemFechado = caixaOntem?.estado === 'fechado';
+
+  const cards = [
+    kpi({
+      label: 'Hoje',
+      value: formatBRL(caixaHoje?.total_valor ?? 0),
+      sub: `${caixaHoje?.total_lancamentos ?? 0} lançamento${(caixaHoje?.total_lancamentos ?? 0) === 1 ? '' : 's'}`,
+      href: '/caixa/hoje',
+      icon: svgWallet(),
+      tone: 'neutral',
+    }),
+    kpi({
+      label: 'Pendentes',
+      value: String(pendentes),
+      sub: pendentes > 0 ? 'aguardando ação' : 'tudo resolvido',
+      href: '/pendencias',
+      icon: svgClock(),
+      tone: pendentes > 0 ? 'warn' : 'ok',
+    }),
+    kpi({
+      label: 'Resolvidas hoje',
+      value: String(resolvidasHoje ?? 0),
+      sub: 'pendências fechadas',
+      href: '/pendencias',
+      icon: svgCheck(),
+      tone: 'ok',
+    }),
+    kpi({
+      label: 'Caixa de ontem',
+      value: ontemFechado ? 'Fechado' : (caixaOntem ? 'Em aberto' : '—'),
+      sub: caixaOntem ? `referência ${ontemISO.slice(8,10)}/${ontemISO.slice(5,7)}` : 'sem registro',
+      href: caixaOntem ? `/caixa/${caixaOntem.data}` : '/caixa/hoje',
+      icon: svgArchive(),
+      tone: ontemFechado ? 'ok' : 'warn',
+    }),
+  ].join('');
+
+  const grid = document.querySelector('.dash2-kpis');
+  if (grid) grid.innerHTML = cards;
+}
+
+function kpi({ label, value, sub, href, icon, tone = 'neutral' }) {
+  return `
+    <a href="${href}" data-link class="dash2-kpi" data-tone="${tone}">
+      <span class="dash2-kpi-label">
+        <span class="dash2-kpi-icon">${icon}</span>
+        ${esc(label)}
+      </span>
+      <span class="dash2-kpi-value">${esc(value)}</span>
+      <span class="dash2-kpi-sub">${esc(sub)}</span>
+    </a>`;
+}
+
+function kpiSkel() {
+  return `
+    <div class="dash2-kpi" style="cursor:default;pointer-events:none">
+      <span class="dash2-kpi-label"><span class="dash2-skel" style="width:5rem;height:0.8rem"></span></span>
+      <span class="dash2-skel" style="width:8rem;height:1.6rem;margin-top:0.5rem"></span>
+      <span class="dash2-skel" style="width:6rem;height:0.75rem;margin-top:0.5rem"></span>
+    </div>`;
+}
+
+function blocoSkel() {
+  return `
+    <div class="dash2-skel" style="height:3rem;margin-bottom:0.5rem"></div>
+    <div class="dash2-skel" style="height:3rem;margin-bottom:0.5rem"></div>
+    <div class="dash2-skel" style="height:3rem"></div>`;
+}
+
+// ─── Avisos ─────────────────────────────────────────────────────────
+async function carregarNotificacoes() {
+  const sessao = await pegarSessao();
+  const uid = sessao?.user?.id;
+
+  const { data, error, count } = await supabase
+    .from('notificacao')
+    .select('id, tipo, severidade, titulo, mensagem, lancamento_id, caixa_id, criada_em, lida_em',
+            { count: 'exact' })
+    .or(`usuario_destino.eq.${uid},usuario_destino.is.null`)
+    .is('lida_em', null)
+    .is('descartada_em', null)
+    .order('criada_em', { ascending: false })
+    .limit(4);
+
+  const lista = document.querySelector('#lista-notif');
+  const cont  = document.querySelector('#contagem-notif');
+  if (!lista) return;
+
+  if (error) {
+    lista.innerHTML = `<p class="dash2-empty-msg">Não conseguimos carregar os avisos.</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    lista.innerHTML = `
+      <div class="dash2-empty">
+        <p class="dash2-empty-title">Tudo em ordem.</p>
+        <p class="dash2-empty-msg">Quando algo precisar de atenção, aparece aqui.</p>
+      </div>`;
+    if (cont) cont.textContent = 'nenhum aviso pendente';
+    return;
+  }
+
+  if (cont) {
+    const total = count ?? data.length;
+    cont.textContent = total > 4
+      ? `mostrando 4 de ${total} avisos não lidos`
+      : `${total} aviso${total > 1 ? 's' : ''} não lido${total > 1 ? 's' : ''}`;
+  }
+
+  const enriquecidas = await enriquecerNotificacoes(data, supabase);
+  lista.innerHTML = `<ul class="dash2-avisos">${enriquecidas.map(itemAviso).join('')}</ul>`;
+
+  lista.querySelectorAll('[data-notif-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.notifId;
+      const notif = enriquecidas.find(n => n.id === id);
+      if (notif) marcarENavegar(notif);
+    });
+  });
+}
+
+function itemAviso(n) {
+  const tone = n.severidade === 'urgente' ? 'danger'
+            : n.severidade === 'aviso'   ? 'warn'
+            : 'info';
+  return `
+    <li>
+      <button data-notif-id="${esc(n.id)}" class="dash2-aviso" data-tone="${tone}">
+        <span class="dash2-aviso-dot" aria-hidden="true"></span>
+        <span class="dash2-aviso-body">
+          <span class="dash2-aviso-head">
+            <strong class="dash2-aviso-title">${esc(n.titulo)}</strong>
+            <time class="dash2-aviso-time">${tempoRelativo(n.criada_em)}</time>
+          </span>
+          <p class="dash2-aviso-msg">${esc(n.mensagem)}</p>
+        </span>
+      </button>
+    </li>`;
+}
+
+async function marcarENavegar(notif) {
+  supabase.from('notificacao').update({ lida_em: new Date().toISOString() }).eq('id', notif.id);
+  const { url, motivo, erro } = destinoNotificacao(notif);
+  if (motivo === 'ok') return navegar(url);
+  if (motivo === 'invalida') {
+    log.warn(`notificacao ${notif.id} (${notif.tipo}) invalida`, { erro });
+    return mostrarToast('Esta notificação não tem destino válido.', 'erro', 3500);
+  }
+  mostrarToast('Aviso informativo, sem ação direta.', 'info', 2200);
+}
+
+function tempoRelativo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - new Date(ts).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1)   return 'agora';
+  if (min < 60)  return `${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24)    return `${h} h`;
+  const d = Math.floor(h / 24);
+  return `${d} dia${d > 1 ? 's' : ''}`;
+}
+
+// ─── Distribuição por categoria ──────────────────────────────────────
 async function carregarDistribuicaoCategoria() {
   const cont = document.querySelector('#dist-conteudo');
   const lblMes = document.querySelector('#dist-mes-rotulo');
@@ -136,7 +302,6 @@ async function carregarDistribuicaoCategoria() {
   const inicioMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const inicioMesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
 
-  // Tenta mês atual; se vazio, usa mês anterior pra exibir algo.
   let { data, error } = await supabase.rpc('distribuicao_categoria_mes', {
     p_mes_ref: isoData(inicioMesAtual),
   });
@@ -154,389 +319,58 @@ async function carregarDistribuicaoCategoria() {
 
   if (lblMes) {
     const fmtMes = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
-    const sufixo = mesUsado.getMonth() === inicioMesAtual.getMonth() ? '' : ' (fallback)';
-    lblMes.textContent = fmtMes.format(mesUsado) + sufixo;
+    const sufixo = mesUsado.getMonth() === inicioMesAtual.getMonth() ? '' : ' (último mês com dados)';
+    lblMes.textContent = fmtMes.format(mesUsado).replace(/^./, c => c.toUpperCase()) + sufixo;
   }
 
   if (error) {
-    cont.innerHTML = `<p class="alert">Não foi possível carregar a distribuição.</p>`;
+    cont.innerHTML = `<p class="dash2-empty-msg">Não foi possível carregar a distribuição.</p>`;
     return;
   }
 
-  // Lista completa de categorias a exibir: 6 canônicas + "em análise"
-  // (lançamentos sem categoria definida). Categorias zeradas aparecem
-  // com 0% pra dar comparação visual completa em qualquer mês.
-  const TODAS = [
-    ...CATEGORIAS,
-    { valor: 'em_analise', rotulo: 'Em análise' },
-  ];
-
-  // Mapa categoria → totais retornados pela RPC. Categorias ausentes ficam zeradas.
+  const TODAS = [...CATEGORIAS, { valor: 'em_analise', rotulo: 'Em análise' }];
   const porCat = Object.fromEntries((data || []).map(r => [r.categoria, r]));
   const linhas = TODAS.map(c => ({
     categoria: c.valor,
     rotulo:    c.rotulo,
-    total_valor:        Number(porCat[c.valor]?.total_valor ?? 0),
-    total_lancamentos:  Number(porCat[c.valor]?.total_lancamentos ?? 0),
-  }));
+    total_valor: Number(porCat[c.valor]?.total_valor ?? 0),
+  })).filter(l => l.total_valor > 0);
 
   const totalGeral = linhas.reduce((s, r) => s + r.total_valor, 0);
 
   if (totalGeral === 0) {
     cont.innerHTML = `
-      <div class="dash-quadro-vazio">
-        <p class="dash-quadro-vazio-titulo">Sem distribuição neste mês ainda.</p>
-        <p class="dash-quadro-vazio-desc">Categorize lançamentos para ver a divisão.</p>
+      <div class="dash2-empty">
+        <p class="dash2-empty-title">Sem dados ainda.</p>
+        <p class="dash2-empty-msg">Categorize lançamentos pra ver a divisão.</p>
       </div>`;
     return;
   }
 
+  linhas.sort((a, b) => b.total_valor - a.total_valor);
+
   cont.innerHTML = `
-    <div class="chart-dist">
-      ${linhas.map((r, i) => {
+    <ul class="dash2-dist">
+      ${linhas.map((r) => {
         const pct = (r.total_valor / totalGeral) * 100;
-        const ehZero = r.total_valor === 0;
         return `
-          <div class="chart-dist-linha" data-zero="${ehZero}" style="animation-delay:${i * 60}ms">
-            <span class="chart-dist-rotulo">${esc(r.rotulo)}</span>
-            <div class="chart-dist-trilha" aria-label="${pct.toFixed(1)} por cento">
-              <span class="chart-dist-barra" data-cat="${esc(r.categoria)}"
-                    style="--alvo:${pct.toFixed(2)}%"></span>
+          <li class="dash2-dist-item">
+            <div class="dash2-dist-head">
+              <span class="dash2-dist-label">${esc(r.rotulo)}</span>
+              <span class="dash2-dist-meta">
+                <span class="dash2-dist-pct">${pct.toFixed(0)}%</span>
+                <span class="dash2-dist-value">${formatBRL(r.total_valor)}</span>
+              </span>
             </div>
-            <span class="chart-dist-meta">
-              <span class="chart-dist-pct">${pct.toFixed(0)}%</span>
-              <span class="chart-dist-valor">${formatBRL(r.total_valor)}</span>
-            </span>
-          </div>`;
+            <div class="dash2-dist-track" aria-hidden="true">
+              <span class="dash2-dist-fill" style="width:${pct.toFixed(2)}%"></span>
+            </div>
+          </li>`;
       }).join('')}
-    </div>`;
-
-  // Trigger anim
-  requestAnimationFrame(() => {
-    cont.querySelectorAll('.chart-dist-barra').forEach(el => el.classList.add('is-animado'));
-  });
+    </ul>`;
 }
 
-// ─── Movimento do mês corrente (CP7-FIX-DASH) ──────────────────────────
-// Mostra TODOS os dias do mês atual (1 até último dia), não 30 dias atrás.
-// A cada virada de mês, ajusta automaticamente. Dias futuros aparecem
-// vazios. Feriados (tabela `feriado`) ganham etiqueta vertical no lugar
-// da barra, com o nome escrito de baixo pra cima (sentido natural de chart).
-async function carregarMovimentoMes() {
-  const cont   = document.querySelector('#mov-conteudo');
-  const resumo = document.querySelector('#mov-resumo');
-  const titulo = document.querySelector('#h-mov');
-  if (!cont) return;
-
-  const hoje = new Date();
-  const ano = hoje.getFullYear();
-  const mes = hoje.getMonth();             // 0-11
-  const primeiroDia = new Date(ano, mes, 1);
-  const ultimoDia   = new Date(ano, mes + 1, 0);  // dia 0 do mês seguinte = último do atual
-  const isoIni = isoData(primeiroDia);
-  const isoFim = isoData(ultimoDia);
-
-  // Título dinâmico — "Maio 2026"
-  if (titulo) {
-    titulo.textContent = new Intl.DateTimeFormat('pt-BR', {
-      month: 'long', year: 'numeric',
-    }).format(primeiroDia).replace(/^./, c => c.toUpperCase());
-  }
-
-  // Busca caixas do mês + feriados do mês em paralelo
-  const [resCaixas, resFeriados] = await Promise.all([
-    supabase
-      .from('caixa')
-      .select('data, total_valor, total_lancamentos, estado')
-      .gte('data', isoIni)
-      .lte('data', isoFim)
-      .order('data', { ascending: true }),
-    supabase
-      .from('feriado')
-      .select('data, descricao, tipo')
-      .eq('ativo', true)
-      .gte('data', isoIni)
-      .lte('data', isoFim),
-  ]);
-
-  if (resCaixas.error) {
-    cont.innerHTML = `<p class="alert">Não foi possível carregar o movimento.</p>`;
-    return;
-  }
-
-  const caixaIndex   = Object.fromEntries((resCaixas.data || []).map(r => [r.data, r]));
-  const feriadoIndex = Object.fromEntries((resFeriados.data || []).map(r => [r.data, r]));
-
-  // Monta range completo do mês (dia 1 até último), independente de ter caixa
-  const dias = [];
-  for (let d = new Date(primeiroDia); d <= ultimoDia; d.setDate(d.getDate() + 1)) {
-    const iso = isoData(new Date(d));
-    const c = caixaIndex[iso];
-    dias.push({
-      data: iso,
-      total_valor:       Number(c?.total_valor ?? 0),
-      total_lancamentos: Number(c?.total_lancamentos ?? 0),
-      estado:            c?.estado ?? null,
-      feriado:           feriadoIndex[iso] || null,
-    });
-  }
-
-  const hojeISO = isoData(hoje);
-  const valores = dias.map(d => d.total_valor);
-  const maxValor = Math.max(...valores, 1);
-  const totalPeriodo = valores.reduce((s, v) => s + v, 0);
-  const totalLanc = dias.reduce((s, d) => s + d.total_lancamentos, 0);
-
-  if (resumo) {
-    resumo.textContent = `${formatBRL(totalPeriodo)} · ${totalLanc} ${totalLanc === 1 ? 'lançamento' : 'lançamentos'}`;
-  }
-
-  // CSS-var pra grid usar exatamente o número de dias do mês (28-31)
-  cont.innerHTML = `
-    <div class="chart-mov" style="--mov-cols:${dias.length}">
-      <div class="chart-mov-barras" role="list" aria-label="Movimento diário do mês">
-        ${dias.map((d, i) => colunaMov(d, i, hojeISO, maxValor)).join('')}
-      </div>
-      <div class="chart-mov-base" aria-hidden="true"></div>
-      <div class="chart-mov-eixo">${esc(new Intl.DateTimeFormat('pt-BR', {
-        month: 'long', year: 'numeric',
-      }).format(primeiroDia))}</div>
-    </div>`;
-
-  requestAnimationFrame(() => {
-    cont.querySelectorAll('.chart-mov-barra').forEach(el => el.classList.add('is-animado'));
-  });
-}
-
-function colunaMov(d, i, hojeISO, maxValor) {
-  const dt = new Date(d.data + 'T00:00:00');
-  const v  = d.total_valor;
-  const altura = maxValor > 0 ? Math.round((v / maxValor) * 100) : 0;
-  const ehHoje  = d.data === hojeISO;
-  const ehFuturo = d.data > hojeISO;
-  const fim     = dt.getDay() === 0 || dt.getDay() === 6;
-  const ehFer   = !!d.feriado;
-
-  let titulo = `${dataLonga(d.data)} — ${formatBRL(v)} · ${d.total_lancamentos} ${d.total_lancamentos === 1 ? 'lançamento' : 'lançamentos'}`;
-  if (ehFer)    titulo += ` · feriado: ${d.feriado.descricao}`;
-  else if (ehFuturo) titulo += ' · ainda não chegou';
-  else if (!d.estado) titulo += ' · sem caixa';
-  else titulo += ` (${d.estado})`;
-
-  // Coluna de feriado: substitui a barra por uma etiqueta vertical com o
-  // nome do feriado, sentido leitura de baixo pra cima (vertical-rl + rotate
-  // 180 dá esse sentido natural de chart).
-  const conteudoColuna = ehFer
-    ? `<span class="chart-mov-feriado" title="${esc(d.feriado.descricao)}">${esc(d.feriado.descricao)}</span>`
-    : `<span class="chart-mov-barra" style="--alvo:${altura}%"></span>`;
-
-  return `
-    <a class="chart-mov-coluna" data-link
-       role="listitem"
-       href="/caixa/${esc(d.data)}"
-       title="${esc(titulo)}"
-       data-fim="${fim}"
-       data-hoje="${ehHoje}"
-       data-vazio="${v === 0 && !ehFer}"
-       data-feriado="${ehFer}"
-       data-futuro="${ehFuturo}"
-       style="animation-delay:${i * 18}ms">
-      ${conteudoColuna}
-      <span class="chart-mov-rot">${dt.getDate()}</span>
-    </a>`;
-}
-
-// ─── Cards de resumo via dashboard_resumo + queries auxiliares ────────────
-async function carregarResumo(hojeISO) {
-  // RPC dashboard_resumo já cobre os 30 últimos dias por padrão.
-  // Para os cards de hoje + ontem, fazemos queries adicionais leves.
-  const ontem = new Date();
-  ontem.setDate(ontem.getDate() - 1);
-  const ontemISO = isoData(ontem);
-
-  // Hoje: total de lançamentos válidos + valor.
-  const { data: caixaHoje } = await supabase
-    .from('caixa')
-    .select('id, total_lancamentos, total_valor, total_pendentes, estado')
-    .eq('data', hojeISO)
-    .maybeSingle();
-
-  // Ontem: status do caixa.
-  const { data: caixaOntem } = await supabase
-    .from('caixa')
-    .select('id, estado, data')
-    .eq('data', ontemISO)
-    .maybeSingle();
-
-  // Resolvidas hoje — count de lançamentos com resolvido_em entre hoje 00h e agora.
-  const { count: resolvidasHoje } = await supabase
-    .from('lancamento')
-    .select('id', { count: 'exact', head: true })
-    .gte('resolvido_em', hojeISO + 'T00:00:00')
-    .lt('resolvido_em',  hojeISO + 'T23:59:59');
-
-  const cards = [
-    cardEstat({
-      eyebrow: 'Lançamentos hoje',
-      numero:  caixaHoje?.total_lancamentos ?? 0,
-      sub:     formatBRL(caixaHoje?.total_valor ?? 0),
-      href:    '/caixa/hoje',
-    }),
-    cardEstat({
-      eyebrow: 'Pendentes',
-      numero:  caixaHoje?.total_pendentes ?? 0,
-      sub:     (caixaHoje?.total_pendentes ?? 0) > 0 ? 'aguardando ação' : 'tudo resolvido',
-      href:    '/pendencias',
-      tom:     (caixaHoje?.total_pendentes ?? 0) > 0 ? 'is-warn' : 'is-good',
-    }),
-    cardEstat({
-      eyebrow: 'Caixa de ontem',
-      numero:  caixaOntem?.estado === 'fechado' ? '✓' : '○',
-      sub:     caixaOntem
-        ? (caixaOntem.estado === 'fechado' ? 'fechado' : 'em aberto')
-        : 'sem registro',
-      href:    caixaOntem ? `/caixa/${caixaOntem.data}` : '/caixa/hoje',
-      tom:     caixaOntem?.estado === 'fechado' ? 'is-good' : 'is-warn',
-    }),
-    cardEstat({
-      eyebrow: 'Resolvidas hoje',
-      numero:  resolvidasHoje ?? 0,
-      sub:     'pendências fechadas',
-      href:    '/pendencias',
-      tom:     'is-good',
-    }),
-  ].join('');
-
-  // Substitui skeleton pelos cards reais.
-  const grid = document.querySelector('section.stat-grid');
-  if (grid) grid.innerHTML = cards;
-}
-
-function cardEstat({ eyebrow, numero, sub, href, tom = '' }) {
-  return `
-    <a href="${href}" data-link class="stat-card" aria-label="${esc(eyebrow)}: ${esc(String(numero))} — ${esc(sub)}">
-      <span class="stat-card-eyebrow">${esc(eyebrow)}</span>
-      <span class="stat-card-num ${tom}">${esc(String(numero))}</span>
-      <span class="stat-card-sub">${esc(sub)}</span>
-    </a>`;
-}
-
-function cardSkel() {
-  return `
-    <div class="stat-card" aria-hidden="true" style="cursor:default;pointer-events:none">
-      <span class="skel" style="display:block;height:0.7rem;width:7rem"></span>
-      <span class="skel" style="display:block;height:2.4rem;width:5rem;margin-top:0.7rem"></span>
-      <span class="skel" style="display:block;height:0.85rem;width:9rem;margin-top:0.5rem"></span>
-    </div>`;
-}
-function blocoSkel() {
-  return `
-    <div class="skel" style="height:3.2rem;border-radius:2px"></div>
-    <div class="skel" style="height:3.2rem;border-radius:2px"></div>
-    <div class="skel" style="height:3.2rem;border-radius:2px"></div>`;
-}
-
-// ─── Notificações ativas (não-lidas) — quadro do dashboard ──────────────
-// Mostra os 5 mais recentes; conta o total real (até 100) pra exibir
-// "5 de N" no meta-rotulo. "Ver todos os avisos" leva pra /notificacoes.
-async function carregarNotificacoes() {
-  const sessao = await pegarSessao();
-  const uid = sessao?.user?.id;
-
-  const { data, error, count } = await supabase
-    .from('notificacao')
-    .select('id, tipo, severidade, titulo, mensagem, lancamento_id, caixa_id, criada_em, lida_em',
-            { count: 'exact' })
-    .or(`usuario_destino.eq.${uid},usuario_destino.is.null`)
-    .is('lida_em', null)
-    .is('descartada_em', null)
-    .order('criada_em', { ascending: false })
-    .limit(3);
-
-  const lista = document.querySelector('#lista-notif');
-  const cont  = document.querySelector('#contagem-notif');
-  if (!lista) return;
-
-  if (error) {
-    lista.innerHTML = `<p class="text-sm" style="color:var(--c-tinta-3);padding:0.5rem 0">
-      Não conseguimos carregar os avisos agora.</p>`;
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    lista.innerHTML = `
-      <div class="dash-quadro-vazio">
-        <p class="dash-quadro-vazio-titulo">Sem avisos no momento.</p>
-        <p class="dash-quadro-vazio-desc">Quando algo precisar de atenção, aparece aqui.</p>
-      </div>`;
-    if (cont) cont.textContent = '';
-    return;
-  }
-
-  if (cont) {
-    const total = count ?? data.length;
-    cont.textContent = total > 3
-      ? `mostrando 3 de ${total}`
-      : `${total} aviso${total > 1 ? 's' : ''}`;
-  }
-
-  // Enriquece com caixa.data e numero_nf via batch (CP-PRE-DEPLOY-1 e6).
-  // Sem isso, click usaria UUID na URL e quebraria o roteador.
-  const enriquecidas = await enriquecerNotificacoes(data, supabase);
-  lista.innerHTML = enriquecidas.map(n => itemNotif(n)).join('');
-
-  lista.querySelectorAll('[data-notif-id]').forEach(el => {
-    el.addEventListener('click', () => {
-      const id = el.dataset.notifId;
-      const notif = enriquecidas.find(n => n.id === id);
-      if (notif) marcarENavegar(notif);
-    });
-  });
-}
-
-function itemNotif(n) {
-  const tom = n.severidade === 'urgente' ? 'urgente'
-           : n.severidade === 'aviso'   ? 'aviso'
-           : 'info';
-  return `
-    <button data-notif-id="${esc(n.id)}" class="dash-aviso" data-tom="${tom}">
-      <div class="dash-aviso-cabec">
-        <strong class="dash-aviso-titulo">${esc(n.titulo)}</strong>
-        <time class="dash-aviso-tempo">${tempoRelativo(n.criada_em)}</time>
-      </div>
-      <p class="dash-aviso-msg">${esc(n.mensagem)}</p>
-    </button>`;
-}
-
-async function marcarENavegar(notif) {
-  // Marca lida em background, sem aguardar — UX prioriza navegação.
-  supabase.from('notificacao').update({ lida_em: new Date().toISOString() }).eq('id', notif.id);
-
-  const { url, motivo, erro } = destinoNotificacao(notif);
-  if (motivo === 'ok') {
-    navegar(url);
-  } else if (motivo === 'invalida') {
-    log.warn(`notificação ${notif.id} (${notif.tipo}) com payload inválido`,
-             { tipo: notif.tipo, caixa_id: notif.caixa_id, lancamento_id: notif.lancamento_id, erro });
-    mostrarToast('Esta notificação não tem destino válido.', 'erro', 3500);
-  } else {
-    mostrarToast('Aviso informativo, sem ação direta.', 'info', 2200);
-  }
-}
-
-function tempoRelativo(ts) {
-  if (!ts) return '';
-  const diff = Date.now() - new Date(ts).getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1)   return 'agora há pouco';
-  if (min < 60)  return `há ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24)    return `há ${h} h`;
-  const d = Math.floor(h / 24);
-  return `há ${d} dia${d > 1 ? 's' : ''}`;
-}
-
-// ─── Pendências críticas (>3 dias úteis) ──────────────────────────────────
+// ─── Pendências críticas ─────────────────────────────────────────────
 async function carregarCriticas() {
   const { data, error } = await supabase
     .from('pendencia')
@@ -553,29 +387,16 @@ async function carregarCriticas() {
 
   bloco.classList.remove('hidden');
   lista.innerHTML = data.map(p => `
-    <a href="/caixa/${p.data_caixa}" data-link
-       style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
-              background:var(--c-papel);border:1px solid var(--c-papel-3);
-              border-left:3px solid var(--c-alerta);padding:0.85rem 1rem;
-              text-decoration:none;color:inherit;font-family:'Manrope',sans-serif;
-              transition:border-color 180ms">
-      <div>
-        <strong style="color:var(--c-tinta);font-size:0.95rem">NF ${esc(p.numero_nf)}</strong>
-        <span style="color:var(--c-tinta-3);margin:0 0.5rem">·</span>
-        <span style="color:var(--c-tinta-2)">${esc(p.cliente_nome)}</span>
-      </div>
-      <div style="text-align:right">
-        <span class="h-meta" style="color:var(--c-alerta);font-size:0.85rem">
-          ${p.idade_dias_uteis} dias úteis
-        </span>
-        <div style="font-family:'Fraunces',serif;font-variant-numeric:tabular-nums;
-                    color:var(--c-tinta);font-size:1.05rem">${formatBRL(p.valor_nf)}</div>
-      </div>
+    <a href="/caixa/${p.data_caixa}" data-link class="dash2-crit-row">
+      <span class="dash2-crit-nf">NF ${esc(p.numero_nf)}</span>
+      <span class="dash2-crit-cliente">${esc(p.cliente_nome)}</span>
+      <span class="dash2-crit-idade">${p.idade_dias_uteis} dias úteis</span>
+      <span class="dash2-crit-valor">${formatBRL(p.valor_nf)}</span>
     </a>
   `).join('');
 }
 
-// ─── Realtime: atualiza lista de notif ao chegar nova ─────────────────────
+// ─── Realtime ────────────────────────────────────────────────────────
 function ligarRealtime() {
   canalNotif = supabase.channel('dash-notif')
     .on('postgres_changes',
@@ -594,8 +415,17 @@ function desmontar() {
   }
 }
 
+// ─── SVGs ───────────────────────────────────────────────────────────
+const A = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"`;
+function svgPlus()    { return `<svg ${A} stroke-width="1.8"><path d="M8 3v10M3 8h10"/></svg>`; }
+function svgWallet()  { return `<svg ${A}><rect x="2" y="4.5" width="12" height="9" rx="1.5"/><path d="M2 7h12"/><circle cx="11" cy="10" r="0.8" fill="currentColor"/></svg>`; }
+function svgClock()   { return `<svg ${A}><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.5 1.5"/></svg>`; }
+function svgCheck()   { return `<svg ${A}><path d="M3 8.5l3 3 7-7"/></svg>`; }
+function svgArchive() { return `<svg ${A}><rect x="2" y="3" width="12" height="3" rx="0.5"/><path d="M3 6v7h10V6M6.5 9h3"/></svg>`; }
+
 function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, (c) => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
 }

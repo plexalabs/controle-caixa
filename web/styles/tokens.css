@@ -97,6 +97,46 @@
     --leading-normal:  1.5;
     --tracking-display: -0.025em;
     --tracking-meta:    0.18em;  /* maiúsculas com espaçamento editorial */
+
+    /* ────────────────────────────────────────────────────────────
+       UI v2 — Sistema "Clean Profissional"
+       Aprovado em 2026-05-09. Refator gradual: sidebar + dashboard
+       primeiro, demais telas em seguida. Tokens em namespace --ui-*
+       coexistem com os tokens legados (--c-*, --cat-*) ate todas
+       as telas migrarem.
+       ──────────────────────────────────────────────────────────── */
+    --ui-bg:           #FAFAF7;
+    --ui-surface:      #FFFFFF;
+    --ui-surface-2:    #F4F4EF;
+    --ui-surface-3:    #EAE7DF;
+    --ui-border:       #E5E2D9;
+    --ui-border-strong:#CFCBBE;
+
+    --ui-ink:          #18181B;
+    --ui-ink-2:        #3F3F46;
+    --ui-ink-3:        #71717A;
+    --ui-ink-4:        #A1A1AA;
+
+    --ui-accent:       #15803D;   /* green-700, profissional e calmo */
+    --ui-accent-2:     #166534;   /* green-800 hover */
+    --ui-accent-soft:  #DCFCE7;
+
+    --ui-warn:         #B45309;
+    --ui-warn-soft:    #FEF3C7;
+    --ui-danger:       #B91C1C;
+    --ui-danger-soft:  #FEE2E2;
+    --ui-info:         #1D4ED8;
+    --ui-info-soft:    #DBEAFE;
+
+    --ui-r-sm:  6px;
+    --ui-r-md:  10px;
+    --ui-r-lg:  14px;
+
+    --ui-shadow-sm: 0 1px 2px rgba(20, 20, 20, 0.04);
+    --ui-shadow-md: 0 4px 14px rgba(20, 20, 20, 0.06);
+    --ui-shadow-lg: 0 10px 30px rgba(20, 20, 20, 0.08);
+
+    --ui-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Suporte a modo escuro futuro — preparado mas não ativo no MVP.

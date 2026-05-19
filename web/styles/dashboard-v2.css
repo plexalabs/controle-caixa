@@ -1,0 +1,454 @@
+/* dashboard-v2.css — /dashboard refator visual "Clean Profissional".
+   Namespace .dash2-* coexiste com .dash-* legado (que pode ser
+   removido depois quando outras telas dependerem nenhuma dessas
+   classes — atualmente so o dashboard antigo usava).
+*/
+
+.dash2 {
+    max-width: 78rem;
+    margin: 0 auto;
+    padding: 2.25rem 2rem 4rem;
+    color: var(--ui-ink);
+}
+@media (max-width: 767px) {
+    .dash2 { padding: 1.5rem 1.1rem 3rem; }
+}
+
+/* ============================================================
+   Header
+   ============================================================ */
+
+.dash2-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+.dash2-header-left { min-width: 0; }
+.dash2-header-data {
+    font-size: 0.82rem;
+    color: var(--ui-ink-3);
+    margin: 0 0 0.45rem;
+    font-weight: 500;
+    text-transform: lowercase;
+    letter-spacing: 0.01em;
+}
+.dash2-header-title {
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    color: var(--ui-ink);
+    margin: 0;
+    line-height: 1.15;
+}
+.dash2-header-name {
+    color: var(--ui-accent);
+    font-weight: 700;
+}
+
+.dash2-header-actions {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Botoes do header (e gerais do dash2) */
+.dash2-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--ui-ink);
+    color: var(--ui-bg);
+    border: 0;
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 1.05rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 160ms var(--ui-ease), transform 80ms var(--ui-ease);
+    line-height: 1.2;
+}
+.dash2-btn:hover { background: #000; color: var(--ui-bg); }
+.dash2-btn:active { transform: translateY(1px); }
+.dash2-btn--primary {
+    background: var(--ui-accent);
+}
+.dash2-btn--primary:hover { background: var(--ui-accent-2); }
+.dash2-btn--ghost {
+    background: var(--ui-surface);
+    color: var(--ui-ink-2);
+    border: 1px solid var(--ui-border);
+}
+.dash2-btn--ghost:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border-strong);
+    color: var(--ui-ink);
+}
+
+.dash2-link {
+    color: var(--ui-accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: color 160ms var(--ui-ease);
+    letter-spacing: -0.005em;
+}
+.dash2-link:hover { color: var(--ui-accent-2); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ============================================================
+   KPI cards
+   ============================================================ */
+
+.dash2-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 2rem;
+}
+
+.dash2-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 1rem 1.15rem 1.1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease), transform 160ms var(--ui-ease);
+    cursor: pointer;
+}
+.dash2-kpi:hover {
+    border-color: var(--ui-border-strong);
+    box-shadow: var(--ui-shadow-sm);
+    transform: translateY(-1px);
+}
+
+.dash2-kpi-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    letter-spacing: 0.01em;
+}
+.dash2-kpi-icon {
+    width: 14px; height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ui-ink-4);
+}
+.dash2-kpi-value {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    color: var(--ui-ink);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.dash2-kpi-sub {
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    line-height: 1.4;
+}
+.dash2-kpi[data-tone="ok"]     .dash2-kpi-icon { color: var(--ui-accent); }
+.dash2-kpi[data-tone="warn"]   .dash2-kpi-icon { color: var(--ui-warn); }
+.dash2-kpi[data-tone="danger"] .dash2-kpi-icon { color: var(--ui-danger); }
+
+/* ============================================================
+   Split (avisos + distribuicao)
+   ============================================================ */
+
+.dash2-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+@media (max-width: 900px) {
+    .dash2-split { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   Card generico (avisos, distribuicao, criticas)
+   ============================================================ */
+
+.dash2-card {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.dash2-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.85rem;
+    padding: 1rem 1.15rem 0.8rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.dash2-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin: 0;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+}
+.dash2-card-sub {
+    font-size: 0.76rem;
+    color: var(--ui-ink-3);
+    margin: 0.15rem 0 0;
+    text-transform: lowercase;
+}
+.dash2-card-body {
+    padding: 0.75rem 1.15rem 1rem;
+    min-height: 12rem;
+}
+
+/* Estado vazio interno */
+.dash2-empty {
+    text-align: center;
+    padding: 1.5rem 0.5rem;
+}
+.dash2-empty-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ui-ink);
+    margin: 0 0 0.3rem;
+}
+.dash2-empty-msg {
+    font-size: 0.82rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    line-height: 1.55;
+}
+
+/* ============================================================
+   Avisos (lista no card)
+   ============================================================ */
+
+.dash2-avisos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.dash2-aviso {
+    width: 100%;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--ui-r-sm);
+    padding: 0.65rem 0.75rem;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    display: grid;
+    grid-template-columns: 8px 1fr;
+    gap: 0.7rem;
+    align-items: flex-start;
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease);
+    font-family: inherit;
+}
+.dash2-aviso:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border);
+}
+.dash2-aviso-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 0.4rem;
+    flex-shrink: 0;
+    background: var(--ui-ink-4);
+}
+.dash2-aviso[data-tone="info"]   .dash2-aviso-dot { background: var(--ui-info); }
+.dash2-aviso[data-tone="warn"]   .dash2-aviso-dot { background: var(--ui-warn); }
+.dash2-aviso[data-tone="danger"] .dash2-aviso-dot { background: var(--ui-danger); }
+.dash2-aviso-body { min-width: 0; }
+.dash2-aviso-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.7rem;
+    margin-bottom: 0.2rem;
+}
+.dash2-aviso-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--ui-ink);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+}
+.dash2-aviso-time {
+    font-size: 0.72rem;
+    color: var(--ui-ink-3);
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+.dash2-aviso-msg {
+    font-size: 0.83rem;
+    color: var(--ui-ink-2);
+    margin: 0;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ============================================================
+   Distribuicao (barras horizontais simples)
+   ============================================================ */
+
+.dash2-dist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+.dash2-dist-item { display: flex; flex-direction: column; gap: 0.35rem; }
+.dash2-dist-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.7rem;
+}
+.dash2-dist-label {
+    font-size: 0.83rem;
+    color: var(--ui-ink);
+    font-weight: 500;
+}
+.dash2-dist-meta {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-variant-numeric: tabular-nums;
+}
+.dash2-dist-pct {
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    font-weight: 600;
+}
+.dash2-dist-value {
+    font-size: 0.85rem;
+    color: var(--ui-ink);
+    font-weight: 600;
+}
+.dash2-dist-track {
+    height: 6px;
+    background: var(--ui-surface-2);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.dash2-dist-fill {
+    display: block;
+    height: 100%;
+    background: var(--ui-accent);
+    border-radius: 999px;
+    transition: width 600ms var(--ui-ease);
+}
+
+/* ============================================================
+   Pendencias criticas
+   ============================================================ */
+
+.dash2-card--alert {
+    border-color: var(--ui-danger);
+}
+.dash2-card--alert .dash2-card-head {
+    background: var(--ui-danger-soft);
+    border-bottom-color: rgba(185, 28, 28, 0.18);
+}
+.dash2-card--alert .dash2-card-title { color: var(--ui-danger); }
+
+.dash2-criticas {
+    display: flex;
+    flex-direction: column;
+}
+.dash2-crit-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 1rem;
+    align-items: baseline;
+    padding: 0.85rem 1.15rem;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid var(--ui-border);
+    transition: background 160ms var(--ui-ease);
+    font-size: 0.88rem;
+}
+.dash2-crit-row:last-child { border-bottom: 0; }
+.dash2-crit-row:hover { background: var(--ui-danger-soft); }
+
+.dash2-crit-nf {
+    font-family: 'Manrope', monospace;
+    font-weight: 600;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+}
+.dash2-crit-cliente {
+    color: var(--ui-ink-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dash2-crit-idade {
+    color: var(--ui-danger);
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+.dash2-crit-valor {
+    font-weight: 700;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+    .dash2-crit-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem 1rem;
+    }
+    .dash2-crit-cliente, .dash2-crit-valor { grid-column: span 1; }
+    .dash2-crit-idade { grid-column: 1 / -1; }
+}
+
+/* ============================================================
+   Utilitarios
+   ============================================================ */
+
+.dash2-skel {
+    background: linear-gradient(90deg,
+      var(--ui-surface-2) 0%,
+      var(--ui-surface-3) 50%,
+      var(--ui-surface-2) 100%);
+    background-size: 200% 100%;
+    animation: dash2-shimmer 1.4s infinite linear;
+    border-radius: var(--ui-r-sm);
+    display: block;
+}
+@keyframes dash2-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.dash2 .hidden { display: none !important; }
