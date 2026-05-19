@@ -85,24 +85,31 @@
 }
 
 .tb-icon {
-    width: 36px; height: 36px;
+    width: 34px; height: 34px;
     border-radius: var(--ui-r-sm);
     color: var(--ui-ink-2);
     cursor: pointer;
-    display: grid;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     transition: background 160ms var(--ui-ease), color 160ms var(--ui-ease);
     position: relative;
     text-decoration: none;
+    flex-shrink: 0;
+}
+.tb-icon > svg {
+    width: 16px;
+    height: 16px;
 }
 .tb-icon:hover { background: var(--ui-surface-2); color: var(--ui-ink); }
 .tb-icon-dot {
     position: absolute;
-    top: 8px; right: 8px;
+    top: 7px; right: 7px;
     width: 7px; height: 7px;
     background: var(--ui-accent);
     border-radius: 50%;
     border: 2px solid var(--ui-bg);
+    pointer-events: none;
 }
 
 /* Botoes compactos do topbar */
