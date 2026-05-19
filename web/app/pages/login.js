@@ -56,6 +56,12 @@ export function renderLogin() {
         <p class="auth-rodape">
           Não tem conta? <a href="/cadastro" data-link>Criar conta</a>
         </p>
+
+        <p class="auth-rodape" style="margin-top:0.5rem;font-size:0.78rem;opacity:0.7">
+          <a href="/demo-visual" data-link style="color:#15803D;text-decoration:underline;text-underline-offset:3px">
+            Ver demo do novo visual →
+          </a>
+        </p>
       </main>
 
       <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Caixa Boti</footer>
