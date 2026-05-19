@@ -206,15 +206,23 @@ function itemAberto(c) {
         <span class="dash2-aberto-dot" aria-hidden="true"></span>
         <span class="dash2-aberto-body">
           <span class="dash2-aberto-head">
-            <strong class="dash2-aberto-data">${dataCurta}</strong>
-            <span class="dash2-aberto-dia">${esc(diaSemana)}</span>
+            <span class="dash2-aberto-data-bloco">
+              <strong class="dash2-aberto-data">${dataCurta}</strong>
+              <span class="dash2-aberto-dia">${esc(diaSemana)}</span>
+            </span>
             <span class="dash2-aberto-badge">${esc(estadoRot)}</span>
           </span>
+          <span class="dash2-aberto-valor">${formatBRL(c.total_valor ?? 0)}</span>
           <span class="dash2-aberto-meta">
-            <span>${c.total_lancamentos ?? 0} lanç.</span>
-            <span>•</span>
-            <span>${formatBRL(c.total_valor ?? 0)}</span>
-            ${pend > 0 ? `<span>•</span><span class="dash2-aberto-pend">${pend} pend.</span>` : ''}
+            <span class="dash2-aberto-meta-item">
+              <span class="dash2-aberto-meta-val">${c.total_lancamentos ?? 0}</span>
+              <span class="dash2-aberto-meta-lab">lanç.</span>
+            </span>
+            <span class="dash2-aberto-meta-sep" aria-hidden="true">·</span>
+            <span class="dash2-aberto-meta-item" data-pend="${pend > 0 ? 'sim' : 'nao'}">
+              <span class="dash2-aberto-meta-val">${pend}</span>
+              <span class="dash2-aberto-meta-lab">pend.</span>
+            </span>
           </span>
         </span>
       </a>
