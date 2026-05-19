@@ -48,60 +48,62 @@ export async function renderDashboard() {
         ${kpiSkel()}${kpiSkel()}${kpiSkel()}${kpiSkel()}
       </section>
 
-      <!-- 1. Avisos -->
-      <article id="bloco-avisos" class="dash2-card" aria-labelledby="h-avisos">
-        <header class="dash2-card-head">
-          <div>
-            <h2 id="h-avisos" class="dash2-card-title">Avisos</h2>
-            <p class="dash2-card-sub" id="contagem-notif">—</p>
+      <!-- Linha 1: Avisos | Pendencias criticas (criticas hidden quando vazio) -->
+      <div class="dash2-grid">
+        <article id="bloco-avisos" class="dash2-card" aria-labelledby="h-avisos">
+          <header class="dash2-card-head">
+            <div>
+              <h2 id="h-avisos" class="dash2-card-title">Avisos</h2>
+              <p class="dash2-card-sub" id="contagem-notif">—</p>
+            </div>
+            <a href="/notificacoes" data-link class="dash2-link">Ver todos →</a>
+          </header>
+          <div id="lista-notif" class="dash2-card-body">
+            ${blocoSkel()}
           </div>
-          <a href="/notificacoes" data-link class="dash2-link">Ver todos →</a>
-        </header>
-        <div id="lista-notif" class="dash2-card-body">
-          ${blocoSkel()}
-        </div>
-      </article>
+        </article>
 
-      <!-- 2. Pendencias criticas (so aparece se houver) -->
-      <article id="bloco-criticas" class="dash2-card dash2-card--alert hidden" aria-labelledby="h-crit">
-        <header class="dash2-card-head">
-          <div>
-            <h2 id="h-crit" class="dash2-card-title">Pendências críticas</h2>
-            <p class="dash2-card-sub">Mais de 3 dias úteis sem resolução</p>
+        <article id="bloco-criticas" class="dash2-card dash2-card--alert hidden" aria-labelledby="h-crit">
+          <header class="dash2-card-head">
+            <div>
+              <h2 id="h-crit" class="dash2-card-title">Pendências críticas</h2>
+              <p class="dash2-card-sub">Mais de 3 dias úteis</p>
+            </div>
+            <a href="/pendencias" data-link class="dash2-link">Ver todas →</a>
+          </header>
+          <div id="lista-criticas" class="dash2-criticas"></div>
+        </article>
+      </div>
+
+      <!-- Linha 2: Distribuicao | Caixa de hoje -->
+      <div class="dash2-grid">
+        <article id="bloco-distribuicao" class="dash2-card" aria-labelledby="h-dist">
+          <header class="dash2-card-head">
+            <div>
+              <h2 id="h-dist" class="dash2-card-title">Distribuição do mês</h2>
+              <p class="dash2-card-sub" id="dist-mes-rotulo">—</p>
+            </div>
+          </header>
+          <div id="dist-conteudo" class="dash2-card-body">
+            ${blocoSkel()}
           </div>
-          <a href="/pendencias" data-link class="dash2-link">Ver todas →</a>
-        </header>
-        <div id="lista-criticas" class="dash2-criticas"></div>
-      </article>
+        </article>
 
-      <!-- 3. Distribuicao do mes -->
-      <article id="bloco-distribuicao" class="dash2-card" aria-labelledby="h-dist">
-        <header class="dash2-card-head">
-          <div>
-            <h2 id="h-dist" class="dash2-card-title">Distribuição do mês</h2>
-            <p class="dash2-card-sub" id="dist-mes-rotulo">—</p>
+        <article id="bloco-caixa-hoje" class="dash2-card" aria-labelledby="h-caixa">
+          <header class="dash2-card-head">
+            <div>
+              <h2 id="h-caixa" class="dash2-card-title">Caixa de hoje</h2>
+              <p class="dash2-card-sub" id="caixa-hoje-sub">—</p>
+            </div>
+            <a id="caixa-hoje-link" href="/caixa/hoje" data-link class="dash2-link hidden">Ir para o caixa →</a>
+          </header>
+          <div id="caixa-hoje-conteudo" class="dash2-card-body">
+            ${blocoSkel()}
           </div>
-        </header>
-        <div id="dist-conteudo" class="dash2-card-body">
-          ${blocoSkel()}
-        </div>
-      </article>
+        </article>
+      </div>
 
-      <!-- 4. Caixa de hoje (status + mini stats OU CTA) -->
-      <article id="bloco-caixa-hoje" class="dash2-card" aria-labelledby="h-caixa">
-        <header class="dash2-card-head">
-          <div>
-            <h2 id="h-caixa" class="dash2-card-title">Caixa de hoje</h2>
-            <p class="dash2-card-sub" id="caixa-hoje-sub">—</p>
-          </div>
-          <a id="caixa-hoje-link" href="/caixa/hoje" data-link class="dash2-link hidden">Ir para o caixa →</a>
-        </header>
-        <div id="caixa-hoje-conteudo" class="dash2-card-body">
-          ${blocoSkel()}
-        </div>
-      </article>
-
-      <!-- 5. Movimento do mes (estatistica geral dos dias) -->
+      <!-- Linha 3: Movimento do mes (largura cheia - chart precisa de espaco) -->
       <article id="bloco-movimento" class="dash2-card" aria-labelledby="h-mov">
         <header class="dash2-card-head">
           <div>

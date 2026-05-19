@@ -191,6 +191,27 @@
 }
 
 /* ============================================================
+   Grid de 2 colunas pros widgets — voltou pra disposicao em
+   quadrados (post-ajuste do operador). Quando um dos cards na
+   linha esta .hidden (ex: Pendencias criticas vazias), o outro
+   automaticamente expande pra ocupar a linha inteira via :has().
+   ============================================================ */
+
+.dash2-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: start;
+}
+.dash2-grid:has(> .hidden) > article:not(.hidden) {
+    grid-column: 1 / -1;
+}
+@media (max-width: 900px) {
+    .dash2-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
    Cards genericos (avisos, criticas, distribuicao, caixa, movimento)
    ============================================================ */
 
@@ -203,6 +224,8 @@
     flex-direction: column;
     margin-bottom: 1rem;
 }
+/* Dentro de .dash2-grid, o margin-bottom e gerenciado pelo gap */
+.dash2-grid .dash2-card { margin-bottom: 0; }
 
 .dash2-card-head {
     display: flex;
