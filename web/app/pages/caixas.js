@@ -1,171 +1,428 @@
-// caixas.js — tela /caixas: arquivo editorial de todos os caixas.
-// Lista cada caixa que existe (criado manual ou pelo cron diario), com
-// resumo de lancamentos, pendentes, resolvidas, canceladas e status.
+// caixas.js — Tela /caixas refator visual v2.
+//
+// Layout: split 2/3 (lista de caixas) + 1/3 (painel sticky com resumo
+// de pendencias). Filtros em chips no topo, namespace .cx2-*.
+//
+// Logica de dados preservada (queries de caixa + lancamento), com
+// query adicional na view 'pendencia' pra alimentar o painel lateral.
 
 import { supabase } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
-import { ESTADO_CAIXA, LABEL_ESTADO_CAIXA_CURTO } from '../dominio.js';
+import { ESTADO_CAIXA } from '../dominio.js';
 import { formatBRL } from '../utils.js';
+import { navegar } from '../router.js';
+
+// Estado do filtro (so este modulo)
+let filtros = {
+  estado:        'todos',   // 'todos'|'aberto'|'em_conferencia'|'fechado'|'arquivado'
+  comPendencias: false,     // true = so caixas com total_pendentes > 0
+  periodo:       'todos',   // 'todos'|'mes'|'semana'
+};
+let cacheCaixas = null;
+let cachePendencias = null;
 
 export async function renderCaixas() {
   document.querySelector('#app').innerHTML = await renderShell({
     rotaAtiva: 'caixas',
     conteudo: `
-    <main class="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
-      <header class="caixas-cabec reveal reveal-1" data-etiqueta="ARQUIVO">
-        <div class="caixas-cabec-conteudo">
-          <h1 class="h-display caixas-titulo">Os caixas, em ordem.</h1>
-          <p class="caixas-subtitulo text-body">
-            Cada dia útil ganha sua página. Aqui ficam todas — abertas,
-            em conferência ou já fechadas.
+    <main id="main" class="cx2">
+      <header class="cx2-header">
+        <div>
+          <p class="cx2-eyebrow">Arquivo</p>
+          <h1 class="cx2-title">Os caixas, em ordem.</h1>
+          <p class="cx2-sub">
+            Cada dia útil ganha uma página. Filtre para encontrar
+            rapidamente.
           </p>
         </div>
+        <a href="/caixa/hoje" data-link class="cx2-btn cx2-btn--ghost cx2-btn--sm">
+          Caixa de hoje →
+        </a>
       </header>
 
-      <section id="lista-caixas" class="reveal reveal-2 mt-8"></section>
+      <section class="cx2-filtros" aria-label="Filtros">
+        <div class="cx2-chips" id="cx2-chips-estado" role="group" aria-label="Filtro de estado">
+          ${chipsEstadoHtml()}
+        </div>
+        <label class="cx2-toggle" id="cx2-toggle-pend">
+          <input type="checkbox" id="cx2-pend-input" />
+          <span class="cx2-toggle-pill" aria-hidden="true">
+            <span class="cx2-toggle-dot"></span>
+          </span>
+          <span class="cx2-toggle-label">Só com pendências</span>
+        </label>
+      </section>
+
+      <div class="cx2-split">
+        <section id="lista-caixas" class="cx2-lista" aria-label="Lista de caixas">
+          ${listaSkel()}
+        </section>
+
+        <aside class="cx2-painel" aria-label="Resumo de pendências">
+          <article class="cx2-painel-card">
+            <header class="cx2-painel-head">
+              <h2 class="cx2-painel-title">Pendências</h2>
+              <p class="cx2-painel-sub" id="cx2-painel-sub">—</p>
+            </header>
+            <div id="cx2-painel-conteudo" class="cx2-painel-body">
+              ${painelSkel()}
+            </div>
+          </article>
+        </aside>
+      </div>
     </main>
-  `,
+    `,
   });
+
   ligarShell();
-  await carregarCaixas();
+  ligarFiltros();
+  await Promise.all([
+    carregarCaixas(),
+    carregarPainelPendencias(),
+  ]);
 }
+
+// ───────────────────────────────────────────────────────────────────
+// Filtros (chips de estado + toggle 'so com pendencias')
+// ───────────────────────────────────────────────────────────────────
+
+const ESTADOS_FILTRO = [
+  { valor: 'todos',          rotulo: 'Todos' },
+  { valor: 'aberto',         rotulo: 'Abertos' },
+  { valor: 'em_conferencia', rotulo: 'Em conferência' },
+  { valor: 'fechado',        rotulo: 'Fechados' },
+  { valor: 'arquivado',      rotulo: 'Arquivados' },
+];
+
+function chipsEstadoHtml() {
+  return ESTADOS_FILTRO.map(e =>
+    `<button type="button" class="cx2-chip" data-valor="${e.valor}"
+             aria-pressed="${e.valor === filtros.estado}">
+      ${esc(e.rotulo)}
+      <span class="cx2-chip-count" data-count-for="${e.valor}">—</span>
+    </button>`
+  ).join('');
+}
+
+function ligarFiltros() {
+  document.querySelectorAll('#cx2-chips-estado .cx2-chip').forEach(c => {
+    c.addEventListener('click', () => {
+      const valor = c.dataset.valor;
+      filtros.estado = valor;
+      atualizarChipsEstado();
+      renderLista();
+    });
+  });
+  const tog = document.querySelector('#cx2-pend-input');
+  if (tog) {
+    tog.addEventListener('change', () => {
+      filtros.comPendencias = tog.checked;
+      renderLista();
+    });
+  }
+}
+
+function atualizarChipsEstado() {
+  document.querySelectorAll('#cx2-chips-estado .cx2-chip').forEach(c => {
+    c.setAttribute('aria-pressed', String(c.dataset.valor === filtros.estado));
+  });
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Carregamento de caixas + render filtrado
+// ───────────────────────────────────────────────────────────────────
 
 async function carregarCaixas() {
   const lista = document.querySelector('#lista-caixas');
   if (!lista) return;
 
-  lista.innerHTML = `
-    <div class="space-y-3">
-      ${[1,2,3,4].map(() => `<div class="skel" style="height:6.5rem"></div>`).join('')}
-    </div>`;
-
-  const [caixasRes, statsRes] = await Promise.all([
+  const [caixasRes, lancRes] = await Promise.all([
     supabase.from('caixa')
-      .select('id, data, estado, total_lancamentos, total_pendentes, total_valor')
+      .select('id, data, estado, total_lancamentos, total_pendentes, total_valor, criado_em')
       .order('data', { ascending: false }),
     supabase.from('lancamento')
-      .select('caixa_id, categoria, estado')
+      .select('caixa_id, estado')
       .neq('estado', 'excluido'),
   ]);
 
   if (caixasRes.error) {
-    lista.innerHTML = `<p class="alert">Não conseguimos carregar os caixas. ${esc(caixasRes.error.message)}</p>`;
+    lista.innerHTML = `<p class="alert">Não conseguimos carregar. ${esc(caixasRes.error.message)}</p>`;
     return;
   }
 
-  const caixas       = caixasRes.data ?? [];
-  const lancamentos  = statsRes.data ?? [];
-
-  // Agrega resolvidos e cancelados por caixa.
-  const stats = {};
-  for (const l of lancamentos) {
+  // Agrega estatisticas extras por caixa_id
+  const lancsPorCaixa = {};
+  for (const l of (lancRes.data || [])) {
     const k = l.caixa_id;
-    if (!stats[k]) stats[k] = { resolvidos: 0, cancelados: 0 };
-    if (l.estado === 'resolvido')    stats[k].resolvidos++;
-    if (l.categoria === 'cancelado') stats[k].cancelados++;
+    if (!lancsPorCaixa[k]) lancsPorCaixa[k] = { resolvidos: 0, cancelados: 0 };
+    if (l.estado === 'resolvido') lancsPorCaixa[k].resolvidos++;
+    if (l.estado === 'cancelado') lancsPorCaixa[k].cancelados++;
   }
 
-  if (caixas.length === 0) {
+  cacheCaixas = (caixasRes.data || []).map(c => ({
+    ...c,
+    _resolvidos: lancsPorCaixa[c.id]?.resolvidos ?? 0,
+    _cancelados: lancsPorCaixa[c.id]?.cancelados ?? 0,
+  }));
+
+  atualizarCountsChips(cacheCaixas);
+  renderLista();
+}
+
+function atualizarCountsChips(caixas) {
+  const counts = {
+    todos:          caixas.length,
+    aberto:         caixas.filter(c => c.estado === 'aberto').length,
+    em_conferencia: caixas.filter(c => c.estado === 'em_conferencia').length,
+    fechado:        caixas.filter(c => c.estado === 'fechado').length,
+    arquivado:      caixas.filter(c => c.estado === 'arquivado').length,
+  };
+  for (const [k, v] of Object.entries(counts)) {
+    const el = document.querySelector(`[data-count-for="${k}"]`);
+    if (el) el.textContent = String(v);
+  }
+}
+
+function renderLista() {
+  const lista = document.querySelector('#lista-caixas');
+  if (!lista || !cacheCaixas) return;
+
+  const filtrados = cacheCaixas.filter(c => {
+    if (filtros.estado !== 'todos' && c.estado !== filtros.estado) return false;
+    if (filtros.comPendencias && (c.total_pendentes ?? 0) === 0) return false;
+    return true;
+  });
+
+  if (filtrados.length === 0) {
     lista.innerHTML = `
-      <div class="vazio">
-        <div class="vazio-num">∅</div>
-        <p class="vazio-titulo">Nenhum caixa criado ainda.</p>
-        <p class="vazio-desc">
-          O caixa do dia é gerado automaticamente todo dia útil às 06h.
-          Você também pode abrir um manualmente em
-          <a href="/caixa/hoje" data-link>Caixa de hoje</a>.
-        </p>
+      <div class="cx2-empty">
+        <p class="cx2-empty-title">Nenhum caixa neste recorte.</p>
+        <p class="cx2-empty-msg">Mude os filtros pra ver mais.</p>
       </div>`;
     return;
   }
 
-  // Cards em grid de 2 colunas no desktop, 1 no mobile.
-  lista.innerHTML = `
-    <div class="caixas-grid">
-      ${caixas.map((c, i) =>
-        linhaCaixa(c, stats[c.id] || { resolvidos: 0, cancelados: 0 }, i)
-      ).join('')}
-    </div>`;
+  // Agrupa por mes (cabecalho minusculo entre os blocos)
+  const grupos = {};
+  for (const c of filtrados) {
+    const ym = c.data.slice(0, 7);
+    (grupos[ym] = grupos[ym] || []).push(c);
+  }
+  const fmtMes = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
+
+  lista.innerHTML = Object.entries(grupos).map(([ym, items]) => {
+    const [ano, mes] = ym.split('-');
+    const rotuloMes = fmtMes.format(new Date(parseInt(ano), parseInt(mes) - 1, 1));
+    return `
+      <div class="cx2-grupo">
+        <h3 class="cx2-grupo-mes">${esc(rotuloMes.replace(/^./, c => c.toUpperCase()))}</h3>
+        <ul class="cx2-items" role="list">
+          ${items.map((c, i) => itemCaixa(c, i)).join('')}
+        </ul>
+      </div>`;
+  }).join('');
 }
 
-function linhaCaixa(c, s, i) {
-  const total   = c.total_lancamentos ?? 0;
-  const pend    = c.total_pendentes ?? 0;
-  const valor   = c.total_valor ?? 0;
-  const dia     = diaSemanaCurto(c.data);          // "QUI"
-  const diaNum  = diaDoMes(c.data);                // "30"
-  const mesSlash = mesComBarra(c.data);            // "/04"
-  const titulo  = tituloCompacto(c.data);          // "Quinta, 30/04/2026"
-  const ehHoje  = ehMesmoDia(c.data, new Date());
+function itemCaixa(c, idx) {
+  const total = c.total_lancamentos ?? 0;
+  const pend  = c.total_pendentes ?? 0;
+  const valor = c.total_valor ?? 0;
+  const data  = new Date(c.data + 'T00:00:00');
+  const dia   = data.getDate();
+  const mes   = String(data.getMonth() + 1).padStart(2, '0');
+  const diaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(data).replace('.', '').toLowerCase();
+  const ehHoje = isoHoje() === c.data;
 
-  const labelVertical = LABEL_ESTADO_CAIXA_CURTO[c.estado] || c.estado.toUpperCase();
+  const estadoCfg = {
+    aberto:         { rotulo: 'Aberto',         tone: 'ok' },
+    em_conferencia: { rotulo: 'Em conferência', tone: 'warn' },
+    fechado:        { rotulo: 'Fechado',        tone: 'neutral' },
+    arquivado:      { rotulo: 'Arquivado',      tone: 'muted' },
+  };
+  const e = estadoCfg[c.estado] || { rotulo: c.estado, tone: 'neutral' };
+  const delay = `style="animation-delay:${Math.min(idx * 35, 280)}ms"`;
+
   return `
-    <a href="/caixa/${c.data}" data-link
-       class="caixa-row" data-estado="${esc(c.estado)}"
-       data-estado-label="${esc(labelVertical)}"
-       style="animation-delay:${i * 35}ms">
-      <div class="caixa-row-data">
-        <span class="caixa-row-dia">${dia}</span>
-        <span class="caixa-row-dm">
-          <span class="caixa-row-dm-dia">${diaNum}</span><span class="caixa-row-dm-mes">${mesSlash}</span>
-        </span>
-        ${ehHoje ? '<span class="caixa-row-marcador">hoje</span>' : ''}
-      </div>
+    <li>
+      <a href="/caixa/${c.data}" data-link class="cx2-item" data-estado="${c.estado}" ${delay}>
+        <div class="cx2-item-data">
+          <div class="cx2-item-dia">${dia}</div>
+          <div class="cx2-item-mes">/${mes}</div>
+          <div class="cx2-item-semana">${esc(diaSemana)}</div>
+          ${ehHoje ? '<div class="cx2-item-marca">hoje</div>' : ''}
+        </div>
 
-      <div class="caixa-row-corpo">
-        <h3 class="caixa-row-titulo">${esc(titulo)}</h3>
-        <p class="caixa-row-meta">
-          <strong>${total}</strong> ${total === 1 ? 'lançamento' : 'lançamentos'}
-          <span class="caixa-row-sep">·</span>
-          <strong class="${pend > 0 ? 'is-warn' : ''}">${pend}</strong>
-          ${pend === 1 ? 'pendente' : 'pendentes'}
-        </p>
-      </div>
+        <div class="cx2-item-meio">
+          <div class="cx2-item-stats">
+            <span class="cx2-item-stat">
+              <span class="cx2-item-stat-val">${total}</span>
+              <span class="cx2-item-stat-lab">lanç.</span>
+            </span>
+            <span class="cx2-item-stat" data-pend="${pend > 0 ? 'sim' : 'nao'}">
+              <span class="cx2-item-stat-val">${pend}</span>
+              <span class="cx2-item-stat-lab">pend.</span>
+            </span>
+            ${c._resolvidos > 0 ? `
+              <span class="cx2-item-stat">
+                <span class="cx2-item-stat-val">${c._resolvidos}</span>
+                <span class="cx2-item-stat-lab">resolv.</span>
+              </span>` : ''}
+          </div>
+        </div>
 
-      <div class="caixa-row-direita">
-        <span class="badge-status" data-estado="${esc(c.estado)}">${esc(ESTADO_CAIXA[c.estado] || c.estado)}</span>
-        <span class="caixa-row-valor">${formatBRL(valor)}</span>
+        <div class="cx2-item-direita">
+          <span class="cx2-item-badge" data-tone="${e.tone}">${esc(e.rotulo)}</span>
+          <span class="cx2-item-valor">${formatBRL(valor)}</span>
+        </div>
+      </a>
+    </li>`;
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Painel lateral — resumo de pendências
+// ───────────────────────────────────────────────────────────────────
+
+async function carregarPainelPendencias() {
+  const cont = document.querySelector('#cx2-painel-conteudo');
+  const sub  = document.querySelector('#cx2-painel-sub');
+  if (!cont) return;
+
+  const { data, error } = await supabase
+    .from('pendencia')
+    .select('id, numero_nf, cliente_nome, valor_nf, data_caixa, idade_dias_uteis, severidade')
+    .order('idade_dias_uteis', { ascending: false })
+    .limit(200);
+
+  if (error) {
+    cont.innerHTML = `<p class="cx2-empty-msg">Não foi possível carregar.</p>`;
+    return;
+  }
+
+  cachePendencias = data || [];
+
+  if (cachePendencias.length === 0) {
+    if (sub) sub.textContent = 'nenhuma pendência ativa';
+    cont.innerHTML = `
+      <div class="cx2-painel-vazio">
+        <p class="cx2-empty-title">Tudo resolvido.</p>
+        <p class="cx2-empty-msg">Nenhuma pendência ativa no momento.</p>
+      </div>`;
+    return;
+  }
+
+  // Buckets por idade
+  const total = cachePendencias.length;
+  const totalValor = cachePendencias.reduce((s, p) => s + Number(p.valor_nf || 0), 0);
+  const urgentes  = cachePendencias.filter(p => p.severidade === 'urgente');
+  const avisos    = cachePendencias.filter(p => p.severidade === 'aviso');
+  const infos     = cachePendencias.filter(p => p.severidade === 'info' || (!p.severidade));
+
+  // Top 5 dias com mais pendências
+  const porDia = {};
+  for (const p of cachePendencias) {
+    porDia[p.data_caixa] = (porDia[p.data_caixa] || 0) + 1;
+  }
+  const topDias = Object.entries(porDia)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  if (sub) sub.textContent = `${total} aberta${total > 1 ? 's' : ''} · ${formatBRL(totalValor)} em jogo`;
+
+  cont.innerHTML = `
+    <div class="cx2-painel-bucket-grupo">
+      ${bucketHtml({ tone: 'danger', rotulo: 'Críticas',   count: urgentes.length, valor: somaValor(urgentes), nota: '> 3 dias úteis' })}
+      ${bucketHtml({ tone: 'warn',   rotulo: 'Em atenção', count: avisos.length,   valor: somaValor(avisos),   nota: '1–3 dias úteis' })}
+      ${bucketHtml({ tone: 'info',   rotulo: 'Recentes',   count: infos.length,    valor: somaValor(infos),    nota: 'até 1 dia útil' })}
+    </div>
+
+    ${urgentes.length > 0 ? `
+      <div class="cx2-painel-secao">
+        <p class="cx2-painel-secao-title">Mais antigas</p>
+        <ul class="cx2-painel-pend" role="list">
+          ${urgentes.slice(0, 5).map(itemPendencia).join('')}
+        </ul>
       </div>
-    </a>
+    ` : ''}
+
+    ${topDias.length > 0 ? `
+      <div class="cx2-painel-secao">
+        <p class="cx2-painel-secao-title">Dias com mais pendências</p>
+        <ul class="cx2-painel-dias" role="list">
+          ${topDias.map(([dataIso, count]) => itemDiaPendencia(dataIso, count)).join('')}
+        </ul>
+      </div>
+    ` : ''}
   `;
 }
 
-// ─── Helpers de data ─────────────────────────────────────────────────────
+function somaValor(arr) {
+  return arr.reduce((s, p) => s + Number(p.valor_nf || 0), 0);
+}
 
-// "QUI" / "SEX" / "SAB" — abreviado em uppercase, sem ponto.
-const fmtDiaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' });
-function diaSemanaCurto(iso) {
+function bucketHtml({ tone, rotulo, count, valor, nota }) {
+  return `
+    <div class="cx2-bucket" data-tone="${tone}" data-zero="${count === 0}">
+      <span class="cx2-bucket-num">${count}</span>
+      <span class="cx2-bucket-rotulo">${esc(rotulo)}</span>
+      <span class="cx2-bucket-nota">${esc(nota)}</span>
+      ${valor > 0 ? `<span class="cx2-bucket-valor">${formatBRL(valor)}</span>` : ''}
+    </div>`;
+}
+
+function itemPendencia(p) {
+  const dataCurta = formatDataCurta(p.data_caixa);
+  return `
+    <li>
+      <a href="/caixa/${p.data_caixa}" data-link class="cx2-pend">
+        <span class="cx2-pend-nf">NF ${esc(p.numero_nf)}</span>
+        <span class="cx2-pend-cliente">${esc(p.cliente_nome)}</span>
+        <span class="cx2-pend-idade">${p.idade_dias_uteis}d · ${dataCurta}</span>
+      </a>
+    </li>`;
+}
+
+function itemDiaPendencia(dataIso, count) {
+  const dataCurta = formatDataCurta(dataIso);
+  return `
+    <li>
+      <a href="/caixa/${dataIso}" data-link class="cx2-dia-pend">
+        <span class="cx2-dia-pend-data">${dataCurta}</span>
+        <span class="cx2-dia-pend-bar" aria-hidden="true">
+          <span class="cx2-dia-pend-fill" style="width:${Math.min(100, count * 10)}%"></span>
+        </span>
+        <span class="cx2-dia-pend-count">${count}</span>
+      </a>
+    </li>`;
+}
+
+function formatDataCurta(iso) {
   const d = new Date(iso + 'T00:00:00');
-  return fmtDiaSemana.format(d).replace('.', '').toUpperCase();
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(d);
 }
 
-// "Quinta, 30/04/2026" — dia da semana sem "-feira" + data numerica.
-const fmtDiaSemanaLongo = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
-function tituloCompacto(iso) {
-  const d = new Date(iso + 'T00:00:00');
-  // "quinta-feira" -> "quinta"; "sábado"/"domingo" ja sem hifen.
-  const longo = fmtDiaSemanaLongo.format(d).split('-')[0];
-  const dia   = longo.charAt(0).toUpperCase() + longo.slice(1);
-  const [ano, mes, diaIso] = iso.split('-');
-  return `${dia}, ${diaIso}/${mes}/${ano}`;
+// ───────────────────────────────────────────────────────────────────
+// Skeletons + helpers
+// ───────────────────────────────────────────────────────────────────
+
+function listaSkel() {
+  return `
+    <div class="cx2-grupo">
+      ${[1,2,3,4].map(() => `<div class="dash2-skel" style="height:5.5rem;border-radius:10px;margin-bottom:0.55rem"></div>`).join('')}
+    </div>`;
 }
 
-// "30" — apenas o dia do mes, em destaque visual.
-function diaDoMes(iso) {
-  return iso.split('-')[2];
+function painelSkel() {
+  return `
+    <div class="dash2-skel" style="height:3.5rem;border-radius:10px;margin-bottom:0.5rem"></div>
+    <div class="dash2-skel" style="height:3.5rem;border-radius:10px;margin-bottom:0.5rem"></div>
+    <div class="dash2-skel" style="height:3.5rem;border-radius:10px"></div>`;
 }
 
-// "/04" — barra + mes em duas casas, em tipografia reduzida.
-function mesComBarra(iso) {
-  return '/' + iso.split('-')[1];
+function isoHoje() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
 }
 
-function ehMesmoDia(iso, dt) {
-  const a = new Date(iso + 'T00:00:00');
-  return a.getFullYear() === dt.getFullYear()
-      && a.getMonth() === dt.getMonth()
-      && a.getDate() === dt.getDate();
-}
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
