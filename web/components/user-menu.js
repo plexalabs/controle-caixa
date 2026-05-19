@@ -1,80 +1,131 @@
-// user-menu.js — Popover do usuário (CP5-FIX 3).
-// Trigger: avatar+nome no rodapé da sidebar. Click abre popover acima ou
-// à direita do trigger (alinhado de modo que sai "para fora" da sidebar).
-// Fecha em ESC, click fora, ou click em qualquer item de navegação.
-// Itens admin-only renderizam só se papel = admin.
+// user-menu.js — Popover do usuario v2 ("Clean Profissional").
+// Trigger: o bloco .sb-user no rodape da sidebar (#sb-user).
+// Click abre popover. Fecha em ESC, click fora, ou click em item.
+//
+// Header rico: avatar 44px verde + nome + cargo + email + badge
+// 'super_admin' (se aplicavel). Itens em grupos com divisores.
+// Posicionamento: desktop sai pra direita do trigger; mobile/estreito
+// sobe alinhado sobre o trigger.
 
-import { pegarSessao } from '../app/supabase.js';
+import { supabase, pegarSessao } from '../app/supabase.js';
 import { navegar } from '../app/router.js';
-import { carregarPermissoes, temPermissaoSync } from '../app/papeis.js';
+import { carregarPermissoes, temPermissaoSync, pegarPapeis } from '../app/papeis.js';
 
 let popoverAtual = null;
 let escListener  = null;
 let cliqueForaListener = null;
+
+const ICONS = {
+  perfil:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5"/></svg>`,
+  gear:     `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v1.4M8 13.1v1.4M3.4 3.4l1 1M11.6 11.6l1 1M1.5 8h1.4M13.1 8h1.4M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>`,
+  shield:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5 3 3.5v4c0 3.2 2 5.6 5 7 3-1.4 5-3.8 5-7v-4l-5-2Z"/><path d="M6 8l1.5 1.5L10.5 6.5"/></svg>`,
+  audit:    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2" width="11" height="12" rx="1.5"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>`,
+  help:     `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M6 6.2a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9V10"/><circle cx="8" cy="12" r="0.6" fill="currentColor"/></svg>`,
+  logout:   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.5h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9"/><path d="M6 5l-3 3 3 3M3 8h7"/></svg>`,
+  copy:     `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M5 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v2"/></svg>`,
+  star:     `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l2 4.5 5 .5-3.7 3.4 1 4.9L8 12.4l-4.3 2.4 1-4.9L1 6.5l5-.5 2-4.5z"/></svg>`,
+};
 
 export async function abrirUserMenu({ onSair } = {}) {
   if (popoverAtual) { fecharUserMenu(); return; }
 
   const sessao = await pegarSessao();
   const meta   = sessao?.user?.user_metadata ?? {};
-  const nome   = (meta.nome || sessao?.user?.email?.split('@')[0] || 'Operador').trim();
   const email  = sessao?.user?.email || '';
-  // RBAC Sessao 3: "Painel admin" mostra pra quem tem acesso a alguma
-  // area admin. usuario.visualizar eh proxy estavel (admin/gerente tem;
-  // super_admin via bypass). Pra menus mais granulares no futuro, dividir
-  // em itens individuais com sua propria permissao.
-  await carregarPermissoes();
-  const ehAdmin = temPermissaoSync('usuario.visualizar');
+  const nomeCompleto = [meta.nome, meta.sobrenome].filter(Boolean).join(' ').trim()
+                    || meta.nome
+                    || email.split('@')[0]
+                    || 'Operador';
+  const inicial = ((meta.nome?.[0] || email?.[0]) || '?').toUpperCase();
 
-  const trigger = document.querySelector('#sidebar-user');
+  // Permissoes + papel
+  await carregarPermissoes();
+  const podeAdmin       = temPermissaoSync('usuario.visualizar');
+  const podeAuditoria   = temPermissaoSync('auditoria.visualizar');
+  const podeConfig      = podeAdmin; // simplificacao
+
+  const papeis = await pegarPapeis();
+  const ehSuper = papeis?.includes('super_admin');
+
+  // Cargo (nome do perfil RBAC) — best-effort
+  let cargo = '—';
+  if (sessao?.user?.id) {
+    try {
+      const { data } = await supabase
+        .from('usuario_perfil')
+        .select('perfil:perfil_id(nome)')
+        .eq('usuario_id', sessao.user.id)
+        .maybeSingle();
+      cargo = data?.perfil?.nome || '—';
+    } catch (_) {}
+  }
+
+  const trigger = document.querySelector('#sb-user');
   if (!trigger) return;
   trigger.setAttribute('aria-expanded', 'true');
 
   const pop = document.createElement('div');
-  pop.className = 'user-menu';
+  pop.className = 'um';
   pop.setAttribute('role', 'menu');
   pop.setAttribute('aria-label', 'Menu do usuário');
+
   pop.innerHTML = `
-    <header class="user-menu-header">
-      <p class="user-menu-nome">${esc(nome)}</p>
-      <p class="user-menu-email" title="${esc(email)}">${esc(email)}</p>
+    <header class="um-head">
+      <div class="um-avatar" aria-hidden="true">${esc(inicial)}</div>
+      <div class="um-meta">
+        <div class="um-nome">
+          ${esc(nomeCompleto)}
+          ${ehSuper ? `<span class="um-badge" title="Super administrador">${ICONS.star} super</span>` : ''}
+        </div>
+        <div class="um-cargo">${esc(cargo)}</div>
+      </div>
+      <button type="button" class="um-email" data-acao="copiar-email" title="Copiar e-mail">
+        <span class="um-email-texto">${esc(email)}</span>
+        <span class="um-email-icone" aria-hidden="true">${ICONS.copy}</span>
+      </button>
     </header>
 
-    <ul class="user-menu-lista" role="none">
-      ${ehAdmin
-        ? itemMenu({ rotulo: 'Painel admin', icone: svgEscudo(), href: '/configuracoes' })
-        : itemMenu({ rotulo: 'Configurações', icone: svgEngrenagem(), href: '/configuracoes' })}
-      ${itemMenu({ rotulo: 'Seu perfil', icone: svgUsuario(), href: '/perfil' })}
-    </ul>
+    <div class="um-group" role="none">
+      ${itemMenu({ rotulo: 'Seu perfil',       icone: ICONS.perfil, href: '/perfil' })}
+      ${podeConfig
+        ? itemMenu({ rotulo: 'Configurações', icone: ICONS.gear,   href: '/configuracoes' })
+        : ''}
+    </div>
 
-    <ul class="user-menu-lista" role="none">
-      ${itemMenu({ rotulo: 'Receber ajuda', icone: svgCirculoInterrogacao(), placeholder: 'Em breve' })}
-    </ul>
+    ${(podeAdmin || podeAuditoria) ? `
+      <div class="um-group" role="none">
+        ${podeAdmin
+          ? itemMenu({ rotulo: 'Usuários e papéis', icone: ICONS.shield, href: '/configuracoes/usuarios' })
+          : ''}
+        ${podeAuditoria
+          ? itemMenu({ rotulo: 'Auditoria & Lixeira', icone: ICONS.audit, href: '/configuracoes/auditoria' })
+          : ''}
+      </div>
+    ` : ''}
 
-    <ul class="user-menu-lista user-menu-lista--final" role="none">
-      ${itemMenu({ rotulo: 'Sair', icone: svgSair(), acao: 'sair', tom: 'alerta' })}
-    </ul>
+    <div class="um-group" role="none">
+      ${itemMenu({ rotulo: 'Ajuda', icone: ICONS.help, placeholder: 'em breve' })}
+    </div>
+
+    <div class="um-group um-group--final" role="none">
+      ${itemMenu({ rotulo: 'Sair', icone: ICONS.logout, acao: 'sair', tom: 'danger' })}
+    </div>
   `;
 
   document.body.appendChild(pop);
   popoverAtual = pop;
   posicionar(pop, trigger);
 
-  // Fade-up de entrada
-  requestAnimationFrame(() => pop.classList.add('is-aberto'));
+  requestAnimationFrame(() => pop.classList.add('is-open'));
 
-  // Listeners de fechamento
-  escListener = (e) => {
-    if (e.key === 'Escape') { fecharUserMenu(); }
-  };
+  escListener = (e) => { if (e.key === 'Escape') fecharUserMenu(); };
   cliqueForaListener = (e) => {
     if (!pop.contains(e.target) && !trigger.contains(e.target)) fecharUserMenu();
   };
   document.addEventListener('keydown', escListener);
-  // setTimeout pra evitar capturar o próprio click que abriu o menu
   setTimeout(() => document.addEventListener('mousedown', cliqueForaListener), 0);
 
-  // Click em itens
+  // Navegacao
   pop.querySelectorAll('[data-href]').forEach(el => {
     el.addEventListener('click', () => {
       const href = el.dataset.href;
@@ -82,13 +133,24 @@ export async function abrirUserMenu({ onSair } = {}) {
       if (href) navegar(href);
     });
   });
+  // Sair
   pop.querySelectorAll('[data-acao="sair"]').forEach(el => {
     el.addEventListener('click', async () => {
       fecharUserMenu();
       if (typeof onSair === 'function') await onSair();
     });
   });
-  // Item placeholder
+  // Copiar email
+  pop.querySelectorAll('[data-acao="copiar-email"]').forEach(el => {
+    el.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(email);
+        el.classList.add('is-copied');
+        setTimeout(() => el.classList.remove('is-copied'), 1400);
+      } catch (_) {}
+    });
+  });
+  // Placeholder (em breve)
   pop.querySelectorAll('[data-placeholder]').forEach(el => {
     el.addEventListener('click', (e) => e.preventDefault());
   });
@@ -100,8 +162,8 @@ function fecharUserMenu() {
   if (!popoverAtual) return;
   const pop = popoverAtual;
   popoverAtual = null;
-  pop.classList.remove('is-aberto');
-  pop.classList.add('is-fechando');
+  pop.classList.remove('is-open');
+  pop.classList.add('is-closing');
   setTimeout(() => pop.remove(), 180);
 
   document.removeEventListener('keydown', escListener);
@@ -109,50 +171,30 @@ function fecharUserMenu() {
   escListener = null;
   cliqueForaListener = null;
 
-  document.querySelector('#sidebar-user')?.setAttribute('aria-expanded', 'false');
+  document.querySelector('#sb-user')?.setAttribute('aria-expanded', 'false');
 }
 
 function posicionar(pop, trigger) {
   const r = trigger.getBoundingClientRect();
-  const popW = 280;
+  const popW = 300;
   const margem = 8;
-  const aside = document.querySelector('.app-sidebar');
-  const estado = aside?.dataset.estado || 'expandida';
   const ehMobile = window.innerWidth < 768;
 
-  // Sidebar EXPANDIDA: popover sobe alinhado à esquerda do trigger
-  // (topo do popover toca o topo do trigger).
-  // Sidebar COLAPSADA: popover sai para a direita, alinhado pelo bottom
-  // do trigger (canto inferior coincide).
-  // Mobile: igual à expandida — popover sobe.
-  const expandida = (estado === 'expandida' || estado === 'mobile-aberto' || ehMobile);
+  // Por padrao: sai pra direita do trigger (na altura do trigger,
+  // alinhado pelo bottom). Mobile/sem espaco: sobe alinhado ao trigger.
+  let left = r.right + margem;
+  let top  = r.top;
+  let direcao = 'lateral';
 
-  let left;
-  let top;
-
-  if (expandida) {
-    // Sai PARA CIMA, mesmo eixo X que o trigger
-    left = Math.max(margem, r.left);
-    // se não couber à esquerda do viewport, joga pra direita do trigger
-    if (left + popW > window.innerWidth - margem) {
-      left = Math.max(margem, window.innerWidth - popW - margem);
-    }
-    top = r.top - margem;
-    pop.classList.add('user-menu--acima');
-  } else {
-    // Sai PARA A DIREITA, alinhado pelo bottom do trigger
-    left = r.right + margem;
-    if (left + popW > window.innerWidth - margem) {
-      // Sem espaço à direita — joga acima do trigger
-      left = Math.max(margem, r.left);
-      top = r.top - margem;
-      pop.classList.add('user-menu--acima');
-    } else {
-      top = r.bottom;
-      pop.classList.add('user-menu--lateral');
-    }
+  if (ehMobile || (left + popW > window.innerWidth - margem)) {
+    // Sobe alinhado a esquerda do trigger
+    left = Math.max(margem, Math.min(r.left, window.innerWidth - popW - margem));
+    top  = r.top - margem;
+    direcao = 'acima';
+    pop.style.transform = 'translateY(-100%)';
   }
 
+  pop.dataset.direcao = direcao;
   pop.style.left = `${left}px`;
   pop.style.top  = `${top}px`;
 }
@@ -164,53 +206,11 @@ function itemMenu({ rotulo, icone, href, acao, tom, placeholder }) {
   if (placeholder) attrs.push(`data-placeholder="1"`);
   if (tom)         attrs.push(`data-tom="${esc(tom)}"`);
   return `
-    <li role="none">
-      <button type="button" class="user-menu-item" role="menuitem" ${attrs.join(' ')}>
-        <span class="user-menu-item-icone" aria-hidden="true">${icone}</span>
-        <span class="user-menu-item-rotulo">${esc(rotulo)}</span>
-        ${placeholder ? `<span class="user-menu-item-tag">${esc(placeholder)}</span>` : ''}
-      </button>
-    </li>`;
-}
-
-// ─── Ícones ─────────────────────────────────────────────────────────
-function svgEscudo() {
-  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <path d="M12 3 L20 6 V12 C20 16.5 16.5 20 12 21 C7.5 20 4 16.5 4 12 V6 Z"
-          stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-    <path d="M9 12 L11 14 L15 10" stroke="currentColor" stroke-width="1.5"
-          stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
-}
-function svgEngrenagem() {
-  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/>
-    <path d="M12 2 V4 M12 20 V22 M2 12 H4 M20 12 H22 M4.9 4.9 L6.3 6.3 M17.7 17.7 L19.1 19.1 M4.9 19.1 L6.3 17.7 M17.7 6.3 L19.1 4.9"
-          stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-  </svg>`;
-}
-function svgUsuario() {
-  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/>
-    <path d="M4 21 C4 16.5 7.5 13.5 12 13.5 C16.5 13.5 20 16.5 20 21"
-          stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-  </svg>`;
-}
-function svgCirculoInterrogacao() {
-  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
-    <path d="M9.5 9.2 C9.5 7.8 10.7 6.7 12.1 6.7 C13.5 6.7 14.6 7.8 14.6 9.2 C14.6 10.5 13.7 11 12.7 11.6 C11.9 12 11.5 12.5 11.5 13.5"
-          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="12" cy="17" r="0.7" fill="currentColor"/>
-  </svg>`;
-}
-function svgSair() {
-  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <path d="M14 4 H17 C18.1 4 19 4.9 19 6 V18 C19 19.1 18.1 20 17 20 H14"
-          stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M10 8 L14 12 L10 16 M14 12 H4"
-          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
+    <button type="button" class="um-item" role="menuitem" ${attrs.join(' ')}>
+      <span class="um-item-icon" aria-hidden="true">${icone}</span>
+      <span class="um-item-label">${esc(rotulo)}</span>
+      ${placeholder ? `<span class="um-item-tag">${esc(placeholder)}</span>` : ''}
+    </button>`;
 }
 
 function esc(s) {
