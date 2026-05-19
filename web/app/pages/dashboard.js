@@ -292,20 +292,11 @@ function renderCaixaDeHoje(caixaHoje, hojeISO) {
     if (link) link.classList.add('hidden');
     cont.innerHTML = `
       <div class="dash2-caixa-vazio">
-        <div class="dash2-caixa-vazio-icon" aria-hidden="true">
-          ${svgVault()}
-        </div>
-        <div class="dash2-caixa-vazio-texto">
-          <p class="dash2-caixa-vazio-eyebrow">Caixa fechado</p>
-          <p class="dash2-caixa-vazio-title">Comece o dia abrindo o caixa.</p>
-          <p class="dash2-caixa-vazio-msg">
-            Sem caixa aberto, lançamentos ficam em buffer e o resumo do dia
-            não atualiza.
-          </p>
-          <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary dash2-caixa-vazio-cta">
-            ${svgPlus()} Abrir agora
-          </a>
-        </div>
+        <p class="dash2-caixa-vazio-title">Comece o dia abrindo o caixa.</p>
+        <p class="dash2-caixa-vazio-msg">Sem caixa aberto, lançamentos ficam em buffer e o resumo do dia não atualiza.</p>
+        <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary dash2-btn--sm dash2-caixa-vazio-cta">
+          ${svgPlus()} Abrir caixa de hoje
+        </a>
       </div>`;
     return;
   }

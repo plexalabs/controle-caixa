@@ -495,88 +495,29 @@
    Caixa de hoje — estado vazio + mini stats
    ============================================================ */
 
-/* Estado vazio refinado — icone marcante a esquerda, hierarquia
-   tipografica clara, CTA verde proeminente. Fundo gradient sutil. */
+/* Estado vazio — texto centralizado simples + CTA compacto. */
 .dash2-caixa-vazio {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 1.4rem;
-    align-items: center;
-    padding: 0.5rem 0;
-    position: relative;
-}
-@media (max-width: 520px) {
-    .dash2-caixa-vazio {
-        grid-template-columns: 1fr;
-        text-align: center;
-        gap: 1rem;
-    }
-}
-
-.dash2-caixa-vazio-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: var(--ui-r-md);
-    background: var(--ui-accent-soft);
-    color: var(--ui-accent);
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    position: relative;
-    box-shadow:
-        inset 0 0 0 1px rgba(40, 62, 6, 0.06),
-        0 2px 10px -4px rgba(40, 62, 6, 0.15);
-}
-.dash2-caixa-vazio-icon > svg {
-    width: 36px;
-    height: 36px;
-}
-/* Anelzinho decorativo em volta — sugere "destrancar" */
-.dash2-caixa-vazio-icon::after {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    border-radius: calc(var(--ui-r-md) + 4px);
-    border: 1px dashed rgba(40, 62, 6, 0.22);
-    pointer-events: none;
-}
-@media (max-width: 520px) {
-    .dash2-caixa-vazio-icon { margin: 0 auto; }
-}
-
-.dash2-caixa-vazio-texto { min-width: 0; }
-
-.dash2-caixa-vazio-eyebrow {
-    font-size: 0.66rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: var(--ui-accent);
-    margin: 0 0 0.45rem;
-    line-height: 1;
+    text-align: center;
+    padding: 1rem 0.5rem 0.5rem;
 }
 .dash2-caixa-vazio-title {
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--ui-ink);
     margin: 0 0 0.4rem;
-    letter-spacing: -0.015em;
-    line-height: 1.25;
+    letter-spacing: -0.012em;
 }
 .dash2-caixa-vazio-msg {
     font-size: 0.85rem;
     color: var(--ui-ink-3);
-    margin: 0 0 0.95rem;
+    margin: 0 0 1rem;
     line-height: 1.5;
+    max-width: 32rem;
+    margin-left: auto;
+    margin-right: auto;
 }
 .dash2-caixa-vazio-cta {
-    /* Botao primary verde — mais compacto, com pequeno destaque. */
-    box-shadow: 0 2px 8px -2px rgba(21, 128, 61, 0.35);
-    padding: 0.5rem 0.95rem;
-    font-size: 0.85rem;
-}
-.dash2-caixa-vazio-cta:hover {
-    box-shadow: 0 4px 14px -2px rgba(21, 128, 61, 0.45);
+    display: inline-flex;
 }
 
 .dash2-caixa-mini {
