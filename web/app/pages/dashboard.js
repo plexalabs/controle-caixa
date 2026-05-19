@@ -200,21 +200,27 @@ function itemAberto(c) {
   return `
     <li>
       <a href="/caixa/${c.data}" data-link class="dash2-aberto" data-tone="${tone}">
-        <span class="dash2-aberto-dot" aria-hidden="true"></span>
-        <span class="dash2-aberto-body">
-          <span class="dash2-aberto-head">
-            <strong class="dash2-aberto-data">${dataCurta}</strong>
+        <div class="dash2-aberto-head">
+          <span class="dash2-aberto-data">
+            <strong>${dataCurta}</strong>
             <span class="dash2-aberto-dia">${esc(diaSemana)}</span>
-            <span class="dash2-aberto-badge">${esc(estadoRot)}</span>
           </span>
-          <span class="dash2-aberto-meta">
-            <span>${c.total_lancamentos ?? 0} lanç.</span>
-            <span>•</span>
-            <span>${formatBRL(c.total_valor ?? 0)}</span>
-            ${pend > 0 ? `<span>•</span><span class="dash2-aberto-pend">${pend} pend.</span>` : ''}
+          <span class="dash2-aberto-badge">${esc(estadoRot)}</span>
+        </div>
+        <div class="dash2-aberto-meta">
+          <span class="dash2-aberto-stat">
+            <span class="dash2-aberto-stat-val">${c.total_lancamentos ?? 0}</span>
+            <span class="dash2-aberto-stat-lab">lanç.</span>
           </span>
-        </span>
-        <span class="dash2-aberto-seta" aria-hidden="true">→</span>
+          <span class="dash2-aberto-stat">
+            <span class="dash2-aberto-stat-val">${formatBRL(c.total_valor ?? 0)}</span>
+            <span class="dash2-aberto-stat-lab">recebido</span>
+          </span>
+          <span class="dash2-aberto-stat" data-pend="${pend > 0 ? 'sim' : 'nao'}">
+            <span class="dash2-aberto-stat-val">${pend}</span>
+            <span class="dash2-aberto-stat-lab">pend.</span>
+          </span>
+        </div>
       </a>
     </li>`;
 }
