@@ -112,7 +112,10 @@
     --ui-border:       #E5E2D9;
     --ui-border-strong:#CFCBBE;
 
-    --ui-ink:          #18181B;
+    /* Tinta primaria — verde-musgo escuro #283e06 (substitui #18181B preto).
+       Usado em brand mark, nav-item ativo, botoes dark. Pra texto comum,
+       --ui-ink-2 (zinc-700) traz neutralidade e legibilidade melhor. */
+    --ui-ink:          #283E06;
     --ui-ink-2:        #3F3F46;
     --ui-ink-3:        #71717A;
     --ui-ink-4:        #A1A1AA;

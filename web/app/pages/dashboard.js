@@ -42,12 +42,9 @@ export async function renderDashboard() {
             ${saudacaoPorHora(hoje)}, <span class="dash2-header-name">${esc(nome)}</span>.
           </h1>
         </div>
-        <div class="dash2-header-actions">
-          <a href="/pendencias" data-link class="dash2-btn dash2-btn--ghost">Pendências</a>
-          <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary">
-            ${svgPlus()} Abrir caixa de hoje
-          </a>
-        </div>
+        <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--ghost dash2-btn--sm">
+          Abrir caixa de hoje →
+        </a>
       </header>
 
       <section class="dash2-kpis" aria-label="Resumo do dia">

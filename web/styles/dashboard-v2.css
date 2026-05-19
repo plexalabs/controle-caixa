@@ -89,6 +89,10 @@
     border-color: var(--ui-border-strong);
     color: var(--ui-ink);
 }
+.dash2-btn--sm {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.82rem;
+}
 
 .dash2-link {
     color: var(--ui-accent);

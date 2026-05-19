@@ -14,12 +14,15 @@
 // coluna esquerda, e <main> da página fica na direita.
 
 import { renderSidebar, ligarSidebar } from '../components/sidebar.js';
+import { renderTopbar, ligarTopbar }   from './../components/topbar.js';
 
 export async function renderShell({ rotaAtiva = '', conteudo = '' } = {}) {
   const sidebarHtml = await renderSidebar(rotaAtiva);
+  const topbarHtml  = renderTopbar();
   return `
     ${sidebarHtml}
     <div class="app-conteudo" id="app-conteudo">
+      ${topbarHtml}
       ${conteudo}
     </div>
   `;
@@ -29,4 +32,5 @@ export function ligarShell() {
   const app = document.querySelector('#app');
   if (app) app.dataset.shell = '1';
   ligarSidebar();
+  ligarTopbar();
 }
