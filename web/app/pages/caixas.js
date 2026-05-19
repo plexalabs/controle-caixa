@@ -136,13 +136,15 @@ async function carregarCaixas() {
   const lista = document.querySelector('#lista-caixas');
   if (!lista) return;
 
-  const [caixasRes, lancRes] = await Promise.all([
+  const [caixasRes, lancRes, pendRes] = await Promise.all([
     supabase.from('caixa')
       .select('id, data, estado, total_lancamentos, total_pendentes, total_valor, criado_em')
       .order('data', { ascending: false }),
     supabase.from('lancamento')
-      .select('caixa_id, estado')
+      .select('caixa_id, estado, categoria')
       .neq('estado', 'excluido'),
+    supabase.from('pendencia')
+      .select('data_caixa, severidade'),
   ]);
 
   if (caixasRes.error) {
@@ -150,20 +152,42 @@ async function carregarCaixas() {
     return;
   }
 
-  // Agrega estatisticas extras por caixa_id
+  // Agrega por caixa: contagens de estado e top categorias
   const lancsPorCaixa = {};
   for (const l of (lancRes.data || [])) {
     const k = l.caixa_id;
-    if (!lancsPorCaixa[k]) lancsPorCaixa[k] = { resolvidos: 0, cancelados: 0 };
+    if (!lancsPorCaixa[k]) {
+      lancsPorCaixa[k] = { resolvidos: 0, cancelados: 0, categorias: {} };
+    }
     if (l.estado === 'resolvido') lancsPorCaixa[k].resolvidos++;
     if (l.estado === 'cancelado') lancsPorCaixa[k].cancelados++;
+    if (l.categoria) {
+      lancsPorCaixa[k].categorias[l.categoria] = (lancsPorCaixa[k].categorias[l.categoria] || 0) + 1;
+    }
   }
 
-  cacheCaixas = (caixasRes.data || []).map(c => ({
-    ...c,
-    _resolvidos: lancsPorCaixa[c.id]?.resolvidos ?? 0,
-    _cancelados: lancsPorCaixa[c.id]?.cancelados ?? 0,
-  }));
+  // Pendências críticas por data_caixa
+  const criticasPorData = {};
+  for (const p of (pendRes.data || [])) {
+    if (p.severidade === 'urgente') {
+      criticasPorData[p.data_caixa] = (criticasPorData[p.data_caixa] || 0) + 1;
+    }
+  }
+
+  cacheCaixas = (caixasRes.data || []).map(c => {
+    const stats = lancsPorCaixa[c.id] || { resolvidos: 0, cancelados: 0, categorias: {} };
+    const topCats = Object.entries(stats.categorias)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([cat, count]) => ({ cat, count }));
+    return {
+      ...c,
+      _resolvidos: stats.resolvidos,
+      _cancelados: stats.cancelados,
+      _topCats:    topCats,
+      _criticas:   criticasPorData[c.data] || 0,
+    };
+  });
 
   atualizarCountsChips(cacheCaixas);
   renderLista();
@@ -242,40 +266,70 @@ function itemCaixa(c, idx) {
   const e = estadoCfg[c.estado] || { rotulo: c.estado, tone: 'neutral' };
   const delay = `style="animation-delay:${Math.min(idx * 35, 280)}ms"`;
 
+  const rotuloCat = {
+    cartao: 'Cartão', pix: 'Pix', dinheiro: 'Dinheiro',
+    cancelado: 'Cancelado', cartao_link: 'Link',
+    disponivel_retirada: 'Retirar', obs: 'OBS',
+  };
+
+  // Chips de top-3 categorias (so se houver lancamentos)
+  const chipsCat = c._topCats.map(t => `
+    <span class="cx2-item-cat-chip" data-cat="${esc(t.cat)}">
+      <span class="cx2-item-cat-rotulo">${esc(rotuloCat[t.cat] || t.cat)}</span>
+      <span class="cx2-item-cat-num">${t.count}</span>
+    </span>
+  `).join('');
+
   return `
     <li>
       <a href="/caixa/${c.data}" data-link class="cx2-item" data-estado="${c.estado}" ${delay}>
-        <div class="cx2-item-data">
-          <div class="cx2-item-dia">${dia}</div>
-          <div class="cx2-item-mes">/${mes}</div>
-          <div class="cx2-item-semana">${esc(diaSemana)}</div>
-          ${ehHoje ? '<div class="cx2-item-marca">hoje</div>' : ''}
-        </div>
+        <div class="cx2-item-topo">
+          <div class="cx2-item-data">
+            <div class="cx2-item-dia">${dia}</div>
+            <div class="cx2-item-mes">/${mes}</div>
+            <div class="cx2-item-semana">${esc(diaSemana)}</div>
+            ${ehHoje ? '<div class="cx2-item-marca">hoje</div>' : ''}
+          </div>
 
-        <div class="cx2-item-meio">
-          <div class="cx2-item-stats">
-            <span class="cx2-item-stat">
-              <span class="cx2-item-stat-val">${total}</span>
-              <span class="cx2-item-stat-lab">lanç.</span>
-            </span>
-            <span class="cx2-item-stat" data-pend="${pend > 0 ? 'sim' : 'nao'}">
-              <span class="cx2-item-stat-val">${pend}</span>
-              <span class="cx2-item-stat-lab">pend.</span>
-            </span>
-            ${c._resolvidos > 0 ? `
+          <div class="cx2-item-meio">
+            <div class="cx2-item-stats">
               <span class="cx2-item-stat">
-                <span class="cx2-item-stat-val">${c._resolvidos}</span>
-                <span class="cx2-item-stat-lab">resolv.</span>
-              </span>` : ''}
+                <span class="cx2-item-stat-val">${total}</span>
+                <span class="cx2-item-stat-lab">lanç.</span>
+              </span>
+              <span class="cx2-item-stat" data-pend="${pend > 0 ? 'sim' : 'nao'}">
+                <span class="cx2-item-stat-val">${pend}</span>
+                <span class="cx2-item-stat-lab">pend.</span>
+              </span>
+              ${c._resolvidos > 0 ? `
+                <span class="cx2-item-stat">
+                  <span class="cx2-item-stat-val">${c._resolvidos}</span>
+                  <span class="cx2-item-stat-lab">resolv.</span>
+                </span>` : ''}
+            </div>
+          </div>
+
+          <div class="cx2-item-direita">
+            <span class="cx2-item-badge" data-tone="${e.tone}">${esc(e.rotulo)}</span>
+            <span class="cx2-item-valor">${formatBRL(valor)}</span>
           </div>
         </div>
 
-        <div class="cx2-item-direita">
-          <span class="cx2-item-badge" data-tone="${e.tone}">${esc(e.rotulo)}</span>
-          <span class="cx2-item-valor">${formatBRL(valor)}</span>
-        </div>
+        ${(chipsCat || c._criticas > 0) ? `
+          <div class="cx2-item-resumo">
+            ${chipsCat ? `<div class="cx2-item-cats">${chipsCat}</div>` : '<span></span>'}
+            ${c._criticas > 0 ? `
+              <span class="cx2-item-alerta" title="${c._criticas} pendência${c._criticas > 1 ? 's' : ''} crítica${c._criticas > 1 ? 's' : ''}">
+                ${svgAlerta()} ${c._criticas} crítica${c._criticas > 1 ? 's' : ''}
+              </span>` : ''}
+          </div>
+        ` : ''}
       </a>
     </li>`;
+}
+
+function svgAlerta() {
+  return `<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L1.5 13h13Z"/><path d="M8 6.5v3"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor"/></svg>`;
 }
 
 // ───────────────────────────────────────────────────────────────────
