@@ -1,15 +1,14 @@
 // dashboard.js — Tela /dashboard (refator visual v2 "Clean Profissional").
-// Logica de dados PRESERVADA (queries, RPCs, realtime). Markup novo
-// usando namespace .dash2-* + tokens --ui-*. Sidebar nova ja vem via shell.
+// Layout v2-3 (2026-05-20): adiciona delta vs ontem nos KPIs, bloco
+// dinamico de "Caixa de hoje" e estatistica geral (movimento do mes).
 //
-// Layout:
-//   header (data + saudacao + acao primaria)
-//   KPIs (4 cards: hoje, pendentes, retiradas, caixa de ontem)
-//   2 colunas: Avisos + Distribuicao mensal
-//   Pendencias criticas (so aparece se houver)
-//
-// Charts de movimento do mes ficaram fora desta iteracao — podem voltar
-// se solicitado.
+// Ordem das secoes (definida pelo operador):
+//   1. KPIs (4 cards com setas delta)
+//   2. Avisos
+//   3. Pendencias criticas (so aparece se houver)
+//   4. Distribuicao do mes
+//   5. Caixa de hoje (status + mini stats OU CTA pra abrir)
+//   6. Movimento do mes (chart de barras dos dias)
 
 import { supabase, pegarSessao } from '../supabase.js';
 import { destinoNotificacao, enriquecerNotificacoes } from '../notificacao-router.js';
@@ -42,42 +41,28 @@ export async function renderDashboard() {
             ${saudacaoPorHora(hoje)}, <span class="dash2-header-name">${esc(nome)}</span>.
           </h1>
         </div>
-        <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--ghost dash2-btn--sm">
-          Abrir caixa de hoje →
-        </a>
+        <div id="dash2-header-cta"></div>
       </header>
 
       <section class="dash2-kpis" aria-label="Resumo do dia">
         ${kpiSkel()}${kpiSkel()}${kpiSkel()}${kpiSkel()}
       </section>
 
-      <div class="dash2-split">
-        <article id="bloco-avisos" class="dash2-card" aria-labelledby="h-avisos">
-          <header class="dash2-card-head">
-            <div>
-              <h2 id="h-avisos" class="dash2-card-title">Avisos</h2>
-              <p class="dash2-card-sub" id="contagem-notif">—</p>
-            </div>
-            <a href="/notificacoes" data-link class="dash2-link">Ver todos →</a>
-          </header>
-          <div id="lista-notif" class="dash2-card-body">
-            ${blocoSkel()}
+      <!-- 1. Avisos -->
+      <article id="bloco-avisos" class="dash2-card" aria-labelledby="h-avisos">
+        <header class="dash2-card-head">
+          <div>
+            <h2 id="h-avisos" class="dash2-card-title">Avisos</h2>
+            <p class="dash2-card-sub" id="contagem-notif">—</p>
           </div>
-        </article>
+          <a href="/notificacoes" data-link class="dash2-link">Ver todos →</a>
+        </header>
+        <div id="lista-notif" class="dash2-card-body">
+          ${blocoSkel()}
+        </div>
+      </article>
 
-        <article id="bloco-distribuicao" class="dash2-card" aria-labelledby="h-dist">
-          <header class="dash2-card-head">
-            <div>
-              <h2 id="h-dist" class="dash2-card-title">Distribuição do mês</h2>
-              <p class="dash2-card-sub" id="dist-mes-rotulo">—</p>
-            </div>
-          </header>
-          <div id="dist-conteudo" class="dash2-card-body">
-            ${blocoSkel()}
-          </div>
-        </article>
-      </div>
-
+      <!-- 2. Pendencias criticas (so aparece se houver) -->
       <article id="bloco-criticas" class="dash2-card dash2-card--alert hidden" aria-labelledby="h-crit">
         <header class="dash2-card-head">
           <div>
@@ -88,6 +73,46 @@ export async function renderDashboard() {
         </header>
         <div id="lista-criticas" class="dash2-criticas"></div>
       </article>
+
+      <!-- 3. Distribuicao do mes -->
+      <article id="bloco-distribuicao" class="dash2-card" aria-labelledby="h-dist">
+        <header class="dash2-card-head">
+          <div>
+            <h2 id="h-dist" class="dash2-card-title">Distribuição do mês</h2>
+            <p class="dash2-card-sub" id="dist-mes-rotulo">—</p>
+          </div>
+        </header>
+        <div id="dist-conteudo" class="dash2-card-body">
+          ${blocoSkel()}
+        </div>
+      </article>
+
+      <!-- 4. Caixa de hoje (status + mini stats OU CTA) -->
+      <article id="bloco-caixa-hoje" class="dash2-card" aria-labelledby="h-caixa">
+        <header class="dash2-card-head">
+          <div>
+            <h2 id="h-caixa" class="dash2-card-title">Caixa de hoje</h2>
+            <p class="dash2-card-sub" id="caixa-hoje-sub">—</p>
+          </div>
+          <a id="caixa-hoje-link" href="/caixa/hoje" data-link class="dash2-link hidden">Ir para o caixa →</a>
+        </header>
+        <div id="caixa-hoje-conteudo" class="dash2-card-body">
+          ${blocoSkel()}
+        </div>
+      </article>
+
+      <!-- 5. Movimento do mes (estatistica geral dos dias) -->
+      <article id="bloco-movimento" class="dash2-card" aria-labelledby="h-mov">
+        <header class="dash2-card-head">
+          <div>
+            <h2 id="h-mov" class="dash2-card-title">Movimento do mês</h2>
+            <p class="dash2-card-sub" id="mov-resumo">—</p>
+          </div>
+        </header>
+        <div id="mov-conteudo" class="dash2-card-body">
+          ${blocoSkel()}
+        </div>
+      </article>
     </main>
     `,
   });
@@ -97,6 +122,7 @@ export async function renderDashboard() {
   await carregarNotificacoes();
   await carregarCriticas();
   await carregarDistribuicaoCategoria();
+  await carregarMovimentoMes();
   ligarRealtime();
 }
 
@@ -108,13 +134,13 @@ async function carregarResumo(hojeISO) {
 
   const { data: caixaHoje } = await supabase
     .from('caixa')
-    .select('id, total_lancamentos, total_valor, total_pendentes, estado')
+    .select('id, total_lancamentos, total_valor, total_pendentes, estado, data, criado_em, aberto_por')
     .eq('data', hojeISO)
     .maybeSingle();
 
   const { data: caixaOntem } = await supabase
     .from('caixa')
-    .select('id, estado, data')
+    .select('id, estado, data, total_valor, total_lancamentos, total_pendentes')
     .eq('data', ontemISO)
     .maybeSingle();
 
@@ -124,57 +150,115 @@ async function carregarResumo(hojeISO) {
     .gte('resolvido_em', hojeISO + 'T00:00:00')
     .lt('resolvido_em',  hojeISO + 'T23:59:59');
 
-  const pendentes = caixaHoje?.total_pendentes ?? 0;
-  const ontemFechado = caixaOntem?.estado === 'fechado';
+  const { count: resolvidasOntem } = await supabase
+    .from('lancamento')
+    .select('id', { count: 'exact', head: true })
+    .gte('resolvido_em', ontemISO + 'T00:00:00')
+    .lt('resolvido_em',  ontemISO + 'T23:59:59');
+
+  // Delta % vs ontem (helper). Tone 'up' = bom, 'down' = ruim — pra
+  // pendentes invertemos (menos pendentes e bom).
+  const dvalor = pctDelta(caixaHoje?.total_valor ?? 0, caixaOntem?.total_valor ?? 0);
+  const dlanc  = pctDelta(caixaHoje?.total_lancamentos ?? 0, caixaOntem?.total_lancamentos ?? 0);
+  const dpend  = pctDelta(caixaHoje?.total_pendentes ?? 0, caixaOntem?.total_pendentes ?? 0);
+  const dres   = pctDelta(resolvidasHoje ?? 0, resolvidasOntem ?? 0);
 
   const cards = [
     kpi({
-      label: 'Hoje',
+      label: 'Recebido hoje',
       value: formatBRL(caixaHoje?.total_valor ?? 0),
-      sub: `${caixaHoje?.total_lancamentos ?? 0} lançamento${(caixaHoje?.total_lancamentos ?? 0) === 1 ? '' : 's'}`,
+      sub: 'vs ontem',
+      delta: dvalor,
       href: '/caixa/hoje',
       icon: svgWallet(),
-      tone: 'neutral',
+    }),
+    kpi({
+      label: 'Lançamentos',
+      value: String(caixaHoje?.total_lancamentos ?? 0),
+      sub: 'vs ontem',
+      delta: dlanc,
+      href: '/caixa/hoje',
+      icon: svgList(),
     }),
     kpi({
       label: 'Pendentes',
-      value: String(pendentes),
-      sub: pendentes > 0 ? 'aguardando ação' : 'tudo resolvido',
+      value: String(caixaHoje?.total_pendentes ?? 0),
+      sub: 'vs ontem',
+      delta: dpend,
+      deltaInvert: true,  // menos pendentes = bom (verde pra baixo)
       href: '/pendencias',
       icon: svgClock(),
-      tone: pendentes > 0 ? 'warn' : 'ok',
     }),
     kpi({
       label: 'Resolvidas hoje',
       value: String(resolvidasHoje ?? 0),
-      sub: 'pendências fechadas',
+      sub: 'vs ontem',
+      delta: dres,
       href: '/pendencias',
       icon: svgCheck(),
-      tone: 'ok',
-    }),
-    kpi({
-      label: 'Caixa de ontem',
-      value: ontemFechado ? 'Fechado' : (caixaOntem ? 'Em aberto' : '—'),
-      sub: caixaOntem ? `referência ${ontemISO.slice(8,10)}/${ontemISO.slice(5,7)}` : 'sem registro',
-      href: caixaOntem ? `/caixa/${caixaOntem.data}` : '/caixa/hoje',
-      icon: svgArchive(),
-      tone: ontemFechado ? 'ok' : 'warn',
     }),
   ].join('');
 
   const grid = document.querySelector('.dash2-kpis');
   if (grid) grid.innerHTML = cards;
+
+  // Header CTA: so mostra "Abrir caixa de hoje ->" se NAO tem caixa hoje
+  const cta = document.querySelector('#dash2-header-cta');
+  if (cta) {
+    if (!caixaHoje) {
+      cta.innerHTML = `<a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--ghost dash2-btn--sm">Abrir caixa de hoje →</a>`;
+    } else {
+      cta.innerHTML = ''; // ja esta aberto — botao Novo lancamento na topbar resolve
+    }
+  }
+
+  // Bloco caixa-de-hoje (logo abaixo dos KPIs)
+  renderCaixaDeHoje(caixaHoje, hojeISO);
 }
 
-function kpi({ label, value, sub, href, icon, tone = 'neutral' }) {
+function pctDelta(atual, anterior) {
+  // Retorna { pct: number|null, tone: 'up'|'down'|'flat'|'new' }
+  if (anterior === 0 && atual === 0) return { pct: 0, tone: 'flat' };
+  if (anterior === 0 && atual > 0)   return { pct: null, tone: 'up', novo: true };
+  if (anterior > 0  && atual === 0)  return { pct: -100, tone: 'down' };
+  const p = ((atual - anterior) / anterior) * 100;
+  if (Math.abs(p) < 0.5) return { pct: 0, tone: 'flat' };
+  return { pct: p, tone: p > 0 ? 'up' : 'down' };
+}
+
+function kpi({ label, value, sub, delta, deltaInvert, href, icon }) {
+  // Decide cor da seta: tipicamente up=verde, down=vermelho. Pra metricas
+  // onde menor e melhor (ex: pendentes), invertemos.
+  let tone = delta?.tone || 'flat';
+  if (deltaInvert) {
+    if (tone === 'up')   tone = 'down';
+    else if (tone === 'down') tone = 'up';
+  }
+
+  let deltaHtml = '';
+  if (delta) {
+    if (delta.novo) {
+      deltaHtml = `<span class="dash2-kpi-delta" data-tone="up">${svgArrowUp()} novo</span>`;
+    } else if (delta.tone === 'flat') {
+      deltaHtml = `<span class="dash2-kpi-delta" data-tone="flat">— estável</span>`;
+    } else {
+      const pct = Math.abs(delta.pct).toFixed(0);
+      const arrow = delta.tone === 'up' ? svgArrowUp() : svgArrowDown();
+      deltaHtml = `<span class="dash2-kpi-delta" data-tone="${tone}">${arrow} ${pct}%</span>`;
+    }
+  }
+
   return `
-    <a href="${href}" data-link class="dash2-kpi" data-tone="${tone}">
+    <a href="${href}" data-link class="dash2-kpi">
       <span class="dash2-kpi-label">
         <span class="dash2-kpi-icon">${icon}</span>
         ${esc(label)}
       </span>
       <span class="dash2-kpi-value">${esc(value)}</span>
-      <span class="dash2-kpi-sub">${esc(sub)}</span>
+      <span class="dash2-kpi-foot">
+        ${deltaHtml}
+        <span class="dash2-kpi-sub">${esc(sub)}</span>
+      </span>
     </a>`;
 }
 
@@ -192,6 +276,69 @@ function blocoSkel() {
     <div class="dash2-skel" style="height:3rem;margin-bottom:0.5rem"></div>
     <div class="dash2-skel" style="height:3rem;margin-bottom:0.5rem"></div>
     <div class="dash2-skel" style="height:3rem"></div>`;
+}
+
+// ─── Caixa de hoje (bloco dinamico) ──────────────────────────────────
+function renderCaixaDeHoje(caixaHoje, hojeISO) {
+  const cont = document.querySelector('#caixa-hoje-conteudo');
+  const sub  = document.querySelector('#caixa-hoje-sub');
+  const link = document.querySelector('#caixa-hoje-link');
+  if (!cont) return;
+
+  if (!caixaHoje) {
+    if (sub) sub.textContent = 'ainda não aberto';
+    if (link) link.classList.add('hidden');
+    cont.innerHTML = `
+      <div class="dash2-caixa-vazio">
+        <p class="dash2-caixa-vazio-title">Comece o dia abrindo o caixa.</p>
+        <p class="dash2-caixa-vazio-msg">Sem caixa aberto, lançamentos ficam em buffer e o resumo do dia não atualiza.</p>
+        <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary" style="margin-top:1rem">
+          ${svgPlus()} Abrir caixa de hoje
+        </a>
+      </div>`;
+    return;
+  }
+
+  // Tem caixa hoje — mostra mini stats
+  const horaAberto = caixaHoje.criado_em
+    ? new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(caixaHoje.criado_em))
+    : '—';
+  const estadoMap = {
+    aberto:        { rotulo: 'Aberto',          tone: 'ok' },
+    em_conferencia:{ rotulo: 'Em conferência',  tone: 'warn' },
+    fechado:       { rotulo: 'Fechado',         tone: 'neutral' },
+    arquivado:     { rotulo: 'Arquivado',       tone: 'neutral' },
+  };
+  const e = estadoMap[caixaHoje.estado] || { rotulo: caixaHoje.estado, tone: 'neutral' };
+
+  if (sub) sub.textContent = `aberto às ${horaAberto} · ${e.rotulo.toLowerCase()}`;
+  if (link) link.classList.remove('hidden');
+
+  cont.innerHTML = `
+    <div class="dash2-caixa-mini">
+      <span class="dash2-caixa-badge" data-tone="${e.tone}">${esc(e.rotulo)}</span>
+
+      <ul class="dash2-caixa-stats" role="list">
+        <li>
+          <span class="dash2-caixa-stat-label">Lançamentos</span>
+          <span class="dash2-caixa-stat-value">${caixaHoje.total_lancamentos ?? 0}</span>
+        </li>
+        <li>
+          <span class="dash2-caixa-stat-label">Recebido</span>
+          <span class="dash2-caixa-stat-value">${formatBRL(caixaHoje.total_valor ?? 0)}</span>
+        </li>
+        <li>
+          <span class="dash2-caixa-stat-label">Pendentes</span>
+          <span class="dash2-caixa-stat-value" data-tone="${(caixaHoje.total_pendentes ?? 0) > 0 ? 'warn' : 'ok'}">
+            ${caixaHoje.total_pendentes ?? 0}
+          </span>
+        </li>
+      </ul>
+
+      <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary dash2-btn--sm">
+        Ir para o caixa →
+      </a>
+    </div>`;
 }
 
 // ─── Avisos ─────────────────────────────────────────────────────────
@@ -393,6 +540,100 @@ async function carregarCriticas() {
   `).join('');
 }
 
+// ─── Movimento do mês (estatistica geral dos dias) ───────────────────
+// Chart de barras simples: 1 barra por dia do mes atual. Altura
+// proporcional ao total_valor do caixa daquele dia. Feriado vira
+// barra cinza menor. Dia futuro vira pista vazia.
+async function carregarMovimentoMes() {
+  const cont   = document.querySelector('#mov-conteudo');
+  const resumo = document.querySelector('#mov-resumo');
+  if (!cont) return;
+
+  const hoje = new Date();
+  const ano  = hoje.getFullYear();
+  const mes  = hoje.getMonth();
+  const primeiroDia = new Date(ano, mes, 1);
+  const ultimoDia   = new Date(ano, mes + 1, 0);
+  const isoIni = isoData(primeiroDia);
+  const isoFim = isoData(ultimoDia);
+
+  const [resCaixas, resFeriados] = await Promise.all([
+    supabase
+      .from('caixa')
+      .select('data, total_valor, total_lancamentos, estado')
+      .gte('data', isoIni).lte('data', isoFim)
+      .order('data', { ascending: true }),
+    supabase
+      .from('feriado')
+      .select('data, descricao')
+      .eq('ativo', true)
+      .gte('data', isoIni).lte('data', isoFim),
+  ]);
+
+  if (resCaixas.error) {
+    cont.innerHTML = `<p class="dash2-empty-msg">Não foi possível carregar o movimento.</p>`;
+    return;
+  }
+
+  const caixaIndex   = Object.fromEntries((resCaixas.data || []).map(r => [r.data, r]));
+  const feriadoIndex = Object.fromEntries((resFeriados.data || []).map(r => [r.data, r]));
+
+  const dias = [];
+  for (let d = new Date(primeiroDia); d <= ultimoDia; d.setDate(d.getDate() + 1)) {
+    const iso = isoData(new Date(d));
+    const c = caixaIndex[iso];
+    dias.push({
+      data: iso,
+      dia: d.getDate(),
+      total_valor: Number(c?.total_valor ?? 0),
+      total_lancamentos: Number(c?.total_lancamentos ?? 0),
+      estado: c?.estado ?? null,
+      feriado: feriadoIndex[iso] || null,
+      futuro: new Date(iso) > hoje,
+    });
+  }
+
+  const hojeISO = isoData(hoje);
+  const valores = dias.map(d => d.total_valor).filter(v => v > 0);
+  const maxValor = Math.max(...valores, 1);
+  const totalPeriodo = dias.reduce((s, d) => s + d.total_valor, 0);
+  const totalLanc = dias.reduce((s, d) => s + d.total_lancamentos, 0);
+
+  if (resumo) {
+    const fmtMes = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
+    resumo.textContent = `${fmtMes.format(primeiroDia).replace(/^./, c => c.toUpperCase())} · ${formatBRL(totalPeriodo)} em ${totalLanc} lançamento${totalLanc === 1 ? '' : 's'}`;
+  }
+
+  cont.innerHTML = `
+    <div class="dash2-mov" style="--mov-cols:${dias.length}">
+      ${dias.map(d => colMov(d, hojeISO, maxValor)).join('')}
+    </div>`;
+}
+
+function colMov(d, hojeISO, maxValor) {
+  const isHoje = d.data === hojeISO;
+  const pct = d.total_valor > 0 ? (d.total_valor / maxValor) * 100 : 0;
+  const label = d.feriado
+    ? `${d.dia} — feriado: ${d.feriado.descricao}`
+    : `${d.dia} — ${formatBRL(d.total_valor)} (${d.total_lancamentos} lançamentos)`;
+  const cls = [
+    'dash2-mov-col',
+    isHoje  ? 'is-hoje'  : '',
+    d.futuro? 'is-futuro': '',
+    d.feriado ? 'is-feriado' : '',
+  ].filter(Boolean).join(' ');
+  const href = d.futuro ? null : `/caixa/${d.data}`;
+  const inner = `
+    <span class="dash2-mov-track" aria-hidden="true">
+      <span class="dash2-mov-fill" style="height:${pct.toFixed(2)}%"></span>
+    </span>
+    <span class="dash2-mov-num">${d.dia}</span>`;
+  if (href) {
+    return `<a href="${href}" data-link class="${cls}" title="${esc(label)}">${inner}</a>`;
+  }
+  return `<span class="${cls}" title="${esc(label)}">${inner}</span>`;
+}
+
 // ─── Realtime ────────────────────────────────────────────────────────
 function ligarRealtime() {
   canalNotif = supabase.channel('dash-notif')
@@ -416,9 +657,11 @@ function desmontar() {
 const A = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"`;
 function svgPlus()    { return `<svg ${A} stroke-width="1.8"><path d="M8 3v10M3 8h10"/></svg>`; }
 function svgWallet()  { return `<svg ${A}><rect x="2" y="4.5" width="12" height="9" rx="1.5"/><path d="M2 7h12"/><circle cx="11" cy="10" r="0.8" fill="currentColor"/></svg>`; }
+function svgList()    { return `<svg ${A}><path d="M5 4h9M5 8h9M5 12h9"/><circle cx="2.5" cy="4" r="0.7" fill="currentColor"/><circle cx="2.5" cy="8" r="0.7" fill="currentColor"/><circle cx="2.5" cy="12" r="0.7" fill="currentColor"/></svg>`; }
 function svgClock()   { return `<svg ${A}><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.5 1.5"/></svg>`; }
 function svgCheck()   { return `<svg ${A}><path d="M3 8.5l3 3 7-7"/></svg>`; }
-function svgArchive() { return `<svg ${A}><rect x="2" y="3" width="12" height="3" rx="0.5"/><path d="M3 6v7h10V6M6.5 9h3"/></svg>`; }
+function svgArrowUp()   { return `<svg viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7l4-4 3 3 4-4"/><path d="M8 2h4v4"/></svg>`; }
+function svgArrowDown() { return `<svg viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3l4 4 3-3 4 4"/><path d="M8 8h4V4"/></svg>`; }
 
 function esc(s) {
   if (s === null || s === undefined) return '';

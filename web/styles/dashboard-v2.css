@@ -163,26 +163,35 @@
     color: var(--ui-ink-3);
     line-height: 1.4;
 }
-.dash2-kpi[data-tone="ok"]     .dash2-kpi-icon { color: var(--ui-accent); }
-.dash2-kpi[data-tone="warn"]   .dash2-kpi-icon { color: var(--ui-warn); }
-.dash2-kpi[data-tone="danger"] .dash2-kpi-icon { color: var(--ui-danger); }
+.dash2-kpi-foot {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+}
+.dash2-kpi-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    padding: 0.18rem 0.4rem;
+    border-radius: 999px;
+}
+.dash2-kpi-delta svg { width: 11px; height: 9px; }
+.dash2-kpi-delta[data-tone="up"]   { color: var(--ui-accent);  background: var(--ui-accent-soft); }
+.dash2-kpi-delta[data-tone="down"] { color: var(--ui-danger);  background: var(--ui-danger-soft); }
+.dash2-kpi-delta[data-tone="flat"] {
+    color: var(--ui-ink-3);
+    background: var(--ui-surface-2);
+    font-weight: 600;
+}
 
 /* ============================================================
-   Split (avisos + distribuicao)
-   ============================================================ */
-
-.dash2-split {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-@media (max-width: 900px) {
-    .dash2-split { grid-template-columns: 1fr; }
-}
-
-/* ============================================================
-   Card generico (avisos, distribuicao, criticas)
+   Cards genericos (avisos, criticas, distribuicao, caixa, movimento)
    ============================================================ */
 
 .dash2-card {
@@ -192,6 +201,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    margin-bottom: 1rem;
 }
 
 .dash2-card-head {
@@ -456,3 +466,174 @@
 }
 
 .dash2 .hidden { display: none !important; }
+
+
+/* ============================================================
+   Caixa de hoje — estado vazio + mini stats
+   ============================================================ */
+
+.dash2-caixa-vazio {
+    text-align: center;
+    padding: 1rem 0.5rem 0.5rem;
+}
+.dash2-caixa-vazio-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.012em;
+}
+.dash2-caixa-vazio-msg {
+    font-size: 0.85rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    line-height: 1.5;
+    max-width: 32rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.dash2-caixa-mini {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.5rem;
+}
+@media (max-width: 700px) {
+    .dash2-caixa-mini {
+        grid-template-columns: 1fr;
+        gap: 0.9rem;
+    }
+}
+
+.dash2-caixa-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-2);
+}
+.dash2-caixa-badge::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.85;
+}
+.dash2-caixa-badge[data-tone="ok"]      { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.dash2-caixa-badge[data-tone="warn"]    { background: var(--ui-warn-soft);   color: var(--ui-warn); }
+.dash2-caixa-badge[data-tone="neutral"] { background: var(--ui-surface-2);   color: var(--ui-ink-2); }
+
+.dash2-caixa-stats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+.dash2-caixa-stats li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 6rem;
+}
+.dash2-caixa-stat-label {
+    font-size: 0.72rem;
+    color: var(--ui-ink-3);
+    font-weight: 600;
+    text-transform: lowercase;
+    letter-spacing: 0.01em;
+}
+.dash2-caixa-stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.015em;
+}
+.dash2-caixa-stat-value[data-tone="warn"] { color: var(--ui-warn); }
+.dash2-caixa-stat-value[data-tone="ok"]   { color: var(--ui-accent); }
+
+
+/* ============================================================
+   Movimento do mes — chart de barras dos dias
+   ============================================================ */
+
+.dash2-mov {
+    display: grid;
+    grid-template-columns: repeat(var(--mov-cols, 30), 1fr);
+    gap: 4px;
+    align-items: stretch;
+    height: 11rem;
+    padding-top: 0.5rem;
+}
+
+.dash2-mov-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+}
+.dash2-mov-col.is-futuro { cursor: default; opacity: 0.45; }
+.dash2-mov-col:not(.is-futuro):hover .dash2-mov-fill { background: var(--ui-accent-2); }
+.dash2-mov-col:not(.is-futuro):hover .dash2-mov-num  { color: var(--ui-ink); font-weight: 700; }
+
+.dash2-mov-track {
+    flex: 1;
+    width: 100%;
+    background: var(--ui-surface-2);
+    border-radius: 3px 3px 0 0;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    min-height: 4px;
+}
+.dash2-mov-fill {
+    width: 100%;
+    background: var(--ui-accent);
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: background 160ms var(--ui-ease), height 600ms var(--ui-ease);
+}
+.dash2-mov-col.is-hoje .dash2-mov-fill {
+    background: var(--ui-ink);
+    box-shadow: 0 0 0 2px var(--ui-bg), 0 0 0 3px var(--ui-ink);
+}
+.dash2-mov-col.is-feriado .dash2-mov-track {
+    background: repeating-linear-gradient(
+        45deg,
+        var(--ui-surface-2),
+        var(--ui-surface-2) 3px,
+        var(--ui-surface-3) 3px,
+        var(--ui-surface-3) 6px
+    );
+}
+.dash2-mov-col.is-feriado .dash2-mov-fill { display: none; }
+
+.dash2-mov-num {
+    font-size: 0.66rem;
+    color: var(--ui-ink-3);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    transition: color 160ms var(--ui-ease);
+}
+.dash2-mov-col.is-hoje .dash2-mov-num {
+    color: var(--ui-ink);
+    font-weight: 700;
+}
+
+@media (max-width: 600px) {
+    .dash2-mov { height: 8rem; gap: 2px; }
+    .dash2-mov-num { font-size: 0.6rem; }
+}
