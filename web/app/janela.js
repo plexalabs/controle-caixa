@@ -9,6 +9,7 @@
 // quando admin altera (evento custom 'config-mudou').
 
 import { supabase } from './supabase.js';
+import { pegarPapeis } from './papeis.js';
 
 const PADROES = {
   janela_op_ativa:        true,
@@ -70,6 +71,12 @@ function agoraSP() {
 }
 
 export async function dentroDaJanela() {
+  // BYPASS super_admin — acesso irrestrito
+  try {
+    const papeis = await pegarPapeis();
+    if (papeis?.includes('super_admin')) return true;
+  } catch (_) { /* sem papeis → continua checagem normal */ }
+
   const cfg = await lerConfig();
   if (!cfg.ativa) return true;
   const { hora, iso } = agoraSP();
