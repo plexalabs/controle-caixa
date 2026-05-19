@@ -202,22 +202,27 @@
    automaticamente expande pra ocupar a linha inteira via :has().
    ============================================================ */
 
-.dash2-grid {
+/* Layout em duas colunas independentes — cada coluna empilha seus
+   cards verticalmente com altura natural. Cards 'desalinhados' entre
+   colunas mas proximos verticalmente na sua propria coluna. */
+.dash2-cols {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
     margin-bottom: 1rem;
-    align-items: stretch;
+    align-items: start;
 }
-/* Cards do grid esticam ate o final da linha (uniformes verticalmente).
-   Body cresce pra ocupar o espaco restante. */
-.dash2-grid > .dash2-card { height: 100%; }
-.dash2-grid > .dash2-card .dash2-card-body { flex: 1; }
-.dash2-grid:has(> .hidden) > article:not(.hidden) {
-    grid-column: 1 / -1;
+.dash2-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
 }
+/* Cards dentro da coluna nao precisam de margin-bottom (gap gerencia) */
+.dash2-col > .dash2-card { margin-bottom: 0; }
+
 @media (max-width: 900px) {
-    .dash2-grid { grid-template-columns: 1fr; }
+    .dash2-cols { grid-template-columns: 1fr; }
 }
 
 /* ============================================================
