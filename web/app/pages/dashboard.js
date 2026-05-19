@@ -75,20 +75,8 @@ export async function renderDashboard() {
         </article>
       </div>
 
-      <!-- Linha 2: Distribuicao | Caixa de hoje -->
+      <!-- Linha 2: Caixa de hoje | Caixas abertos (par natural — ambos sobre caixas) -->
       <div class="dash2-grid">
-        <article id="bloco-distribuicao" class="dash2-card" aria-labelledby="h-dist">
-          <header class="dash2-card-head">
-            <div>
-              <h2 id="h-dist" class="dash2-card-title">Distribuição do mês</h2>
-              <p class="dash2-card-sub" id="dist-mes-rotulo">—</p>
-            </div>
-          </header>
-          <div id="dist-conteudo" class="dash2-card-body">
-            ${blocoSkel()}
-          </div>
-        </article>
-
         <article id="bloco-caixa-hoje" class="dash2-card" aria-labelledby="h-caixa">
           <header class="dash2-card-head">
             <div>
@@ -101,7 +89,33 @@ export async function renderDashboard() {
             ${blocoSkel()}
           </div>
         </article>
+
+        <article id="bloco-caixas-abertos" class="dash2-card" aria-labelledby="h-abertos">
+          <header class="dash2-card-head">
+            <div>
+              <h2 id="h-abertos" class="dash2-card-title">Caixas abertos</h2>
+              <p class="dash2-card-sub" id="abertos-sub">—</p>
+            </div>
+            <a href="/caixas" data-link class="dash2-link">Ver todos →</a>
+          </header>
+          <div id="abertos-conteudo" class="dash2-card-body">
+            ${blocoSkel()}
+          </div>
+        </article>
       </div>
+
+      <!-- Linha 3: Distribuicao do mes (largura cheia) -->
+      <article id="bloco-distribuicao" class="dash2-card" aria-labelledby="h-dist">
+        <header class="dash2-card-head">
+          <div>
+            <h2 id="h-dist" class="dash2-card-title">Distribuição do mês</h2>
+            <p class="dash2-card-sub" id="dist-mes-rotulo">—</p>
+          </div>
+        </header>
+        <div id="dist-conteudo" class="dash2-card-body">
+          ${blocoSkel()}
+        </div>
+      </article>
 
       <!-- Linha 3: Movimento do mes (largura cheia - chart precisa de espaco) -->
       <article id="bloco-movimento" class="dash2-card" aria-labelledby="h-mov">
@@ -123,9 +137,86 @@ export async function renderDashboard() {
   await carregarResumo(hojeISO);
   await carregarNotificacoes();
   await carregarCriticas();
+  await carregarCaixasAbertos(hojeISO);
   await carregarDistribuicaoCategoria();
   await carregarMovimentoMes();
   ligarRealtime();
+}
+
+// ─── Caixas abertos (de outros dias) ─────────────────────────────────
+// Lista compacta dos caixas com estado aberto/em_conferencia (excluindo
+// o de hoje, que ja tem bloco proprio). Bullet colorido por estado,
+// data + estado + mini stats inline. Click navega pra /caixa/YYYY-MM-DD.
+async function carregarCaixasAbertos(hojeISO) {
+  const cont = document.querySelector('#abertos-conteudo');
+  const sub  = document.querySelector('#abertos-sub');
+  if (!cont) return;
+
+  const { data, error } = await supabase
+    .from('caixa')
+    .select('id, data, estado, total_lancamentos, total_valor, total_pendentes')
+    .in('estado', ['aberto', 'em_conferencia'])
+    .neq('data', hojeISO)
+    .order('data', { ascending: false })
+    .limit(6);
+
+  if (error) {
+    cont.innerHTML = `<p class="dash2-empty-msg">Não foi possível carregar.</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    if (sub) sub.textContent = 'nenhum em aberto';
+    cont.innerHTML = `
+      <div class="dash2-empty">
+        <p class="dash2-empty-title">Nenhum caixa pendente.</p>
+        <p class="dash2-empty-msg">Todos os dias anteriores foram fechados — operação em dia.</p>
+      </div>`;
+    return;
+  }
+
+  const total = data.length;
+  const totalPend = data.reduce((s, c) => s + (c.total_pendentes || 0), 0);
+  if (sub) {
+    sub.textContent = totalPend > 0
+      ? `${total} dia${total > 1 ? 's' : ''} · ${totalPend} pendência${totalPend > 1 ? 's' : ''} acumulada${totalPend > 1 ? 's' : ''}`
+      : `${total} dia${total > 1 ? 's' : ''} sem pendências`;
+  }
+
+  cont.innerHTML = `
+    <ul class="dash2-abertos" role="list">
+      ${data.map(itemAberto).join('')}
+    </ul>`;
+}
+
+function itemAberto(c) {
+  const data = new Date(c.data + 'T00:00:00');
+  const diaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(data).replace('.', '');
+  const dataCurta = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(data);
+  const estadoRot = c.estado === 'aberto' ? 'Aberto' : 'Em conferência';
+  const tone = c.estado === 'aberto' ? 'ok' : 'warn';
+  const pend = c.total_pendentes ?? 0;
+
+  return `
+    <li>
+      <a href="/caixa/${c.data}" data-link class="dash2-aberto" data-tone="${tone}">
+        <span class="dash2-aberto-dot" aria-hidden="true"></span>
+        <span class="dash2-aberto-body">
+          <span class="dash2-aberto-head">
+            <strong class="dash2-aberto-data">${dataCurta}</strong>
+            <span class="dash2-aberto-dia">${esc(diaSemana)}</span>
+            <span class="dash2-aberto-badge">${esc(estadoRot)}</span>
+          </span>
+          <span class="dash2-aberto-meta">
+            <span>${c.total_lancamentos ?? 0} lanç.</span>
+            <span>•</span>
+            <span>${formatBRL(c.total_valor ?? 0)}</span>
+            ${pend > 0 ? `<span>•</span><span class="dash2-aberto-pend">${pend} pend.</span>` : ''}
+          </span>
+        </span>
+        <span class="dash2-aberto-seta" aria-hidden="true">→</span>
+      </a>
+    </li>`;
 }
 
 // ─── KPIs ─────────────────────────────────────────────────────────────

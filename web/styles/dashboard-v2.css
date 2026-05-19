@@ -619,6 +619,112 @@
 
 
 /* ============================================================
+   Caixas abertos — lista compacta de outros dias em aberto
+   ============================================================ */
+
+.dash2-abertos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.dash2-aberto {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: var(--ui-r-sm);
+    text-decoration: none;
+    color: inherit;
+    transition: background 140ms var(--ui-ease), border-color 140ms var(--ui-ease);
+}
+.dash2-aberto:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border);
+}
+.dash2-aberto-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    flex-shrink: 0;
+    align-self: start;
+    margin-top: 0.45rem;
+    box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-accent);
+}
+.dash2-aberto[data-tone="warn"] .dash2-aberto-dot {
+    background: var(--ui-warn);
+    box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-warn);
+}
+
+.dash2-aberto-body { min-width: 0; }
+.dash2-aberto-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.15rem;
+}
+.dash2-aberto-data {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+}
+.dash2-aberto-dia {
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    text-transform: lowercase;
+}
+.dash2-aberto-badge {
+    margin-left: auto;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent);
+    line-height: 1.3;
+}
+.dash2-aberto[data-tone="warn"] .dash2-aberto-badge {
+    background: var(--ui-warn-soft);
+    color: var(--ui-warn);
+}
+.dash2-aberto-meta {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    font-variant-numeric: tabular-nums;
+}
+.dash2-aberto-meta > span {
+    line-height: 1.3;
+}
+.dash2-aberto-pend {
+    color: var(--ui-warn);
+    font-weight: 600;
+}
+.dash2-aberto-seta {
+    color: var(--ui-ink-4);
+    font-size: 1rem;
+    line-height: 1;
+    transition: transform 160ms var(--ui-ease), color 160ms var(--ui-ease);
+}
+.dash2-aberto:hover .dash2-aberto-seta {
+    color: var(--ui-ink-2);
+    transform: translateX(2px);
+}
+
+
+/* ============================================================
    Movimento do mes — chart de barras dos dias
    ============================================================ */
 
