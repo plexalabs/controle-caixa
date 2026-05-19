@@ -292,11 +292,20 @@ function renderCaixaDeHoje(caixaHoje, hojeISO) {
     if (link) link.classList.add('hidden');
     cont.innerHTML = `
       <div class="dash2-caixa-vazio">
-        <p class="dash2-caixa-vazio-title">Comece o dia abrindo o caixa.</p>
-        <p class="dash2-caixa-vazio-msg">Sem caixa aberto, lançamentos ficam em buffer e o resumo do dia não atualiza.</p>
-        <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary" style="margin-top:1rem">
-          ${svgPlus()} Abrir caixa de hoje
-        </a>
+        <div class="dash2-caixa-vazio-icon" aria-hidden="true">
+          ${svgVault()}
+        </div>
+        <div class="dash2-caixa-vazio-texto">
+          <p class="dash2-caixa-vazio-eyebrow">Caixa fechado</p>
+          <p class="dash2-caixa-vazio-title">Comece o dia abrindo o caixa.</p>
+          <p class="dash2-caixa-vazio-msg">
+            Sem caixa aberto, lançamentos ficam em buffer e o resumo do dia
+            não atualiza.
+          </p>
+          <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary dash2-caixa-vazio-cta">
+            ${svgPlus()} Abrir agora
+          </a>
+        </div>
       </div>`;
     return;
   }
@@ -664,6 +673,17 @@ function svgClock()   { return `<svg ${A}><circle cx="8" cy="8" r="6.5"/><path d
 function svgCheck()   { return `<svg ${A}><path d="M3 8.5l3 3 7-7"/></svg>`; }
 function svgArrowUp()   { return `<svg viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7l4-4 3 3 4-4"/><path d="M8 2h4v4"/></svg>`; }
 function svgArrowDown() { return `<svg viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3l4 4 3-3 4 4"/><path d="M8 8h4V4"/></svg>`; }
+// Cofre ilustrativo — mais marcante que icone de caixa. Estado vazio.
+function svgVault() {
+  return `
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="7" width="32" height="26" rx="2.5"/>
+      <circle cx="20" cy="20" r="7"/>
+      <circle cx="20" cy="20" r="2.5"/>
+      <path d="M20 13v-2M20 29v-2M13 20h-2M29 20h-2"/>
+      <path d="M7 33v3M33 33v3"/>
+    </svg>`;
+}
 
 function esc(s) {
   if (s === null || s === undefined) return '';
