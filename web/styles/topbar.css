@@ -137,6 +137,22 @@
     background: var(--ui-accent);
 }
 .tb-btn--primary:hover { background: var(--ui-accent-2); }
+.tb-btn--warn {
+    background: var(--ui-warn);
+    color: var(--ui-bg);
+}
+.tb-btn--warn:hover { background: #92410A; }
+.tb-btn--ghost {
+    background: var(--ui-surface);
+    color: var(--ui-ink-2);
+    border: 1px solid var(--ui-border);
+    font-weight: 500;
+}
+.tb-btn--ghost:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border-strong);
+    color: var(--ui-ink);
+}
 
 .tb-btn svg { width: 13px; height: 13px; }
 

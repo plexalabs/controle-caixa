@@ -93,6 +93,11 @@
     padding: 0.4rem 0.85rem;
     font-size: 0.82rem;
 }
+.dash2-btn--warn {
+    background: var(--ui-warn);
+    color: var(--ui-bg);
+}
+.dash2-btn--warn:hover { background: #92410A; color: var(--ui-bg); }
 
 .dash2-link {
     color: var(--ui-accent);
@@ -586,6 +591,31 @@
 }
 .dash2-caixa-stat-value[data-tone="warn"] { color: var(--ui-warn); }
 .dash2-caixa-stat-value[data-tone="ok"]   { color: var(--ui-accent); }
+
+/* Card do bloco caixa-hoje muda visual conforme estado — filete
+   superior sutil + cor do header pra ajudar o operador a perceber
+   o status sem precisar ler o badge. */
+#bloco-caixa-hoje[data-estado] { position: relative; }
+#bloco-caixa-hoje[data-estado]::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--ui-border);
+    z-index: 1;
+}
+#bloco-caixa-hoje[data-estado="aberto"]::before         { background: var(--ui-accent); }
+#bloco-caixa-hoje[data-estado="em_conferencia"]::before { background: var(--ui-warn); }
+#bloco-caixa-hoje[data-estado="fechado"]::before        { background: var(--ui-ink); }
+#bloco-caixa-hoje[data-estado="arquivado"]::before      { background: var(--ui-ink-3); }
+
+/* Header sutilmente colorido no estado aberto (verde-soft) */
+#bloco-caixa-hoje[data-estado="aberto"] .dash2-card-head {
+    background: linear-gradient(180deg, var(--ui-accent-soft) 0%, transparent 100%);
+}
+#bloco-caixa-hoje[data-estado="em_conferencia"] .dash2-card-head {
+    background: linear-gradient(180deg, var(--ui-warn-soft) 0%, transparent 100%);
+}
 
 
 /* ============================================================

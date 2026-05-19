@@ -204,15 +204,22 @@ async function carregarResumo(hojeISO) {
   const grid = document.querySelector('.dash2-kpis');
   if (grid) grid.innerHTML = cards;
 
-  // Header CTA: so mostra "Abrir caixa de hoje ->" se NAO tem caixa hoje
+  // Header CTA: so mostra atalho se NAO tem caixa hoje (demais estados
+  // tem botoes dedicados no bloco abaixo + na topbar)
   const cta = document.querySelector('#dash2-header-cta');
   if (cta) {
     if (!caixaHoje) {
       cta.innerHTML = `<a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--ghost dash2-btn--sm">Abrir caixa de hoje →</a>`;
     } else {
-      cta.innerHTML = ''; // ja esta aberto — botao Novo lancamento na topbar resolve
+      cta.innerHTML = '';
     }
   }
+
+  // Dispara evento pra topbar (e quem mais escutar) reagir ao estado
+  // do caixa de hoje. Topbar troca label/tone do botao CTA.
+  window.dispatchEvent(new CustomEvent('caixa-hoje-mudou', {
+    detail: { estado: caixaHoje?.estado ?? null }
+  }));
 
   // Bloco caixa-de-hoje (logo abaixo dos KPIs)
   renderCaixaDeHoje(caixaHoje, hojeISO);
@@ -301,20 +308,24 @@ function renderCaixaDeHoje(caixaHoje, hojeISO) {
     return;
   }
 
-  // Tem caixa hoje — mostra mini stats
+  // Tem caixa hoje — mostra mini stats com tom variando por estado
   const horaAberto = caixaHoje.criado_em
     ? new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(caixaHoje.criado_em))
     : '—';
   const estadoMap = {
-    aberto:        { rotulo: 'Aberto',          tone: 'ok' },
-    em_conferencia:{ rotulo: 'Em conferência',  tone: 'warn' },
-    fechado:       { rotulo: 'Fechado',         tone: 'neutral' },
-    arquivado:     { rotulo: 'Arquivado',       tone: 'neutral' },
+    aberto:         { rotulo: 'Aberto',         tone: 'ok',      verbo: 'Em operação',  botaoLabel: 'Ir para o caixa →',    botaoTone: 'primary' },
+    em_conferencia: { rotulo: 'Em conferência', tone: 'warn',    verbo: 'Aguardando conferência', botaoLabel: 'Conferir agora →',     botaoTone: 'warn' },
+    fechado:        { rotulo: 'Fechado',        tone: 'neutral', verbo: 'Concluído',    botaoLabel: 'Ver fechamento →',     botaoTone: 'ghost' },
+    arquivado:      { rotulo: 'Arquivado',      tone: 'neutral', verbo: 'Histórico',    botaoLabel: 'Ver caixa →',          botaoTone: 'ghost' },
   };
-  const e = estadoMap[caixaHoje.estado] || { rotulo: caixaHoje.estado, tone: 'neutral' };
+  const e = estadoMap[caixaHoje.estado] || { rotulo: caixaHoje.estado, tone: 'neutral', verbo: '—', botaoLabel: 'Ver caixa →', botaoTone: 'ghost' };
 
-  if (sub) sub.textContent = `aberto às ${horaAberto} · ${e.rotulo.toLowerCase()}`;
+  if (sub) sub.textContent = `${e.verbo.toLowerCase()} · aberto às ${horaAberto}`;
   if (link) link.classList.remove('hidden');
+
+  // Tambem aplica o tom ao card inteiro (borda + filete)
+  const card = document.querySelector('#bloco-caixa-hoje');
+  if (card) card.dataset.estado = caixaHoje.estado;
 
   cont.innerHTML = `
     <div class="dash2-caixa-mini">
@@ -337,8 +348,8 @@ function renderCaixaDeHoje(caixaHoje, hojeISO) {
         </li>
       </ul>
 
-      <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary dash2-btn--sm">
-        Ir para o caixa →
+      <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--${e.botaoTone} dash2-btn--sm">
+        ${esc(e.botaoLabel)}
       </a>
     </div>`;
 }
