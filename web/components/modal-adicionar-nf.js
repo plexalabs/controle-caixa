@@ -16,7 +16,7 @@ export function abrirModalAdicionarNF({ dataCaixa, aoSalvar = () => {} } = {}) {
   estado = { dataCaixa, aoSalvar, sujo: false };
 
   abrirModal({
-    lateral: true,
+    lateral: false,
     eyebrow: `Em análise · ${formatarDataPt(dataCaixa)}`,
     titulo:  'Anotar uma nota fiscal.',
     conteudo: corpoForm(),

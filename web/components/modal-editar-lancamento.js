@@ -86,7 +86,7 @@ function abrirModoCategorizar() {
   const podeExcluir = l && temPermissaoSync('lancamento.excluir');
 
   abrirModal({
-    lateral: true,
+    lateral: false,
     eyebrow: l ? `NF ${l.numero_nf} · em análise` : `Novo lançamento · ${formatarDataPt(estado.dataCaixa)}`,
     titulo:  l ? 'Categorizar lançamento.' : 'Adicionar uma página ao caixa.',
     conteudo: corpoFormCategorizar(),
@@ -575,7 +575,7 @@ function abrirModoGerenciarOuFinalizado() {
   const titulo  = finalizadoOuCancelado ? 'Histórico do lançamento.' : 'Lançamento em curso.';
 
   abrirModal({
-    lateral: true,
+    lateral: false,
     eyebrow,
     titulo,
     conteudo: corpoGerenciar(),
@@ -922,7 +922,7 @@ function abrirSubModoEditar() {
   const podeEditarCategoria = temPermissaoSync('lancamento.editar_categoria');
 
   abrirModal({
-    lateral: true,
+    lateral: false,
     eyebrow: `NF ${l.numero_nf} · editar`,
     titulo:  'Editar lançamento.',
     conteudo: `
@@ -1081,7 +1081,7 @@ function abrirSubModoExcluir() {
   desligarRealtimeObs();
 
   abrirModal({
-    lateral: true,
+    lateral: false,
     eyebrow: `NF ${l.numero_nf} · excluir`,
     titulo:  'Excluir lançamento.',
     conteudo: `
@@ -1186,7 +1186,7 @@ function abrirSubModoResolverObs() {
     .join('');
 
   abrirModal({
-    lateral: true,
+    lateral: false,
     eyebrow: `NF ${l.numero_nf} · resolver OBS`,
     titulo:  'Resolver categoria.',
     conteudo: `

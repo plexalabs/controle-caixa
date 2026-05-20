@@ -1,14 +1,98 @@
-/* modal-edit-v2.css — Modal de lançamento (drawer lateral)
-   Refator visual v2 "Clean Profissional". Sobrescreve os estilos
-   .painel-* / .lanc-* legados quando o drawer está aberto pra dar
-   coerência com o resto da UI.
+/* modal-edit-v2.css — Modal de lançamento (popup centralizado)
+   Refator visual v2 "Clean Profissional". Operador escolheu trocar
+   o drawer lateral por popup no meio da tela com backdrop blur e
+   animacao que entra deslizando da direita. Sobrescreve .painel-*
+   / .lanc-* legados pra cobrir tanto o .modal-card (centralizado,
+   padrao novo) quanto o .painel-lateral (drawer, ainda usado em
+   alguns lugares legados).
 */
 
 /* ===================================================================
-   Drawer lateral — visual v2 clean
+   Backdrop com blur — fade-in via .is-aberto
    =================================================================== */
 
-.overlay-fundo--drawer { background: rgba(20, 20, 20, 0.42); }
+.overlay-fundo {
+    background: transparent;
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+    transition: background 320ms cubic-bezier(0.22, 1, 0.36, 1),
+                backdrop-filter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.overlay-fundo.is-aberto {
+    background: rgba(18, 22, 14, 0.34);
+    backdrop-filter: blur(8px) saturate(130%);
+    -webkit-backdrop-filter: blur(8px) saturate(130%);
+}
+.overlay-fundo.is-fechando {
+    background: transparent;
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+}
+
+/* ===================================================================
+   Modal centralizado (.modal-card) — padrao novo
+   Animacao 'entrada lateral': vem de translateX(+40%) e centraliza
+   com fade. Quando fecha, volta pro lado direito.
+   =================================================================== */
+
+.modal-card {
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    font-family: 'Manrope', -apple-system, system-ui, sans-serif;
+    width: min(620px, calc(100vw - 2.5rem));
+    max-height: 92vh;
+    border-radius: var(--ui-r-lg);
+    border: 1px solid var(--ui-border);
+    box-shadow:
+        0 20px 60px -20px rgba(20, 20, 20, 0.28),
+        0 8px 24px -12px rgba(20, 20, 20, 0.18);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    /* Estado inicial: invisivel + saindo da direita */
+    opacity: 0;
+    transform: translateX(40%) scale(0.98);
+    transition: opacity 360ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.overlay-fundo.is-aberto .modal-card {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+}
+
+.overlay-fundo.is-fechando .modal-card {
+    opacity: 0;
+    transform: translateX(40%) scale(0.98);
+    transition-duration: 240ms;
+}
+
+/* Centraliza horizontal+vertical via flex no overlay */
+.overlay-fundo:not(.overlay-fundo--drawer) {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 1.25rem;
+}
+@media (max-width: 600px) {
+    .overlay-fundo:not(.overlay-fundo--drawer) {
+        padding: 0.5rem;
+        align-items: flex-end !important;
+    }
+    .modal-card {
+        width: 100%;
+        max-height: 96vh;
+        /* Em mobile entra de baixo em vez da direita */
+        transform: translateY(40%) scale(0.98);
+    }
+    .overlay-fundo.is-aberto .modal-card { transform: translateY(0) scale(1); }
+    .overlay-fundo.is-fechando .modal-card { transform: translateY(40%) scale(0.98); }
+}
+
+/* ===================================================================
+   Drawer lateral (.painel-lateral) — legado, mantem visual v2
+   pra usos que ainda chamam com lateral:true (auditoria, etc).
+   =================================================================== */
 
 .painel-lateral {
     background: var(--ui-surface);
@@ -23,8 +107,6 @@
         border-bottom-left-radius: 0;
     }
 }
-
-/* Remove o filete âmbar editorial — não combina com v2 */
 .painel-lateral::before { display: none; }
 
 /* ===================================================================

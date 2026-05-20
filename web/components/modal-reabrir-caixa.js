@@ -18,7 +18,7 @@ export function abrirModalReabrirCaixa({ caixaId, dataCaixa, aoConcluir = () => 
   estado = { caixaId, dataCaixa, aoConcluir, sujo: false };
 
   abrirModal({
-    lateral: true,
+    lateral: false,
     eyebrow: `Reabertura · ${dataLonga(dataCaixa)}`,
     titulo:  'Reabrir este caixa.',
     conteudo: corpoForm(),
