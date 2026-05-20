@@ -331,20 +331,22 @@
 }
 .dmm-anot-add .dmm-btn { align-self: flex-end; }
 
-/* Filtro mini (C3) — segmented control claro com pílula deslizante.
-   Trilho cinza-claro, pílula BRANCA com leve sombra; texto sempre
-   escuro (nunca branco-sobre-claro = invisível). */
+/* Filtro mini (C3) — segmented control pill. Trilho branco com
+   bordas totalmente arredondadas; pílula no verde-musgo da sidebar
+   (--ui-ink) deslizando atrás do botão ativo. O posicionamento via
+   left/width (corrigido) garante que o verde fique exatamente em
+   cima do item ativo. */
 .dmm-filtro-mini {
     display: flex;
     gap: 0;
-    background: var(--ui-surface-2);
+    background: var(--ui-surface);
     border: 1px solid var(--ui-border);
-    border-radius: var(--ui-r-sm);
+    border-radius: 999px;
     padding: 0.2rem;
     margin-bottom: 0.85rem;
     position: relative;
 }
-/* Pílula branca que desliza atrás do botão ativo. Posicionada via
+/* Pílula verde que desliza atrás do botão ativo. Posicionada via
    left/width (relativo ao próprio trilho) — o JS seta ambos a partir
    do offsetLeft/offsetWidth do botão ativo. */
 .dmm-filtro-ind {
@@ -353,10 +355,9 @@
     bottom: 0.2rem;
     left: 0.2rem;
     width: 0;
-    background: var(--ui-surface);
-    border: 1px solid var(--ui-border);
-    border-radius: calc(var(--ui-r-sm) - 2px);
-    box-shadow: 0 1px 3px rgba(20,20,20,0.1);
+    background: var(--ui-ink);
+    border-radius: 999px;
+    box-shadow: 0 1px 5px rgba(40,62,6,0.28);
     transition: left 280ms cubic-bezier(0.22, 1, 0.36, 1),
                 width 280ms cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 0;
@@ -372,14 +373,14 @@
     font-weight: 600;
     color: var(--ui-ink-3);
     cursor: pointer;
-    border-radius: calc(var(--ui-r-sm) - 2px);
+    border-radius: 999px;
     transition: color 200ms var(--ui-ease);
     position: relative;
     z-index: 1;
     white-space: nowrap;
 }
 .dmm-fmini:hover { color: var(--ui-ink-2); }
-.dmm-fmini[aria-selected="true"] { color: var(--ui-ink); font-weight: 700; }
+.dmm-fmini[aria-selected="true"] { color: var(--ui-bg); font-weight: 700; }
 [data-grupo][hidden] { display: none; }
 
 /* Quando filtra, o grupo visível anima entrada */
