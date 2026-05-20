@@ -151,18 +151,37 @@ function versaoFinal() {
                 <label class="dmm-field"><span>Código do pedido</span><input value="48201" /></label>
               </div>
               <label class="dmm-field"><span>Cliente</span><input value="Margarida Sabino" /></label>
-              <label class="dmm-field"><span>Valor (R$)</span><input value="1249.90" /></label>
+
               <div class="dmm-form-sep"></div>
-              <label class="dmm-field"><span>Categoria</span>
-                <select><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select>
-              </label>
+
+              <!-- Valor ocupa a mesma linha de Categoria -->
               <div class="dmm-form-grid">
-                <label class="dmm-field"><span>Comprovante</span><input value="E1820..." /></label>
-                <label class="dmm-field"><span>Data/hora do Pix</span><input value="13/05 09:14" /></label>
+                <label class="dmm-field"><span>Categoria</span>
+                  <select id="dmm-cat-sel"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select>
+                </label>
+                <label class="dmm-field"><span>Valor (R$)</span><input value="1249.90" /></label>
               </div>
-              <label class="dmm-field"><span>Motivo da edição *</span>
-                <textarea rows="2" placeholder="mínimo 10 caracteres"></textarea>
+
+              <!-- Motivo vem ANTES dos campos da categoria. Os campos
+                   especificos so desbloqueiam quando o motivo tem 10+ chars. -->
+              <label class="dmm-field dmm-field--motivo">
+                <span>Motivo da edição <em class="dmm-req">*</em></span>
+                <textarea id="dmm-motivo" rows="2" placeholder="Explique a edição — mínimo 10 caracteres"></textarea>
               </label>
+
+              <div class="dmm-cat-campos" id="dmm-cat-campos" data-bloqueado="true">
+                <div class="dmm-cat-aviso">
+                  <svg ${SVG}><path d="M8 5.5v3M8 11h.01M8 1.5 1 14h14L8 1.5Z"/></svg>
+                  Preencha o motivo da edição acima para liberar os detalhes da categoria.
+                </div>
+                <div class="dmm-cat-form">
+                  <div class="dmm-form-grid">
+                    <label class="dmm-field"><span>Comprovante</span><input value="E1820..." /></label>
+                    <label class="dmm-field"><span>Data/hora do Pix</span><input value="13/05 09:14" /></label>
+                  </div>
+                  <label class="dmm-field"><span>Chave recebedora</span><input value="contato@boti.com.br" /></label>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -189,6 +208,22 @@ function ligarMockup() {
       btn.classList.toggle('is-ativo', !editando);
     });
   });
+
+  // Motivo da edição libera os campos da categoria (10+ chars).
+  // Enquanto bloqueado, os inputs ficam disabled — não dá pra
+  // preencher nada da categoria antes de justificar a edição.
+  const motivo = document.querySelector('#dmm-motivo');
+  const catCampos = document.querySelector('#dmm-cat-campos');
+  if (motivo && catCampos) {
+    const campos = catCampos.querySelectorAll('input, select, textarea');
+    const sincronizar = () => {
+      const ok = motivo.value.trim().length >= 10;
+      catCampos.dataset.bloqueado = ok ? 'false' : 'true';
+      campos.forEach(c => { c.disabled = !ok; });
+    };
+    sincronizar();
+    motivo.addEventListener('input', sincronizar);
+  }
 
   // Filtro mini com indicador deslizante
   document.querySelectorAll('.dmm-filtro-mini').forEach(grupo => {
