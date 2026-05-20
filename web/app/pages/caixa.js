@@ -40,78 +40,63 @@ export async function renderCaixa({ params }) {
   document.querySelector('#app').innerHTML = await renderShell({
     rotaAtiva: 'caixas',
     conteudo: `
-    <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
-      <!-- Topbar: voltar + status na mesma linha (status some em mobile
-           só não fica numa linha sozinho do header) -->
-      <nav class="cx-topbar reveal reveal-1" aria-label="Voltar">
-        <a href="/caixas" data-link class="btn-link" style="font-size:0.85rem">← Todos os caixas</a>
-        <span id="cab-status" class="badge-status"></span>
+    <main id="main" class="cxd">
+      <nav class="cxd-breadcrumb" aria-label="Voltar">
+        <a href="/caixas" data-link class="cxd-link-back">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12L6 8l4-4"/></svg>
+          Todos os caixas
+        </a>
       </nav>
 
-      <!-- Cabeçalho do dia -->
-      <header class="mb-6 reveal reveal-2">
-        <p class="h-eyebrow">Caixa de</p>
-        <h1 class="h-display text-3xl sm:text-4xl mt-1" style="font-style:normal;font-weight:500"
-            id="cab-data">${dataLonga(dataAlvo)}</h1>
+      <header class="cxd-header">
+        <div class="cxd-header-meta">
+          <p class="cxd-eyebrow">Caixa do dia</p>
+          <h1 class="cxd-title" id="cab-data">${dataLonga(dataAlvo)}</h1>
+          <p class="cxd-sub" id="cab-sub">—</p>
+        </div>
+        <div class="cxd-header-direita">
+          <span id="cab-status" class="cxd-badge" data-estado=""></span>
+        </div>
       </header>
 
-      <!-- Resumo do dia: contexto antes da leitura linha-a-linha -->
-      <aside id="rodape" class="resumo-dia hidden reveal reveal-3" aria-label="Resumo do dia"></aside>
-
-      <!-- Banner read-only quando caixa fechado (CP6.2) -->
-      <div id="banner-fechado" class="banner-fechado hidden reveal reveal-3" role="status">
-        <span class="banner-fechado-icone" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="1.5"
-               stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="11" width="16" height="10" rx="2" ry="2"/>
+      <!-- Banner read-only quando caixa fechado -->
+      <div id="banner-fechado" class="cxd-banner hidden" role="status">
+        <span class="cxd-banner-icone" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="11" width="16" height="10" rx="2"/>
             <path d="M8 11 V8 a4 4 0 0 1 8 0 v3"/>
           </svg>
         </span>
         <div>
-          <p class="banner-fechado-titulo">Este caixa está fechado.</p>
-          <p class="banner-fechado-sub">Apenas leitura — não aceita novos lançamentos.</p>
+          <p class="cxd-banner-title">Este caixa está fechado.</p>
+          <p class="cxd-banner-sub">Apenas leitura — não aceita novos lançamentos.</p>
         </div>
       </div>
 
-      <!-- Linha de ações: filtros à esquerda + botões à direita.
-           align-items:flex-start no wrapper permite o painel do filtro
-           expandir para baixo sem deslocar os botões da direita. -->
-      <div class="cx-acoes-row reveal reveal-3">
-        <!-- Filter-bar (CP5.5 + CP-FILTER-COLLAPSE) — só aparece quando há lançamentos -->
-        <div id="cx-filtros" class="cx-filtros-slot hidden"></div>
+      <!-- KPIs do dia (skeleton inicial; preenchido em atualizarRodape) -->
+      <section id="rodape" class="cxd-kpis hidden" aria-label="Resumo do dia"></section>
 
-        <div class="resumo-acao">
-          <button id="btn-novo" class="btn-primary" disabled>
-            + Novo lançamento
-          </button>
-
-          <!-- CTA "Fechar caixa" — só aparece quando total_pendentes === 0 -->
-          <a id="btn-fechar-dia" class="btn-fechar-caixa hidden" href="#" data-link
-             aria-label="Fechar este caixa" title="Tudo conferido — pronto para fechar">
-            <svg class="btn-fechar-caixa-icone" width="14" height="14" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12.5 L10 17.5 L19 7.5"/>
-            </svg>
-            <span class="btn-fechar-caixa-titulo">Fechar caixa</span>
-          </a>
-
-          <!-- Hint quando há pendências — só aparece se total_pendentes > 0 -->
-          <a id="hint-pendencias" class="hint-pendencias hidden" href="#" data-link>
-            <svg class="hint-pendencias-icone" width="13" height="13" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="1.8"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"/>
-              <path d="M12 7.5 V12 L15 14"/>
-            </svg>
+      <!-- Toolbar: filtros + acoes -->
+      <div class="cxd-toolbar">
+        <div id="cx-filtros" class="cxd-filtros-slot hidden"></div>
+        <div class="cxd-acoes">
+          <a id="hint-pendencias" class="cxd-hint-pend hidden" href="#" data-link>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.5 1.5"/></svg>
             <span id="hint-pendencias-texto"></span>
           </a>
+          <a id="btn-fechar-dia" class="cxd-btn cxd-btn--ghost cxd-btn--sm hidden" href="#" data-link>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>
+            Fechar caixa
+          </a>
+          <button id="btn-novo" class="cxd-btn cxd-btn--primary cxd-btn--sm" disabled>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M3 8h10"/></svg>
+            Novo lançamento
+          </button>
         </div>
       </div>
 
-      <!-- Conteúdo principal: lista de lançamentos -->
-      <section id="bloco-conteudo" class="reveal reveal-4">
+      <!-- Lista de lancamentos -->
+      <section id="bloco-conteudo" class="cxd-lista">
         ${blocoSkel()}
       </section>
     </main>
@@ -135,7 +120,7 @@ async function carregarCaixa(dataAlvo) {
   const [{ data: caixa }] = await Promise.all([
     supabase
       .from('caixa')
-      .select('id, data, estado, total_lancamentos, total_pendentes, total_valor')
+      .select('id, data, estado, total_lancamentos, total_pendentes, total_valor, criado_em, aberto_por')
       .eq('data', dataAlvo)
       .maybeSingle(),
     carregarPermissoes(),
@@ -170,6 +155,28 @@ async function carregarCaixa(dataAlvo) {
   dataAlvoAtual = dataAlvo;
   status.textContent = ESTADO_CAIXA[caixa.estado] || caixa.estado;
   status.dataset.estado = caixa.estado;
+
+  // Subtítulo: dia da semana + hora de abertura
+  const subEl = document.querySelector('#cab-sub');
+  if (subEl) {
+    try {
+      const d = new Date(dataAlvo + 'T00:00:00');
+      const diaSemanaFmt = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(d);
+      const diaSemana = diaSemanaFmt.split('-')[0];
+      const cap = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+      let horaAberto = '';
+      if (caixa.criado_em) {
+        horaAberto = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          .format(new Date(caixa.criado_em));
+      }
+      const verbo = caixa.estado === 'fechado' ? 'fechado'
+                  : caixa.estado === 'arquivado' ? 'arquivado'
+                  : 'aberto';
+      subEl.textContent = horaAberto
+        ? `${cap} · ${verbo} às ${horaAberto}`
+        : cap;
+    } catch (_) { subEl.textContent = ''; }
+  }
 
   // Botão de ação principal: comportamento depende do estado + permissão.
   // - aberto/em_conferencia: "+ Novo lançamento" (padrão)
@@ -258,10 +265,10 @@ async function carregarLancamentos(caixaId) {
   if (lancCache.length === 0) {
     document.querySelector('#cx-filtros')?.classList.add('hidden');
     bloco.innerHTML = `
-      <div class="vazio">
-        <div class="vazio-num">∅</div>
-        <p class="vazio-titulo">Nenhum lançamento ainda.</p>
-        <p class="vazio-desc">Comece pelo botão <strong>+ Novo lançamento</strong> no canto superior direito.</p>
+      <div class="cxd-empty cxd-empty--inicial">
+        <p class="cxd-empty-eyebrow">Caixa em branco</p>
+        <p class="cxd-empty-title">Nenhum lançamento ainda.</p>
+        <p class="cxd-empty-msg">Comece pelo botão <strong>+ Novo lançamento</strong> no canto superior direito desta tela ou na barra do topo.</p>
       </div>`;
     atualizarRodape([]);
     return;
@@ -353,17 +360,19 @@ function renderListaFiltrada() {
 
   if (filtrados.length === 0) {
     bloco.innerHTML = `
-      <div class="vazio" style="padding:2rem 1.5rem">
-        <p class="vazio-titulo" style="font-size:1.1rem">Nenhum lançamento com esses filtros.</p>
-        <p class="vazio-desc">Ajuste os filtros acima ou clique em <em>Limpar filtros</em>.</p>
+      <div class="cxd-empty">
+        <p class="cxd-empty-title">Nenhum lançamento com esses filtros.</p>
+        <p class="cxd-empty-msg">Ajuste os filtros acima ou clique em <em>Limpar filtros</em>.</p>
       </div>`;
     return;
   }
 
-  bloco.innerHTML = filtrados.map(linhaLancamento).join('');
+  bloco.innerHTML = `<ul class="cxd-lanc-lista" role="list">${
+    filtrados.map(l => `<li>${linhaLancamento(l)}</li>`).join('')
+  }</ul>`;
 
   const porId = Object.fromEntries(filtrados.map(l => [l.id, l]));
-  bloco.querySelectorAll('.lanc-row').forEach(el => {
+  bloco.querySelectorAll('.cxd-lanc').forEach(el => {
     el.addEventListener('click', () => {
       const lanc = porId[el.dataset.id];
       if (!lanc) return;
@@ -387,7 +396,7 @@ function destacarNfDaURL() {
 
   // Aguarda o DOM commitar antes de medir/scrollar
   requestAnimationFrame(() => {
-    const el = document.querySelector(`.lanc-row[data-numero-nf="${cssEsc(nf)}"]`);
+    const el = document.querySelector(`.cxd-lanc[data-numero-nf="${cssEsc(nf)}"]`);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el.classList.add('lanc-row--destacado');
@@ -445,28 +454,41 @@ function linhaLancamento(l) {
                        : estadoFinal === 'cancelado'  ? ` · cancelado pós-pagamento${dataCurtaFmt ? ' em ' + dataCurtaFmt : ''}`
                        : '';
 
+  const detalhe = detalheBase + detalheSuffix;
+
+  // Tons da categoria pra colorir o chip lateral (rgba leve coerente
+  // com /caixas) — sem filete grosso, so background tonal.
   return `
-    <button class="lanc-row" data-cat="${esc(cat)}"
-            data-cat-label="${esc(labelVertical)}"
+    <button class="cxd-lanc" data-cat="${esc(cat)}"
             data-em-analise="${emAnalise}"
             data-estado-final="${esc(estadoFinal)}"
             data-resolvido="${ehResolvido}" data-atrasado="${ehAtrasado}"
             data-id="${esc(l.id)}"
             data-numero-nf="${esc(l.numero_nf || '')}">
-      <div class="lanc-meta">
-        <span class="lanc-meta-nf">NF ${esc(l.numero_nf)}</span>
-        <span style="font-style:italic">${hora(l.criado_em)}</span>
+      <div class="cxd-lanc-esq">
+        <span class="cxd-lanc-nf">NF ${esc(l.numero_nf)}</span>
+        <time class="cxd-lanc-hora">${hora(l.criado_em)}</time>
       </div>
-      <div class="lanc-corpo">
-        <span class="lanc-cliente">${esc(l.cliente_nome || '— sem cliente —')}</span>
+
+      <div class="cxd-lanc-meio">
+        <span class="cxd-lanc-cliente">${esc(l.cliente_nome || '— sem cliente —')}</span>
         ${cat
-          ? `<div class="lanc-detalhes">${esc(detalheBase + detalheSuffix)}</div>`
-          : `<div class="lanc-detalhes lanc-detalhes--analise">aguardando categorização</div>`}
+          ? `<span class="cxd-lanc-detalhe">${esc(detalhe || '—')}</span>`
+          : `<span class="cxd-lanc-detalhe cxd-lanc-detalhe--analise">aguardando categorização</span>`}
       </div>
-      <div class="lanc-direita">
-        <span class="lanc-valor">${formatBRL(l.valor_nf)}</span>
-        <span class="lanc-categoria ${emAnalise ? 'lanc-categoria--analise' : ''}">${esc(labelLongo)}</span>
+
+      <div class="cxd-lanc-dir">
+        <span class="cxd-lanc-valor">${formatBRL(l.valor_nf)}</span>
+        <span class="cxd-lanc-cat" data-cat="${esc(cat)}" data-em-analise="${emAnalise}">
+          ${esc(labelLongo)}
+        </span>
       </div>
+
+      ${ehAtrasado ? `
+        <span class="cxd-lanc-flag" title="Pendente há mais de 3 dias úteis" aria-hidden="true">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L1.5 13h13Z"/><path d="M8 6.5v3"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor"/></svg>
+        </span>
+      ` : ''}
     </button>`;
 }
 
@@ -517,32 +539,32 @@ function atualizarRodape(lancamentos) {
     nome: c.rotulo,
   })).sort(ordenarPorPresenca);
 
+  // Layout v2 — 4 KPIs no topo (total + estados) + chips de distribuicao
   rod.innerHTML = `
-    <div class="resumo-dia-cabec">
-      <p class="h-eyebrow">Total do dia</p>
-      <div class="resumo-dia-valor">
-        <span class="resumo-dia-valor-num">${formatBRL(total)}</span>
-        <span class="resumo-dia-valor-qtd">${validos.length} ${validos.length === 1 ? 'lançamento válido' : 'lançamentos válidos'}</span>
+    <div class="cxd-kpi cxd-kpi--total">
+      <span class="cxd-kpi-label">Total do dia</span>
+      <span class="cxd-kpi-value">${formatBRL(total)}</span>
+      <span class="cxd-kpi-sub">${validos.length} ${validos.length === 1 ? 'lançamento válido' : 'lançamentos válidos'}</span>
+    </div>
+    ${itensEstado.map(i => `
+      <div class="cxd-kpi" data-tom="${i.tom}" data-zero="${i.n === 0}">
+        <span class="cxd-kpi-label">${i.rotulo}</span>
+        <span class="cxd-kpi-value">${i.n}</span>
+      </div>
+    `).join('')}
+
+    <div class="cxd-kpi-dist">
+      <span class="cxd-kpi-dist-label">Por categoria</span>
+      <div class="cxd-kpi-dist-chips">
+        ${itensDist.filter(i => i.n > 0).map(i => `
+          <span class="cxd-kpi-dist-chip" data-cat="${esc(i.cat)}">
+            <span class="cxd-kpi-dist-chip-nome">${esc(i.nome)}</span>
+            <span class="cxd-kpi-dist-chip-n">${i.n}</span>
+          </span>
+        `).join('')}
+        ${itensDist.every(i => i.n === 0) ? '<span class="cxd-kpi-dist-vazio">— sem lançamentos categorizados</span>' : ''}
       </div>
     </div>
-
-    <ul class="resumo-dia-linha resumo-dia-estados">
-      ${itensEstado.map(i => `
-        <li data-tom="${i.tom}" data-zero="${i.n === 0}">
-          <span class="resumo-dia-num">${i.n}</span>
-          <span class="resumo-dia-rotulo">${i.rotulo}</span>
-        </li>
-      `).join('')}
-    </ul>
-
-    <ul class="resumo-dia-linha resumo-dia-dist">
-      ${itensDist.map(i => `
-        <li data-cat="${esc(i.cat)}" data-zero="${i.n === 0}">
-          <span class="resumo-dia-rotulo">${esc(i.nome)}</span>
-          <span class="resumo-dia-num resumo-dia-num--small">${i.n}</span>
-        </li>
-      `).join('')}
-    </ul>
   `;
 }
 
@@ -623,9 +645,9 @@ function desmontar() {
 
 function blocoSkel() {
   return `
-    <div class="space-y-2">
-      ${[1,2,3,4].map(() => `<div class="skel" style="height:4rem"></div>`).join('')}
-    </div>`;
+    <ul class="cxd-lanc-lista">
+      ${[1,2,3,4].map(() => `<li><div class="dash2-skel" style="height:4.5rem;border-radius:10px"></div></li>`).join('')}
+    </ul>`;
 }
 
 function mostrarErroEFim(msg) {
