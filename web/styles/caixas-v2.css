@@ -216,9 +216,12 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+@media (max-width: 740px) {
+    .cx2-items { grid-template-columns: 1fr; }
 }
 
 /* Cada caixa: cartao com 2 secoes verticais — topo (3 zonas) + resumo
@@ -245,15 +248,50 @@
 /* Border tonal sutil por estado — sem filete lateral chamativo */
 .cx2-item[data-estado="aberto"]         { border-color: color-mix(in srgb, var(--ui-accent) 22%, var(--ui-border)); }
 .cx2-item[data-estado="em_conferencia"] { border-color: color-mix(in srgb, var(--ui-warn) 22%, var(--ui-border)); }
-.cx2-item[data-estado="arquivado"]      { opacity: 0.75; }
 .cx2-item[data-estado="aberto"]:hover         { border-color: var(--ui-accent); }
 .cx2-item[data-estado="em_conferencia"]:hover { border-color: var(--ui-warn); }
 
-/* Topo: 3 zonas — data (esq), meio (stats), direita (badge+valor) */
+/* Modo "vidro fosco" — caixa fechado/arquivado fica visualmente
+   recuado: cores dessaturadas, opacidade reduzida, sem cor de fundo
+   chamativa. Como se houvesse um vidro fosco na frente. */
+.cx2-item[data-estado="fechado"],
+.cx2-item[data-estado="arquivado"] {
+    background: linear-gradient(180deg, rgba(244, 244, 239, 0.7), rgba(255, 255, 255, 0.6));
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
+    filter: saturate(0.65);
+    opacity: 0.78;
+    border-color: var(--ui-border);
+}
+.cx2-item[data-estado="fechado"]:hover,
+.cx2-item[data-estado="arquivado"]:hover {
+    filter: saturate(1);
+    opacity: 1;
+    border-color: var(--ui-border-strong);
+}
+.cx2-item[data-estado="arquivado"] { opacity: 0.62; }
+.cx2-item[data-estado="arquivado"]:hover { opacity: 0.92; }
+
+/* Caixa com pendencia critica ou muito acumulo — destaque vermelho
+   forte por cima do estado atual. */
+.cx2-item[data-alerta="critica"] {
+    background: linear-gradient(180deg, rgba(254, 226, 226, 0.55), rgba(255, 255, 255, 0.85));
+    border-color: color-mix(in srgb, var(--ui-danger) 35%, var(--ui-border));
+    filter: none;
+    opacity: 1;
+}
+.cx2-item[data-alerta="critica"]:hover {
+    border-color: var(--ui-danger);
+    box-shadow: 0 4px 14px -4px rgba(185, 28, 28, 0.25);
+}
+.cx2-item[data-alerta="critica"] .cx2-item-dia { color: var(--ui-danger); }
+
+/* Topo: 3 zonas — data (esq), meio (stats), direita (badge+valor).
+   Em 2-col, ajustamos pra ficar mais compacto verticalmente. */
 .cx2-item-topo {
     display: grid;
-    grid-template-columns: 5rem 1fr auto;
-    gap: 1.1rem;
+    grid-template-columns: 3.8rem 1fr auto;
+    gap: 0.9rem;
     align-items: center;
 }
 
@@ -266,7 +304,7 @@
     position: relative;
 }
 .cx2-item-dia {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--ui-ink);
     letter-spacing: -0.03em;

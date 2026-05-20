@@ -280,9 +280,14 @@ function itemCaixa(c, idx) {
     </span>
   `).join('');
 
+  // Detecta "alerta" — caixa com pendencia urgente OU muito acumulo
+  // de pendentes (> 5). Forca destaque vermelho.
+  const alerta = (c._criticas > 0 || (pend ?? 0) >= 5) ? 'critica' : '';
+
   return `
     <li>
-      <a href="/caixa/${c.data}" data-link class="cx2-item" data-estado="${c.estado}" ${delay}>
+      <a href="/caixa/${c.data}" data-link class="cx2-item"
+         data-estado="${c.estado}" data-alerta="${alerta}" ${delay}>
         <div class="cx2-item-topo">
           <div class="cx2-item-data">
             <div class="cx2-item-dia">${dia}</div>
