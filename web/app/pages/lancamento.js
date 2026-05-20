@@ -37,52 +37,72 @@ export async function renderLancamento({ params }) {
     .from('caixa').select('id, data, estado').eq('id', lanc.caixa_id).maybeSingle();
   const dataCaixa = cx?.data || '';
 
+  // Mapa de tons por estado (igual usado no caixa v2)
+  const estadoMap = {
+    pendente:         { rotulo: 'Pendente',     tone: 'analise' },
+    em_preenchimento: { rotulo: 'Em preenchimento', tone: 'analise' },
+    completo:         { rotulo: 'Categorizado', tone: 'completo' },
+    resolvido:        { rotulo: 'Resolvido',    tone: 'resolvido' },
+    finalizado:       { rotulo: 'Finalizado',   tone: 'finalizado' },
+    cancelado_pos:    { rotulo: 'Cancelado pós-pagamento', tone: 'cancelado' },
+    cancelado:        { rotulo: 'Cancelado',    tone: 'cancelado' },
+    excluido:         { rotulo: 'Excluído',     tone: 'cancelado' },
+  };
+  const e = estadoMap[lanc.estado] || { rotulo: lanc.estado, tone: '' };
+  const catLabel = lanc.categoria ? (LABEL_CATEGORIA[lanc.categoria] || lanc.categoria) : 'Em análise';
+  const detalheCat = lanc.categoria && lanc.dados_categoria
+    ? (resumoDetalhes(lanc.categoria, lanc.dados_categoria) || '')
+    : '';
+
   // 2. Render esqueleto
   document.querySelector('#app').innerHTML = await renderShell({
     rotaAtiva: 'caixas',
     conteudo: `
-    <main id="main" class="lanc-tela">
-      <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
-        <a href="${dataCaixa ? '/caixa/' + dataCaixa : '/caixas'}" data-link
-           class="btn-link" style="font-size:0.85rem">← ${dataCaixa ? 'Voltar ao caixa' : 'Voltar aos caixas'}</a>
+    <main id="main" class="lnc">
+      <nav class="lnc-breadcrumb" aria-label="Voltar">
+        <a href="${dataCaixa ? '/caixa/' + dataCaixa : '/caixas'}" data-link class="lnc-link-back">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12L6 8l4-4"/></svg>
+          ${dataCaixa ? 'Voltar ao caixa' : 'Voltar aos caixas'}
+        </a>
       </nav>
 
-      <header class="lanc-cabec reveal reveal-2" data-cat="${esc(lanc.categoria || '')}" data-estado="${esc(lanc.estado)}">
-        <div class="lanc-cabec-conteudo">
-          <p class="h-eyebrow">Nota fiscal · ${esc(estadoLabel(lanc.estado))}</p>
-          <h1 class="lanc-cabec-numero">NF ${esc(lanc.numero_nf)}</h1>
-          <p class="lanc-cabec-cliente">${esc(lanc.cliente_nome || '— sem cliente —')}</p>
+      <header class="lnc-header">
+        <div class="lnc-header-meta">
+          <p class="lnc-eyebrow">Nota fiscal · NF ${esc(lanc.numero_nf)}</p>
+          <h1 class="lnc-title">${esc(lanc.cliente_nome || '— sem cliente —')}</h1>
+          <p class="lnc-sub">
+            <span class="lnc-valor">${formatBRL(lanc.valor_nf)}</span>
+            <span class="lnc-sep" aria-hidden="true">·</span>
+            <span class="lnc-cat-chip" data-cat="${esc(lanc.categoria || '')}">${esc(catLabel)}</span>
+          </p>
         </div>
-        <div class="lanc-cabec-direita">
-          <span class="lanc-cabec-valor">${formatBRL(lanc.valor_nf)}</span>
-          ${lanc.categoria
-            ? `<span class="pend-row-cat" data-cat="${esc(lanc.categoria)}">${esc(LABEL_CATEGORIA[lanc.categoria] || lanc.categoria)}</span>`
-            : `<span class="pend-row-cat" data-cat="">Em análise</span>`}
+        <div class="lnc-header-direita">
+          <span class="lnc-badge" data-tone="${e.tone}">${esc(e.rotulo)}</span>
         </div>
       </header>
 
-      <section class="lanc-info reveal reveal-3">
+      <section class="lnc-info">
         ${blocoInfo('Cliente', esc(lanc.cliente_nome || '—'))}
         ${blocoInfo('Código do pedido', esc(lanc.codigo_pedido || '—'))}
         ${blocoInfo('Categoria', lanc.categoria
-          ? esc(LABEL_CATEGORIA[lanc.categoria] || lanc.categoria) +
-            (lanc.dados_categoria
-              ? ` <span style="color:var(--c-tinta-3);font-size:0.85rem">· ${esc(resumoDetalhes(lanc.categoria, lanc.dados_categoria) || '')}</span>`
-              : '')
-          : '<em style="color:var(--c-tinta-3)">aguardando categorização</em>', { html: true })}
+          ? `${esc(catLabel)}${detalheCat ? `<span class="lnc-info-extra"> · ${esc(detalheCat)}</span>` : ''}`
+          : '<em class="lnc-info-vazio">aguardando categorização</em>', { html: true })}
         ${blocoInfo('Caixa de origem',
-          dataCaixa ? `<a href="/caixa/${esc(dataCaixa)}" data-link class="btn-link">${esc(dataLonga(dataCaixa))}</a>` : '—',
+          dataCaixa ? `<a href="/caixa/${esc(dataCaixa)}" data-link class="lnc-info-link">${esc(dataLonga(dataCaixa))}</a>` : '—',
           { html: true })}
       </section>
 
-      <section class="lanc-timeline reveal reveal-4" aria-label="Linha do tempo">
-        <h2 class="h-eyebrow lanc-timeline-titulo">Linha do tempo</h2>
-        <ol id="timeline-lista" class="timeline-lista">
-          ${[1,2,3].map(() => `<li class="timeline-skel"><div class="skel" style="height:5rem"></div></li>`).join('')}
+      <section class="lnc-timeline-bloco" aria-label="Linha do tempo">
+        <header class="lnc-timeline-head">
+          <h2 class="lnc-timeline-title">Linha do tempo</h2>
+          <p class="lnc-timeline-sub">eventos em ordem cronológica</p>
+        </header>
+        <ol id="timeline-lista" class="lnc-timeline">
+          ${[1,2,3].map(() => `<li><div class="dash2-skel" style="height:4.5rem;border-radius:10px;margin-bottom:0.55rem"></div></li>`).join('')}
         </ol>
       </section>
 
-      <footer class="lanc-rodape reveal reveal-5">
+      <footer class="lnc-rodape">
         ${rodapeAcoes(lanc)}
       </footer>
     </main>
@@ -121,42 +141,38 @@ async function carregarTimeline(lancId) {
 
 function itemTimeline(ev) {
   const tipo = ev.evento_tipo;
-  const labels = {
-    criacao:           'CRIAÇÃO',
-    observacao:        'OBSERVAÇÃO',
-    finalizacao:       'FINALIZAÇÃO',
-    cancelamento_pos:  'CANCELAMENTO PÓS-PAGAMENTO',
-    sistema:           'SISTEMA',
+  const cfg = {
+    criacao:          { label: 'Criação',          tone: 'criacao' },
+    observacao:       { label: 'Observação',       tone: 'observacao' },
+    finalizacao:      { label: 'Finalização',      tone: 'good' },
+    cancelamento_pos: { label: 'Cancelamento pós', tone: 'alerta' },
+    sistema:          { label: 'Sistema',          tone: 'sistema' },
   };
-  const label = labels[tipo] || tipo.toUpperCase();
-  const tom = tipo === 'finalizacao'      ? 'good'
-            : tipo === 'cancelamento_pos' ? 'alerta'
-            : tipo === 'criacao'          ? 'criacao'
-            : '';
+  const { label, tone } = cfg[tipo] || { label: tipo, tone: '' };
 
   const c = ev.conteudo || {};
   let corpoHtml = '';
   if (tipo === 'criacao') {
     corpoHtml = `
-      <p class="timeline-corpo">
+      <p class="lnc-tl-corpo">
         <strong>NF ${esc(c.numero_nf)}</strong> registrada com valor <strong>${formatBRL(c.valor_nf)}</strong>
         ${c.cliente_nome ? `para <strong>${esc(c.cliente_nome)}</strong>` : ''}
-        ${c.codigo_pedido ? `<span style="color:var(--c-tinta-3)">· pedido ${esc(c.codigo_pedido)}</span>` : ''}
+        ${c.codigo_pedido ? `<span class="lnc-tl-pedido">· pedido ${esc(c.codigo_pedido)}</span>` : ''}
       </p>`;
   } else {
-    corpoHtml = `<p class="timeline-corpo">${esc(c.texto || '')}</p>`;
+    corpoHtml = `<p class="lnc-tl-corpo">${esc(c.texto || '')}</p>`;
   }
 
   return `
-    <li class="timeline-item" data-tom="${esc(tom)}">
-      <span class="timeline-bola" aria-hidden="true"></span>
-      <div class="timeline-conteudo">
-        <div class="timeline-cabec">
-          <span class="h-eyebrow timeline-tipo">${esc(label)}</span>
-          <time class="timeline-tempo" title="${esc(formatarTimestampLongo(ev.ocorrido_em))}">${esc(formatarTempoRelativo(ev.ocorrido_em))}</time>
+    <li class="lnc-tl-item" data-tone="${esc(tone)}">
+      <span class="lnc-tl-dot" aria-hidden="true"></span>
+      <div class="lnc-tl-conteudo">
+        <div class="lnc-tl-head">
+          <span class="lnc-tl-tipo">${esc(label)}</span>
+          <time class="lnc-tl-tempo" title="${esc(formatarTimestampLongo(ev.ocorrido_em))}">${esc(formatarTempoRelativo(ev.ocorrido_em))}</time>
         </div>
         ${corpoHtml}
-        <p class="timeline-autor">por <span>${esc(truncarEmail(ev.autor_email))}</span></p>
+        <p class="lnc-tl-autor">por <strong>${esc(truncarEmail(ev.autor_email))}</strong></p>
       </div>
     </li>`;
 }
@@ -165,10 +181,11 @@ function itemTimeline(ev) {
 function ligarAcoes(lanc, dataCaixa) {
   const btn = document.querySelector('#btn-acao-principal');
   if (!btn) return;
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', (ev) => {
     abrirModalEditarLancamento({
       lancamento: lanc,
       dataCaixa,
+      origemEvento: ev,
       aoSalvar: () => {
         // Recarrega a tela inteira pra refletir mudanças de estado/dados.
         navegar(location.pathname);
@@ -189,7 +206,7 @@ function rodapeAcoes(lanc) {
     label = 'Abrir';
   }
   return `
-    <button id="btn-acao-principal" class="btn-primary">${esc(label)}</button>
+    <button id="btn-acao-principal" class="lnc-btn lnc-btn--primary">${esc(label)} →</button>
   `;
 }
 
@@ -215,9 +232,9 @@ function desmontar() {
 // ─── Helpers ────────────────────────────────────────────────────────
 function blocoInfo(label, valor, opts = {}) {
   return `
-    <div class="lanc-info-bloco">
-      <p class="h-eyebrow">${esc(label)}</p>
-      <p class="lanc-info-valor">${opts.html ? valor : esc(valor)}</p>
+    <div class="lnc-info-bloco">
+      <p class="lnc-info-label">${esc(label)}</p>
+      <p class="lnc-info-valor">${opts.html ? valor : esc(valor)}</p>
     </div>`;
 }
 

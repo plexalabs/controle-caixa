@@ -1,0 +1,327 @@
+/* lancamento-v2.css — Tela /lancamento/:id refator v2.
+   Namespace .lnc-*. Reusa tokens --ui-*, mesma linguagem da
+   /caixa/:data (cards papel, eyebrow verde, sem gradients).
+*/
+
+.lnc {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 1.75rem 1.75rem 3.5rem;
+    color: var(--ui-ink);
+}
+@media (max-width: 767px) {
+    .lnc { padding: 1.1rem 1rem 2.5rem; }
+}
+
+/* ============================================================
+   Breadcrumb
+   ============================================================ */
+.lnc-breadcrumb { margin-bottom: 0.9rem; }
+.lnc-link-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--ui-ink-3);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: color 160ms var(--ui-ease);
+}
+.lnc-link-back:hover { color: var(--ui-ink); }
+.lnc-link-back svg { transition: transform 160ms var(--ui-ease); }
+.lnc-link-back:hover svg { transform: translateX(-2px); }
+
+/* ============================================================
+   Header
+   ============================================================ */
+.lnc-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.lnc-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ui-accent);
+    margin: 0 0 0.35rem;
+}
+.lnc-title {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    margin: 0;
+    line-height: 1.2;
+}
+.lnc-sub {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin: 0.5rem 0 0;
+    flex-wrap: wrap;
+}
+.lnc-valor {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.018em;
+}
+.lnc-sep { color: var(--ui-ink-4); }
+
+.lnc-cat-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+    line-height: 1.35;
+}
+.lnc-cat-chip[data-cat="pix"]                { background: rgba(15, 118, 110, 0.12); color: #0F766E; }
+.lnc-cat-chip[data-cat="cartao"]             { background: rgba(30, 64, 175, 0.10); color: #1E40AF; }
+.lnc-cat-chip[data-cat="dinheiro"]           { background: rgba(22, 101, 52, 0.12); color: #166534; }
+.lnc-cat-chip[data-cat="cancelado"]          { background: var(--ui-danger-soft);    color: var(--ui-danger); }
+.lnc-cat-chip[data-cat="cartao_link"]        { background: rgba(91, 33, 182, 0.10); color: #5B21B6; }
+.lnc-cat-chip[data-cat="obs"]                { background: var(--ui-warn-soft);      color: var(--ui-warn); }
+.lnc-cat-chip[data-cat="disponivel_retirada"]{ background: rgba(139, 90, 43, 0.12); color: #8B5A2B; }
+
+.lnc-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+    line-height: 1.4;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.lnc-badge::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.8;
+}
+.lnc-badge[data-tone="analise"]    { background: var(--ui-info-soft);   color: var(--ui-info); }
+.lnc-badge[data-tone="completo"]   { background: var(--ui-warn-soft);   color: var(--ui-warn); }
+.lnc-badge[data-tone="resolvido"]  { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.lnc-badge[data-tone="finalizado"] { background: var(--ui-accent-soft); color: var(--ui-accent-2); }
+.lnc-badge[data-tone="cancelado"]  { background: var(--ui-danger-soft); color: var(--ui-danger); }
+
+/* ============================================================
+   Bloco de info (Cliente, Cód., Categoria, Caixa)
+   ============================================================ */
+.lnc-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 1.5rem;
+}
+.lnc-info-bloco {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.75rem 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    transition: border-color 160ms var(--ui-ease);
+}
+.lnc-info-bloco:hover { border-color: var(--ui-border-strong); }
+.lnc-info-label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-ink-3);
+    margin: 0;
+}
+.lnc-info-valor {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ui-ink);
+    margin: 0;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+.lnc-info-extra {
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    font-weight: 500;
+}
+.lnc-info-vazio {
+    color: var(--ui-ink-3);
+    font-style: italic;
+    font-weight: 500;
+}
+.lnc-info-link {
+    color: var(--ui-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: 600;
+    transition: color 160ms var(--ui-ease);
+}
+.lnc-info-link:hover { color: var(--ui-accent-2); }
+
+/* ============================================================
+   Timeline
+   ============================================================ */
+.lnc-timeline-bloco {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 1.1rem 1.25rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+.lnc-timeline-head {
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.lnc-timeline-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin: 0;
+    letter-spacing: -0.015em;
+}
+.lnc-timeline-sub {
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    margin: 0.15rem 0 0;
+    text-transform: lowercase;
+}
+
+.lnc-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+}
+.lnc-timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px; top: 0.7rem; bottom: 0.7rem;
+    width: 1px;
+    background: linear-gradient(
+        to bottom,
+        transparent 0,
+        var(--ui-border) 14px,
+        var(--ui-border) calc(100% - 14px),
+        transparent 100%
+    );
+}
+
+.lnc-tl-item {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--ui-surface-2);
+    position: relative;
+}
+.lnc-tl-item:last-child { border-bottom: 0; }
+.lnc-tl-item:first-child { padding-top: 0; }
+
+.lnc-tl-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--ui-ink-4);
+    margin-top: 0.45rem;
+    box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-ink-4);
+    transition: transform 240ms var(--ui-ease);
+}
+.lnc-tl-item:hover .lnc-tl-dot { transform: scale(1.15); }
+.lnc-tl-item[data-tone="criacao"]    .lnc-tl-dot { background: var(--ui-info);   box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-info); }
+.lnc-tl-item[data-tone="observacao"] .lnc-tl-dot { background: var(--ui-warn);   box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-warn); }
+.lnc-tl-item[data-tone="good"]       .lnc-tl-dot { background: var(--ui-accent); box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-accent); }
+.lnc-tl-item[data-tone="alerta"]     .lnc-tl-dot { background: var(--ui-danger); box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-danger); }
+.lnc-tl-item[data-tone="sistema"]    .lnc-tl-dot { background: var(--ui-ink-3);  box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-ink-3); }
+
+.lnc-tl-conteudo { min-width: 0; }
+.lnc-tl-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.25rem;
+    flex-wrap: wrap;
+}
+.lnc-tl-tipo {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--ui-ink-3);
+}
+.lnc-tl-item[data-tone="criacao"]    .lnc-tl-tipo { color: var(--ui-info); }
+.lnc-tl-item[data-tone="observacao"] .lnc-tl-tipo { color: var(--ui-warn); }
+.lnc-tl-item[data-tone="good"]       .lnc-tl-tipo { color: var(--ui-accent); }
+.lnc-tl-item[data-tone="alerta"]     .lnc-tl-tipo { color: var(--ui-danger); }
+.lnc-tl-tempo {
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    font-variant-numeric: tabular-nums;
+}
+.lnc-tl-corpo {
+    font-size: 0.88rem;
+    color: var(--ui-ink-2);
+    margin: 0 0 0.35rem;
+    line-height: 1.5;
+}
+.lnc-tl-corpo strong {
+    color: var(--ui-ink);
+    font-weight: 600;
+}
+.lnc-tl-pedido { color: var(--ui-ink-3); }
+.lnc-tl-autor {
+    font-size: 0.76rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+}
+.lnc-tl-autor strong { color: var(--ui-ink); font-weight: 600; }
+
+/* ============================================================
+   Rodapé
+   ============================================================ */
+.lnc-rodape {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+.lnc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--ui-ink);
+    color: var(--ui-bg);
+    border: 0;
+    border-radius: var(--ui-r-sm);
+    padding: 0.65rem 1.2rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 160ms var(--ui-ease), transform 80ms var(--ui-ease);
+    line-height: 1.2;
+}
+.lnc-btn:hover { background: #1A2904; }
+.lnc-btn:active { transform: translateY(1px); }
+.lnc-btn--primary { background: var(--ui-accent); }
+.lnc-btn--primary:hover { background: var(--ui-accent-2); }
