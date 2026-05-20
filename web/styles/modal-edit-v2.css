@@ -1,78 +1,248 @@
-/* modal-edit-v2.css — refinamentos visuais nos modais de lançamento
-   Namespace .mel-* (modal-edit-lancamento). Sobrescreve onde necessario,
-   reusa .field/.field-input/.field-underline do projeto.
+/* modal-edit-v2.css — Modal de lançamento (drawer lateral)
+   Refator visual v2 "Clean Profissional". Sobrescreve os estilos
+   .painel-* / .lanc-* legados quando o drawer está aberto pra dar
+   coerência com o resto da UI.
 */
 
-/* ───────────────────────────────────────────────────────────────────
-   Toggle switch — usado em 'Cliente já pagou' (disponivel_retirada)
-   e similares. Mesmo padrao do cxd-filter-toggle pra coerencia.
-   ─────────────────────────────────────────────────────────────────── */
+/* ===================================================================
+   Drawer lateral — visual v2 clean
+   =================================================================== */
 
-.mel-retirada-toggle-bloco {
-    background: var(--ui-surface-2, var(--c-papel-2));
-    border: 1px solid var(--ui-border, var(--c-papel-3));
-    border-radius: var(--ui-r-md, 10px);
-    padding: 0.75rem 0.95rem;
+.overlay-fundo--drawer { background: rgba(20, 20, 20, 0.42); }
+
+.painel-lateral {
+    background: var(--ui-surface);
+    box-shadow: -16px 0 48px -16px rgba(20, 20, 20, 0.22);
+    font-family: 'Manrope', -apple-system, system-ui, sans-serif;
+    color: var(--ui-ink);
+}
+@media (min-width: 720px) {
+    .painel-lateral {
+        width: clamp(440px, 40vw, 580px);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
 }
 
+/* Remove o filete âmbar editorial — não combina com v2 */
+.painel-lateral::before { display: none; }
+
+/* ===================================================================
+   Header / Eyebrow / Título / Botão fechar
+   =================================================================== */
+
+.painel-header {
+    background: var(--ui-surface);
+    border-bottom: 1px solid var(--ui-border);
+    padding: 1.35rem 1.5rem 1.15rem;
+}
+@media (min-width: 720px) {
+    .painel-header { padding: 1.45rem 1.75rem 1.2rem; }
+}
+
+.painel-eyebrow {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ui-accent);
+    margin: 0 0 0.4rem;
+}
+
+.painel-titulo {
+    font-family: 'Manrope', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 1.35rem;
+    line-height: 1.2;
+    color: var(--ui-ink);
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.painel-fechar {
+    background: transparent;
+    color: var(--ui-ink-3);
+    width: 32px; height: 32px;
+    border-radius: var(--ui-r-sm);
+    transition: background 160ms var(--ui-ease), color 160ms var(--ui-ease);
+}
+.painel-fechar:hover {
+    background: var(--ui-surface-2);
+    color: var(--ui-ink);
+    transform: none;
+}
+
+/* ===================================================================
+   Corpo + rodapé
+   =================================================================== */
+
+.painel-corpo {
+    padding: 1.4rem 1.5rem 1.2rem;
+    background: var(--ui-surface);
+    color: var(--ui-ink-2);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+@media (min-width: 720px) {
+    .painel-corpo { padding: 1.5rem 1.75rem 1.3rem; }
+}
+
+.painel-rodape {
+    padding: 0.95rem 1.5rem 1rem;
+    background: var(--ui-surface);
+    border-top: 1px solid var(--ui-border);
+    box-shadow: none;
+}
+@media (min-width: 720px) {
+    .painel-rodape { padding: 1rem 1.75rem 1.1rem; }
+}
+
+/* ===================================================================
+   Campos (field) dentro do painel — v2 polish
+   =================================================================== */
+
+.painel-corpo .field-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--ui-ink-3);
+    margin-bottom: 0.35rem;
+}
+
+.painel-corpo .field-input {
+    width: 100%;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-bottom: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 0.75rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    color: var(--ui-ink);
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.painel-corpo .field-input:hover { border-color: var(--ui-ink-3); }
+.painel-corpo .field-input:focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.12);
+}
+.painel-corpo .field-input::placeholder { color: var(--ui-ink-3); opacity: 0.55; }
+.painel-corpo .field-underline { display: none; }
+
+/* Select com seta SVG custom (verde-musgo) */
+.painel-corpo select.field-input {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1l4 4 4-4' stroke='%23283E06' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 9px 5px;
+    cursor: pointer;
+}
+
+/* Textareas com mesma cara dos inputs */
+.painel-corpo textarea.field-input {
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 4rem;
+}
+
+/* Hint inline (label tem badges) */
+.painel-corpo .field-label span[style*="color:var(--c-alerta)"] {
+    color: var(--ui-danger) !important;
+    font-weight: 700;
+    margin-left: 0.15rem;
+}
+
+/* ===================================================================
+   Pop-data (calendário) — v2
+   =================================================================== */
+
+.painel-corpo .pop-data-trigger {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 0.75rem;
+    color: var(--ui-ink);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.painel-corpo .pop-data-trigger:hover { border-color: var(--ui-ink-3); }
+.painel-corpo .pop-data-trigger:focus-visible,
+.painel-corpo .pop-data-trigger[aria-expanded="true"] {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.12);
+}
+.painel-corpo .pop-data-trigger-texto.is-placeholder {
+    color: var(--ui-ink-3);
+    opacity: 0.8;
+}
+
+/* ===================================================================
+   Toggle "Cliente já pagou" e similares
+   =================================================================== */
+
+.mel-retirada-toggle-bloco {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.85rem 1rem;
+}
 .mel-toggle {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.85rem;
     cursor: pointer;
     user-select: none;
     width: 100%;
 }
-.mel-toggle input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
+.mel-toggle input { position: absolute; opacity: 0; pointer-events: none; }
 .mel-toggle-pill {
-    width: 34px; height: 19px;
-    background: var(--ui-surface-3, var(--c-papel-3));
+    width: 36px; height: 20px;
+    background: var(--ui-surface-3);
     border-radius: 999px;
     position: relative;
-    transition: background 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background 180ms var(--ui-ease);
     flex-shrink: 0;
 }
 .mel-toggle-dot {
     position: absolute;
-    width: 15px; height: 15px;
-    background: var(--ui-surface, #FFFFFF);
+    width: 16px; height: 16px;
+    background: var(--ui-surface);
     border-radius: 50%;
     top: 2px; left: 2px;
-    transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 180ms var(--ui-ease);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
-.mel-toggle input:checked + .mel-toggle-pill {
-    background: var(--ui-accent, #15803D);
-}
-.mel-toggle input:checked + .mel-toggle-pill .mel-toggle-dot {
-    transform: translateX(15px);
-}
+.mel-toggle input:checked + .mel-toggle-pill { background: var(--ui-accent); }
+.mel-toggle input:checked + .mel-toggle-pill .mel-toggle-dot { transform: translateX(16px); }
 .mel-toggle-title {
     display: block;
-    font-family: 'Manrope', sans-serif;
     font-size: 0.92rem;
     font-weight: 600;
-    color: var(--ui-ink, var(--c-tinta));
+    color: var(--ui-ink);
     line-height: 1.2;
 }
 .mel-toggle-sub {
     display: block;
-    font-family: 'Manrope', sans-serif;
     font-size: 0.76rem;
-    color: var(--ui-ink-3, var(--c-tinta-3));
+    color: var(--ui-ink-3);
     margin-top: 0.15rem;
     line-height: 1.35;
 }
 
-/* Bloco de pagamento que expande quando toggle ativo */
 #bloco-pagamento {
-    border-left: 2px solid var(--ui-accent, #15803D);
+    border-left: 2px solid var(--ui-accent);
     padding-left: 1rem;
-    animation: mel-expand 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    animation: mel-expand 240ms var(--ui-ease);
 }
 #bloco-pagamento.hidden { display: none !important; }
 @keyframes mel-expand {
@@ -80,24 +250,316 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ───────────────────────────────────────────────────────────────────
-   Pop-data — refinamento visual coerente com v2 quando aparece
-   dentro de modais de lancamento
-   ─────────────────────────────────────────────────────────────────── */
+/* ===================================================================
+   Cards de leitura (.lanc-leitura-item)
+   =================================================================== */
 
-.painel-corpo .pop-data-trigger {
-    background: var(--ui-surface, #FFFFFF);
-    border: 1px solid var(--ui-border, var(--c-papel-3));
-    border-radius: var(--ui-r-sm, 6px);
-    padding: 0.55rem 0.75rem;
-    transition: border-color 160ms cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1);
+.painel-corpo .lanc-leitura {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
 }
-.painel-corpo .pop-data-trigger:hover {
-    border-color: var(--ui-ink-3, var(--c-tinta-3));
+.painel-corpo .lanc-leitura-item {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.7rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
-.painel-corpo .pop-data-trigger:focus-visible,
-.painel-corpo .pop-data-trigger[aria-expanded="true"] {
-    border-color: var(--ui-ink, var(--c-musgo));
-    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.12);
+.painel-corpo .lanc-leitura-item .h-eyebrow {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--ui-ink-3);
+    margin: 0;
+}
+.painel-corpo .lanc-leitura-valor {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ui-ink);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.painel-corpo .lanc-leitura-valor strong {
+    font-family: 'Manrope', sans-serif !important;
+    font-weight: 700 !important;
+    font-style: normal !important;
+    font-size: 1.05rem !important;
+    color: var(--ui-ink);
+}
+
+/* Pill da categoria dentro do card de leitura */
+.painel-corpo .lanc-categoria {
+    display: inline-flex;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    align-self: flex-start;
+}
+
+/* Bloco dl de detalhes da categoria (lanc-leitura-detalhes) */
+.painel-corpo .lanc-leitura-detalhes {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.85rem 1rem;
+    margin-top: 1.25rem;
+}
+.painel-corpo .lanc-leitura-detalhes .h-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
+    margin: 0 0 0.65rem;
+}
+.painel-corpo .lanc-leitura-dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.45rem 0.9rem;
+    margin: 0;
+}
+.painel-corpo .lanc-leitura-dl dt {
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    font-weight: 600;
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+}
+.painel-corpo .lanc-leitura-dl dd {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--ui-ink);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+/* ===================================================================
+   Banner final (finalizado / cancelado)
+   =================================================================== */
+
+.painel-corpo .lanc-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--ui-r-md);
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--ui-border);
+}
+.painel-corpo .lanc-banner--finalizado {
+    background: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 25%, var(--ui-border));
+    color: var(--ui-accent-2);
+}
+.painel-corpo .lanc-banner--cancelado {
+    background: var(--ui-danger-soft);
+    border-color: color-mix(in srgb, var(--ui-danger) 25%, var(--ui-border));
+    color: var(--ui-danger);
+}
+.painel-corpo .lanc-banner-icone {
+    width: 28px; height: 28px;
+    border-radius: 999px;
+    background: var(--ui-surface);
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.painel-corpo .lanc-banner-titulo {
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin: 0;
+    color: inherit;
+}
+
+/* ===================================================================
+   Observações
+   =================================================================== */
+
+.painel-corpo .lanc-obs-bloco { margin-top: 1.5rem; }
+.painel-corpo .lanc-obs-bloco .h-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
+}
+
+.painel-corpo .lanc-obs-lista {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+.painel-corpo .lanc-obs-lista li:not(.lanc-obs-vazio) {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.6rem 0.85rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--ui-ink-2);
+}
+.painel-corpo .lanc-obs-vazio {
+    color: var(--ui-ink-3);
+    font-size: 0.82rem;
+    font-style: italic;
+    padding: 0.5rem 0;
+}
+
+.painel-corpo .lanc-obs-novo .field-label {
+    font-size: 0.66rem;
+    color: var(--ui-accent);
+}
+
+/* ===================================================================
+   Botões do rodapé (sobrescritas das classes legadas)
+   =================================================================== */
+
+.painel-rodape .painel-rodape-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.painel-rodape .painel-acoes-secundarias {
+    display: flex;
+    gap: 1.1rem;
+    padding-bottom: 0.7rem;
+    margin-bottom: 0.7rem;
+    border-bottom: 1px dashed var(--ui-border);
+    flex-wrap: wrap;
+}
+
+.painel-rodape .painel-acoes-finais {
+    display: flex;
+    gap: 0.55rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+/* Botoes primary/link/secundario dentro do rodape do painel */
+.painel-rodape .btn-primary {
+    background: var(--ui-accent);
+    color: var(--ui-bg);
+    border: 0;
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 1.05rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    box-shadow: none;
+    transition: background 160ms var(--ui-ease);
+}
+.painel-rodape .btn-primary:hover { background: var(--ui-accent-2); }
+.painel-rodape .btn-primary:disabled { opacity: 0.45; }
+.painel-rodape .btn-primary[aria-busy="true"]::after {
+    border-color: var(--ui-bg);
+    border-top-color: transparent;
+}
+
+.painel-rodape .btn-link {
+    background: none;
+    border: 0;
+    color: var(--ui-ink-3);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.45rem 0.6rem;
+    border-radius: var(--ui-r-sm);
+    cursor: pointer;
+    transition: color 140ms var(--ui-ease), background 140ms var(--ui-ease);
+    text-decoration: none;
+}
+.painel-rodape .btn-link:hover {
+    color: var(--ui-ink);
+    background: var(--ui-surface-2);
+}
+
+.painel-rodape .btn-secundario {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    color: var(--ui-ink-2);
+    border-radius: var(--ui-r-sm);
+    padding: 0.5rem 1rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease), border-color 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.painel-rodape .btn-secundario:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border-strong);
+    color: var(--ui-ink);
+}
+.painel-rodape .btn-secundario--alerta {
+    color: var(--ui-danger);
+    border-color: color-mix(in srgb, var(--ui-danger) 25%, var(--ui-border));
+}
+.painel-rodape .btn-secundario--alerta:hover {
+    background: var(--ui-danger-soft);
+    border-color: var(--ui-danger);
+    color: var(--ui-danger);
+}
+
+/* ===================================================================
+   Alertas dentro do painel (info/erro)
+   =================================================================== */
+
+.painel-corpo .alert,
+.painel-rodape .alert {
+    background: var(--ui-danger-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
+    border-left: 3px solid var(--ui-danger);
+    color: var(--ui-danger);
+    border-radius: var(--ui-r-sm);
+    padding: 0.7rem 0.85rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+.painel-corpo .alert--info,
+.painel-rodape .alert--info {
+    background: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 22%, var(--ui-border));
+    border-left-color: var(--ui-accent);
+    color: var(--ui-accent-2);
+}
+
+/* ===================================================================
+   Modo Categorizar — agrupamento de campos
+   =================================================================== */
+
+.painel-corpo #bloco-cat-vazio {
+    background: var(--ui-surface-2);
+    border: 1px dashed var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--ui-ink-3);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* Wrapper do "Resolver OBS" - bloco de campos */
+#ro-cat-wrapper .h-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
 }
