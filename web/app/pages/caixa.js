@@ -76,9 +76,64 @@ export async function renderCaixa({ params }) {
       <!-- KPIs do dia (skeleton inicial; preenchido em atualizarRodape) -->
       <section id="rodape" class="cxd-kpis hidden" aria-label="Resumo do dia"></section>
 
-      <!-- Toolbar: filtros + acoes -->
+      <!-- Toolbar: filtros (popover) + acoes -->
       <div class="cxd-toolbar">
-        <div id="cx-filtros" class="cxd-filtros-slot hidden"></div>
+        <div class="cxd-filter" id="cxd-filter" data-aberto="false">
+          <button type="button" class="cxd-filter-trigger" id="cxd-filter-trigger" aria-haspopup="dialog" aria-expanded="false">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12L9.5 9v4l-3-1V9L2 4Z"/></svg>
+            <span>Filtros</span>
+            <span class="cxd-filter-count" id="cxd-filter-count" hidden>0</span>
+            <svg class="cxd-filter-caret" width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+          </button>
+
+          <div class="cxd-filter-pop" id="cxd-filter-pop" role="dialog" aria-label="Filtros" hidden>
+            <header class="cxd-filter-pop-head">
+              <h3 class="cxd-filter-pop-title">Filtros</h3>
+              <button type="button" class="cxd-filter-pop-close" id="cxd-filter-close" aria-label="Fechar">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l10 10M13 3L3 13"/></svg>
+              </button>
+            </header>
+
+            <div class="cxd-filter-body">
+              <label class="cxd-filter-field">
+                <span class="cxd-filter-label">Categoria</span>
+                <select id="cxd-f-categoria" class="cxd-filter-input">
+                  <option value="">Todas</option>
+                  <option value="em_analise">Em análise (sem categoria)</option>
+                  ${CATEGORIAS.map(c => `<option value="${c.valor}">${c.rotulo}</option>`).join('')}
+                </select>
+              </label>
+
+              <label class="cxd-filter-field">
+                <span class="cxd-filter-label">Estado</span>
+                <select id="cxd-f-estado" class="cxd-filter-input">
+                  <option value="">Todos</option>
+                  <option value="pendente">Em análise</option>
+                  <option value="completo">Categorizado</option>
+                  <option value="finalizado">Finalizado</option>
+                  <option value="cancelado_pos">Cancelado pós-pagamento</option>
+                </select>
+              </label>
+
+              <label class="cxd-filter-field">
+                <span class="cxd-filter-label">Buscar</span>
+                <input type="text" id="cxd-f-busca" class="cxd-filter-input" placeholder="NF, cliente ou pedido" />
+              </label>
+
+              <label class="cxd-filter-toggle">
+                <input type="checkbox" id="cxd-f-ocultar" />
+                <span class="cxd-filter-toggle-pill"><span class="cxd-filter-toggle-dot"></span></span>
+                <span class="cxd-filter-toggle-label">Ocultar resolvidos</span>
+              </label>
+            </div>
+
+            <footer class="cxd-filter-pop-foot">
+              <button type="button" class="cxd-btn cxd-btn--link cxd-btn--sm" id="cxd-f-limpar">Limpar</button>
+              <button type="button" class="cxd-btn cxd-btn--primary cxd-btn--sm" id="cxd-f-aplicar">Aplicar</button>
+            </footer>
+          </div>
+        </div>
+
         <div class="cxd-acoes">
           <a id="hint-pendencias" class="cxd-hint-pend hidden" href="#" data-link>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.5 1.5"/></svg>
@@ -269,7 +324,7 @@ async function carregarLancamentos(caixaId) {
   lancCache = data || [];
 
   if (lancCache.length === 0) {
-    document.querySelector('#cx-filtros')?.classList.add('hidden');
+    document.querySelector('#cxd-filter')?.classList.add('hidden');
     bloco.innerHTML = `
       <div class="cxd-empty cxd-empty--inicial">
         <p class="cxd-empty-eyebrow">Caixa em branco</p>
@@ -279,39 +334,85 @@ async function carregarLancamentos(caixaId) {
     atualizarRodape([]);
     return;
   }
+  document.querySelector('#cxd-filter')?.classList.remove('hidden');
 
-  // CP5.5: instala filter-bar na primeira carga (ou reaplica estado da URL)
-  garantirFilterBar();
+  // Filtro v2: popover proprio (substitui filter-bar generico)
+  ligarFiltroV2();
   renderListaFiltrada();
   atualizarRodape(lancCache);
 }
 
-// ─── CP5.5: filter-bar do caixa do dia ────────────────────────────────
-function garantirFilterBar() {
-  const cont = document.querySelector('#cx-filtros');
-  if (!cont) return;
-  cont.classList.remove('hidden');
-  if (fbCtrl) return;   // já instalado nesta visita
+// ─── Filtro v2 (popover flutuante) ────────────────────────────────────
+let filtroV2Estado = { categoria: '', estado: '', busca: '', ocultar_resolvidos: false };
+let filtroV2Ligado = false;
 
-  fbCtrl = instalarFilterBar(cont, {
-    filtros: [
-      { id: 'categoria', label: 'Categoria', tipo: 'select', opcoes: [
-        { valor: '',           rotulo: 'Todas' },
-        { valor: 'em_analise', rotulo: 'Em análise (sem categoria)' },
-        ...CATEGORIAS.map(c => ({ valor: c.valor, rotulo: c.rotulo })),
-      ]},
-      { id: 'estado', label: 'Estado', tipo: 'select', opcoes: [
-        { valor: '',              rotulo: 'Todos' },
-        { valor: 'pendente',      rotulo: 'Em análise' },
-        { valor: 'completo',      rotulo: 'Categorizado' },
-        { valor: 'finalizado',    rotulo: 'Finalizado' },
-        { valor: 'cancelado_pos', rotulo: 'Cancelado pós-pagamento' },
-      ]},
-      { id: 'busca', label: 'Buscar', tipo: 'texto', placeholder: 'NF ou cliente' },
-      { id: 'ocultar_resolvidos', label: 'Ocultar resolvidos', tipo: 'toggle' },
-    ],
-    onChange: () => renderListaFiltrada(),
+function ligarFiltroV2() {
+  if (filtroV2Ligado) return;
+  filtroV2Ligado = true;
+
+  const trigger = document.querySelector('#cxd-filter-trigger');
+  const pop     = document.querySelector('#cxd-filter-pop');
+  const close   = document.querySelector('#cxd-filter-close');
+  const root    = document.querySelector('#cxd-filter');
+  if (!trigger || !pop) return;
+
+  const abrirFechar = (abrir) => {
+    pop.hidden = !abrir;
+    trigger.setAttribute('aria-expanded', String(abrir));
+    root.dataset.aberto = String(abrir);
+  };
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    abrirFechar(pop.hidden);
   });
+  close?.addEventListener('click', () => abrirFechar(false));
+
+  // Click fora fecha
+  document.addEventListener('mousedown', (e) => {
+    if (!root.contains(e.target)) abrirFechar(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') abrirFechar(false);
+  });
+
+  // Aplicar / limpar
+  document.querySelector('#cxd-f-aplicar')?.addEventListener('click', () => {
+    filtroV2Estado = {
+      categoria: document.querySelector('#cxd-f-categoria')?.value || '',
+      estado:    document.querySelector('#cxd-f-estado')?.value    || '',
+      busca:     (document.querySelector('#cxd-f-busca')?.value || '').trim(),
+      ocultar_resolvidos: document.querySelector('#cxd-f-ocultar')?.checked || false,
+    };
+    atualizarBadgeFiltro();
+    abrirFechar(false);
+    renderListaFiltrada();
+  });
+  document.querySelector('#cxd-f-limpar')?.addEventListener('click', () => {
+    filtroV2Estado = { categoria: '', estado: '', busca: '', ocultar_resolvidos: false };
+    const cat = document.querySelector('#cxd-f-categoria'); if (cat) cat.value = '';
+    const est = document.querySelector('#cxd-f-estado');    if (est) est.value = '';
+    const bus = document.querySelector('#cxd-f-busca');     if (bus) bus.value = '';
+    const ocu = document.querySelector('#cxd-f-ocultar');   if (ocu) ocu.checked = false;
+    atualizarBadgeFiltro();
+    renderListaFiltrada();
+  });
+
+  // Submeter com Enter no campo de busca
+  document.querySelector('#cxd-f-busca')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.querySelector('#cxd-f-aplicar')?.click();
+  });
+}
+
+function atualizarBadgeFiltro() {
+  const b = document.querySelector('#cxd-filter-count');
+  if (!b) return;
+  const n = (filtroV2Estado.categoria ? 1 : 0)
+          + (filtroV2Estado.estado    ? 1 : 0)
+          + (filtroV2Estado.busca     ? 1 : 0)
+          + (filtroV2Estado.ocultar_resolvidos ? 1 : 0);
+  if (n === 0) { b.hidden = true; b.textContent = '0'; }
+  else         { b.hidden = false; b.textContent = String(n); }
 }
 
 // Legado — desativado no refactor v2 do /caixa: filter-bar agora fica
@@ -359,7 +460,7 @@ function configurarOverlayFiltroMobile() {
 function renderListaFiltrada() {
   const bloco = document.querySelector('#bloco-conteudo');
   if (!bloco) return;
-  const f = fbCtrl?.estado() || {};
+  const f = filtroV2Estado;
   const filtrados = aplicarFiltrosCaixa(lancCache, f);
 
   if (filtrados.length === 0) {
