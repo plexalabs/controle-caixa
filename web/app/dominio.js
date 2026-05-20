@@ -55,7 +55,7 @@ export const LABEL_ESTADO_CAIXA_CURTO = {
 export const BANDEIRAS = ['Visa','Mastercard','Elo','Hipercard','Amex','Outros'];
 export const MODALIDADES = ['Crédito','Débito'];
 export const STATUS_LINK = ['Enviado','Pago','Expirado','Cancelado'];
-export const TIPOS_OBS   = ['Troca','Cortesia','Erro','Devolução','NF Perdida','Outro'];
+export const TIPOS_OBS   = ['Troca','Cortesia','Erro','Devolução','NF Perdida','Em espera','Residual','Outro'];
 
 // Saudação baseada na hora — Bom dia 05–12, Boa tarde 12–18, Boa noite 18–05.
 export function saudacaoPorHora(d = new Date()) {

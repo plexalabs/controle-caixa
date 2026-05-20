@@ -369,6 +369,48 @@ async function renderCamposCategoria(cat) {
         ${campoSelect('tipo_obs', 'Tipo de observação', TIPOS_OBS, { required: true })}
         ${campoTextarea('descricao', 'Descrição (mín. 20 caracteres)', { required: true, minlength: 20, maxlength: 500 })}`;
       break;
+
+    case 'disponivel_retirada':
+      container.innerHTML = `
+        ${campoTextarea('motivo_interno', 'Motivo interno (por que aguarda retirada)', { required: true, minlength: 10, maxlength: 240 })}
+        ${campoTexto('previsao_retirada', 'Previsão de retirada', { type: 'date' })}
+
+        <div class="mel-retirada-toggle-bloco mt-5">
+          <label class="mel-toggle">
+            <input type="checkbox" id="campo-pago" name="pago" />
+            <span class="mel-toggle-pill"><span class="mel-toggle-dot"></span></span>
+            <div>
+              <span class="mel-toggle-title">Cliente já pagou</span>
+              <span class="mel-toggle-sub">Marque pra registrar a forma e a data do pagamento</span>
+            </div>
+          </label>
+        </div>
+
+        <div id="bloco-pagamento" class="hidden mt-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            ${campoSelect('forma_pagamento', 'Forma de pagamento', ['Pix','Cartão','Dinheiro','Transferência','Outro'], { required: true })}
+            ${campoTexto('data_pagamento', 'Data do pagamento', { type: 'date', required: true })}
+          </div>
+        </div>
+      `;
+      // Toggle pago expande sub-bloco
+      const toggle = container.querySelector('#campo-pago');
+      const bloco  = container.querySelector('#bloco-pagamento');
+      toggle?.addEventListener('change', () => {
+        const ativo = toggle.checked;
+        bloco?.classList.toggle('hidden', !ativo);
+        // se desativar, limpa filhos pra nao virem no payload
+        if (!ativo) {
+          bloco?.querySelectorAll('input, select').forEach(el => { el.value = ''; });
+        }
+        revalidar();
+      });
+      // Pre-popula estado salvo (modo edicao)
+      if (estado.dadosCategoria?.pago) {
+        toggle.checked = true;
+        bloco?.classList.remove('hidden');
+      }
+      break;
   }
 
   container.querySelectorAll('input, select, textarea').forEach(el => {
@@ -450,7 +492,12 @@ function construirPayload(form) {
   const dadosCategoria = {};
   const campos = form.querySelectorAll('#bloco-cat-campos input, #bloco-cat-campos select, #bloco-cat-campos textarea');
   for (const el of campos) {
-    if (el.name && el.value !== '') dadosCategoria[el.name] = el.value;
+    if (el.type === 'checkbox') {
+      // Boolean explicito pra campos toggle (ex: pago em disponivel_retirada)
+      if (el.checked) dadosCategoria[el.name] = true;
+    } else if (el.name && el.value !== '') {
+      dadosCategoria[el.name] = el.value;
+    }
   }
   if (dadosCategoria.parcelas) dadosCategoria.parcelas = Number(dadosCategoria.parcelas);
   if (dadosCategoria.valor_recebido) dadosCategoria.valor_recebido = Number(dadosCategoria.valor_recebido);
@@ -596,12 +643,19 @@ function rodapeGerenciar() {
   const podeEditar = temPermissaoSync('lancamento.editar');
   const podeExcluir = temPermissaoSync('lancamento.excluir');
 
+  // OBS pode ser resolvida em qualquer estado (exceto excluido — esse
+  // nao chega aqui pq nem aparece no caixa). Backend ja permite isso
+  // via resolver_obs_lancamento sem janela de tempo.
+  const ehObs = l.categoria === 'obs';
+  const podeResolver = ehObs && temPermissaoSync('lancamento.editar_categoria');
+
   if (finalizadoOuCancelado) {
     const ehCancelado = ['cancelado_pos','cancelado'].includes(l.estado);
     return `<div class="painel-rodape-acoes" style="flex-wrap:wrap;gap:0.5rem">
       <span class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3);flex:1 1 100%;margin-bottom:0.4rem">
         Lançamento ${ehCancelado ? 'cancelado' : 'finalizado'}. Apenas observações continuam editáveis.
       </span>
+      ${podeResolver ? `<button type="button" id="btn-resolver-obs" class="btn-link" style="color:var(--c-musgo);font-weight:600">↻ Resolver OBS</button>` : ''}
       ${podeExcluir ? `
         <button type="button" id="btn-excluir" class="btn-link" style="color:var(--c-alerta);text-decoration-color:rgba(154,42,31,0.4)">
           Excluir lançamento
@@ -609,8 +663,6 @@ function rodapeGerenciar() {
       <button type="button" id="btn-fechar-leitura" class="btn-link" style="margin-left:auto">Fechar</button>
     </div>`;
   }
-  const ehObs = l.categoria === 'obs';
-  const podeResolver = ehObs && temPermissaoSync('lancamento.editar_categoria');
 
   return `
     <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
@@ -685,6 +737,13 @@ function dadosCategoriaLeitura(l) {
   else if (cat === 'obs') pares = [
     ['Tipo',           d.tipo_obs],
     ['Descrição',      d.descricao],
+  ];
+  else if (cat === 'disponivel_retirada') pares = [
+    ['Motivo interno',   d.motivo_interno],
+    ['Previsão retirada', d.previsao_retirada],
+    ['Pago',             d.pago ? 'Sim' : null],
+    ['Forma pagamento',  d.forma_pagamento],
+    ['Data pagamento',   d.data_pagamento],
   ];
 
   pares = pares.filter(([, v]) => v != null && v !== '');

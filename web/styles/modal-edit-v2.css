@@ -1,0 +1,103 @@
+/* modal-edit-v2.css — refinamentos visuais nos modais de lançamento
+   Namespace .mel-* (modal-edit-lancamento). Sobrescreve onde necessario,
+   reusa .field/.field-input/.field-underline do projeto.
+*/
+
+/* ───────────────────────────────────────────────────────────────────
+   Toggle switch — usado em 'Cliente já pagou' (disponivel_retirada)
+   e similares. Mesmo padrao do cxd-filter-toggle pra coerencia.
+   ─────────────────────────────────────────────────────────────────── */
+
+.mel-retirada-toggle-bloco {
+    background: var(--ui-surface-2, var(--c-papel-2));
+    border: 1px solid var(--ui-border, var(--c-papel-3));
+    border-radius: var(--ui-r-md, 10px);
+    padding: 0.75rem 0.95rem;
+}
+
+.mel-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    width: 100%;
+}
+.mel-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.mel-toggle-pill {
+    width: 34px; height: 19px;
+    background: var(--ui-surface-3, var(--c-papel-3));
+    border-radius: 999px;
+    position: relative;
+    transition: background 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+.mel-toggle-dot {
+    position: absolute;
+    width: 15px; height: 15px;
+    background: var(--ui-surface, #FFFFFF);
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.mel-toggle input:checked + .mel-toggle-pill {
+    background: var(--ui-accent, #15803D);
+}
+.mel-toggle input:checked + .mel-toggle-pill .mel-toggle-dot {
+    transform: translateX(15px);
+}
+.mel-toggle-title {
+    display: block;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ui-ink, var(--c-tinta));
+    line-height: 1.2;
+}
+.mel-toggle-sub {
+    display: block;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.76rem;
+    color: var(--ui-ink-3, var(--c-tinta-3));
+    margin-top: 0.15rem;
+    line-height: 1.35;
+}
+
+/* Bloco de pagamento que expande quando toggle ativo */
+#bloco-pagamento {
+    border-left: 2px solid var(--ui-accent, #15803D);
+    padding-left: 1rem;
+    animation: mel-expand 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+#bloco-pagamento.hidden { display: none !important; }
+@keyframes mel-expand {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Pop-data — refinamento visual coerente com v2 quando aparece
+   dentro de modais de lancamento
+   ─────────────────────────────────────────────────────────────────── */
+
+.painel-corpo .pop-data-trigger {
+    background: var(--ui-surface, #FFFFFF);
+    border: 1px solid var(--ui-border, var(--c-papel-3));
+    border-radius: var(--ui-r-sm, 6px);
+    padding: 0.55rem 0.75rem;
+    transition: border-color 160ms cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.painel-corpo .pop-data-trigger:hover {
+    border-color: var(--ui-ink-3, var(--c-tinta-3));
+}
+.painel-corpo .pop-data-trigger:focus-visible,
+.painel-corpo .pop-data-trigger[aria-expanded="true"] {
+    border-color: var(--ui-ink, var(--c-musgo));
+    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.12);
+}
