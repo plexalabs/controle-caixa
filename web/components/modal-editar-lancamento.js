@@ -48,11 +48,12 @@ let janelaEditarCategoriaMin = JANELA_EDITAR_CAT_MIN_DEFAULT;
 // Estado interno do drawer (limpo a cada abertura).
 let estado = null;
 
-export function abrirModalEditarLancamento({ lancamento, dataCaixa, aoSalvar = () => {} } = {}) {
+export function abrirModalEditarLancamento({ lancamento, dataCaixa, aoSalvar = () => {}, origemEvento = null } = {}) {
   estado = {
     lancamento,                              // pode ser null se for criacao direta
     dataCaixa,
     aoSalvar,
+    origemEvento,                            // pra animacao origin-based dos sub-modos
     categoriaAtual: lancamento?.categoria || '',
     dadosCategoria: lancamento?.dados_categoria || {},
     vendedoras: [],
@@ -87,6 +88,7 @@ function abrirModoCategorizar() {
 
   abrirModal({
     lateral: false,
+    origemEvento: estado.origemEvento,
     eyebrow: l ? `NF ${l.numero_nf} · em análise` : `Novo lançamento · ${formatarDataPt(estado.dataCaixa)}`,
     titulo:  l ? 'Categorizar lançamento.' : 'Adicionar uma página ao caixa.',
     conteudo: corpoFormCategorizar(),
@@ -576,6 +578,7 @@ function abrirModoGerenciarOuFinalizado() {
 
   abrirModal({
     lateral: false,
+    origemEvento: estado.origemEvento,
     eyebrow,
     titulo,
     conteudo: corpoGerenciar(),
@@ -923,6 +926,7 @@ function abrirSubModoEditar() {
 
   abrirModal({
     lateral: false,
+    origemEvento: estado.origemEvento,
     eyebrow: `NF ${l.numero_nf} · editar`,
     titulo:  'Editar lançamento.',
     conteudo: `
@@ -1082,6 +1086,7 @@ function abrirSubModoExcluir() {
 
   abrirModal({
     lateral: false,
+    origemEvento: estado.origemEvento,
     eyebrow: `NF ${l.numero_nf} · excluir`,
     titulo:  'Excluir lançamento.',
     conteudo: `
@@ -1187,6 +1192,7 @@ function abrirSubModoResolverObs() {
 
   abrirModal({
     lateral: false,
+    origemEvento: estado.origemEvento,
     eyebrow: `NF ${l.numero_nf} · resolver OBS`,
     titulo:  'Resolver categoria.',
     conteudo: `

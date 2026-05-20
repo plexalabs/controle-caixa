@@ -254,17 +254,18 @@ async function carregarCaixa(dataAlvo) {
     btnNov.classList.remove('hidden');
     btnNov.disabled = false;
     btnNov.textContent = 'Abrir caixa';
-    btnNov.onclick = () => abrirModalReabrirCaixa({
+    btnNov.onclick = (ev) => abrirModalReabrirCaixa({
       caixaId:    caixa.id,
       dataCaixa:  dataAlvo,
       aoConcluir: () => carregarCaixa(dataAlvo),
+      origemEvento: ev,
     });
   } else {
     btnNov.classList.remove('hidden');
     btnNov.disabled = false;
     btnNov.textContent = '+ Novo lançamento';
-    btnNov.onclick = () =>
-      abrirModalAdicionarNF({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id) });
+    btnNov.onclick = (ev) =>
+      abrirModalAdicionarNF({ dataCaixa: dataAlvo, aoSalvar: () => carregarLancamentos(caixa.id), origemEvento: ev });
   }
 
   // CP6.2 + FIX: Banner fechado / CTA fechar (só sem pendências) / hint pendências
@@ -478,13 +479,14 @@ function renderListaFiltrada() {
 
   const porId = Object.fromEntries(filtrados.map(l => [l.id, l]));
   bloco.querySelectorAll('.cxd-lanc').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (ev) => {
       const lanc = porId[el.dataset.id];
       if (!lanc) return;
       abrirModalEditarLancamento({
         lancamento: lanc,
         dataCaixa:  dataAlvoAtual,
         aoSalvar:   () => carregarLancamentos(caixaIdAtual),
+        origemEvento: ev,
       });
     });
   });

@@ -13,6 +13,7 @@ export function abrirModal({
   lateral = false,
   rodape = '',
   onConfirmarFechar = null,
+  origemEvento = null,    // event do click pra animar 'nascendo' do elemento
 } = {}) {
   fecharModal(true);  // fecha qualquer um existente sem confirmar
   confirmaSaida = onConfirmarFechar || (() => true);
@@ -47,8 +48,36 @@ export function abrirModal({
   document.body.style.overflow = 'hidden';
   aberto = overlay;
 
-  // Anima entrada no próximo frame para garantir transição.
-  requestAnimationFrame(() => overlay.classList.add('is-aberto'));
+  // Captura ponto de origem do clique pra animar 'nascendo' do
+  // elemento clicado. Funciona so com modal centralizado (.modal-card),
+  // nao com drawer lateral. Pega no proximo frame pra ter as dimensoes
+  // do modal ja calculadas.
+  if (!lateral && origemEvento) {
+    const el = origemEvento.currentTarget || origemEvento.target;
+    const r = el?.getBoundingClientRect?.();
+    if (r) {
+      const cx = r.left + r.width / 2;   // viewport
+      const cy = r.top + r.height / 2;
+      requestAnimationFrame(() => {
+        const card = overlay.querySelector('.modal-card');
+        const cardR = card?.getBoundingClientRect();
+        if (cardR) {
+          // Posicao do click relativa ao canto sup-esq do modal
+          const localX = Math.max(0, Math.min(cardR.width,  cx - cardR.left));
+          const localY = Math.max(0, Math.min(cardR.height, cy - cardR.top));
+          card.style.setProperty('--origin-x', `${localX}px`);
+          card.style.setProperty('--origin-y', `${localY}px`);
+          overlay.dataset.origem = '1';
+        }
+        overlay.classList.add('is-aberto');
+      });
+    } else {
+      requestAnimationFrame(() => overlay.classList.add('is-aberto'));
+    }
+  } else {
+    // Anima entrada no próximo frame para garantir transição.
+    requestAnimationFrame(() => overlay.classList.add('is-aberto'));
+  }
 
   overlay.querySelector('[data-fechar]').addEventListener('click', () => fecharModal(false));
   overlay.addEventListener('click', (e) => {

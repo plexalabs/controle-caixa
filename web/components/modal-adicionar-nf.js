@@ -12,11 +12,12 @@ import { debounce } from '../app/utils.js';
 
 let estado = null;
 
-export function abrirModalAdicionarNF({ dataCaixa, aoSalvar = () => {} } = {}) {
-  estado = { dataCaixa, aoSalvar, sujo: false };
+export function abrirModalAdicionarNF({ dataCaixa, aoSalvar = () => {}, origemEvento = null } = {}) {
+  estado = { dataCaixa, aoSalvar, sujo: false, origemEvento };
 
   abrirModal({
     lateral: false,
+    origemEvento,
     eyebrow: `Em análise · ${formatarDataPt(dataCaixa)}`,
     titulo:  'Anotar uma nota fiscal.',
     conteudo: corpoForm(),

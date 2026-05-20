@@ -49,23 +49,59 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-
-    /* Estado inicial: invisivel + saindo da direita */
-    opacity: 0;
-    transform: translateX(40%) scale(0.98);
-    transition: opacity 360ms cubic-bezier(0.22, 1, 0.36, 1),
-                transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.overlay-fundo.is-aberto .modal-card {
+/* ───────────────────────────────────────────────────────────────
+   Animacao padrao (sem origem do click): fade + scale do centro
+   ─────────────────────────────────────────────────────────────── */
+.overlay-fundo:not([data-origem]) .modal-card {
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 320ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.overlay-fundo:not([data-origem]).is-aberto .modal-card {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: scale(1);
+}
+.overlay-fundo:not([data-origem]).is-fechando .modal-card {
+    opacity: 0;
+    transform: scale(0.95);
+    transition-duration: 200ms;
 }
 
-.overlay-fundo.is-fechando .modal-card {
+/* ───────────────────────────────────────────────────────────────
+   Animacao 'nasce do ponto clicado' — clip-path circular cresce
+   das coordenadas locais (--origin-x / --origin-y, em pixels
+   relativos ao canto sup-esq do modal). Calculo feito no
+   abrirModal({ origemEvento }).
+   ─────────────────────────────────────────────────────────────── */
+.overlay-fundo[data-origem] .modal-card {
+    --origin-x: 50%;
+    --origin-y: 50%;
+    clip-path: circle(0 at var(--origin-x) var(--origin-y));
+    transition: clip-path 480ms cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 220ms ease;
+    opacity: 1;
+    transform: none;
+}
+.overlay-fundo[data-origem].is-aberto .modal-card {
+    clip-path: circle(160% at var(--origin-x) var(--origin-y));
+}
+.overlay-fundo[data-origem].is-fechando .modal-card {
+    clip-path: circle(0 at var(--origin-x) var(--origin-y));
     opacity: 0;
-    transform: translateX(40%) scale(0.98);
-    transition-duration: 240ms;
+    transition-duration: 280ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal-card,
+    .overlay-fundo[data-origem] .modal-card {
+        animation: none !important;
+        transition: opacity 160ms !important;
+        clip-path: none !important;
+        transform: none !important;
+    }
 }
 
 /* Centraliza horizontal+vertical via flex no overlay */
@@ -82,11 +118,17 @@
     .modal-card {
         width: 100%;
         max-height: 96vh;
-        /* Em mobile entra de baixo em vez da direita */
+    }
+    /* Em mobile sem origem do click, vem de baixo */
+    .overlay-fundo:not([data-origem]) .modal-card {
         transform: translateY(40%) scale(0.98);
     }
-    .overlay-fundo.is-aberto .modal-card { transform: translateY(0) scale(1); }
-    .overlay-fundo.is-fechando .modal-card { transform: translateY(40%) scale(0.98); }
+    .overlay-fundo:not([data-origem]).is-aberto .modal-card {
+        transform: translateY(0) scale(1);
+    }
+    .overlay-fundo:not([data-origem]).is-fechando .modal-card {
+        transform: translateY(40%) scale(0.98);
+    }
 }
 
 /* ===================================================================
