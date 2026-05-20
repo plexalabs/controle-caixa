@@ -915,11 +915,11 @@ function abrirSubModoEditar() {
   const l = estado.lancamento;
   desligarRealtimeObs();
 
-  // Janela ativa pra editar categoria? (criado_em + janela_min em minutos)
-  const idadeMin = (Date.now() - new Date(l.criado_em).getTime()) / 60000;
-  const janelaAtiva = idadeMin <= janelaEditarCategoriaMin;
-  const podeEditarCategoria = temPermissaoSync('lancamento.editar_categoria') && janelaAtiva;
-  const minRestantes = Math.max(0, Math.ceil(janelaEditarCategoriaMin - idadeMin));
+  // Janela de 30min foi REMOVIDA — categoria pode ser editada
+  // enquanto o caixa estiver aberto/em_conferencia. A checagem real
+  // fica no backend (RPC editar_lancamento valida o caixa.estado).
+  // Aqui liberamos pra qualquer permissionado.
+  const podeEditarCategoria = temPermissaoSync('lancamento.editar_categoria');
 
   abrirModal({
     lateral: true,
@@ -959,8 +959,7 @@ function abrirSubModoEditar() {
           <p class="h-eyebrow" style="margin:0 0 0.5rem">Forma de pagamento</p>
           ${podeEditarCategoria ? `
             <p class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3);margin-bottom:0.85rem">
-              Janela de edição: ${minRestantes} min restante${minRestantes === 1 ? '' : 's'}
-              (até ${janelaEditarCategoriaMin} min após criação).
+              Pode trocar a categoria enquanto o caixa estiver aberto.
             </p>
             <div class="field" style="margin-bottom:0">
               <label class="field-label" for="ed-categoria">Categoria</label>
@@ -976,9 +975,7 @@ function abrirSubModoEditar() {
             </p>
           ` : `
             <p class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3);margin-bottom:0">
-              ${!temPermissaoSync('lancamento.editar_categoria')
-                ? 'Você não tem permissão para alterar a categoria.'
-                : `Janela de ${janelaEditarCategoriaMin} min para editar a categoria já expirou. Para corrigir, exclua e relance.`}
+              Você não tem permissão para alterar a categoria.
             </p>
           `}
         </div>
@@ -1220,7 +1217,16 @@ function abrirSubModoResolverObs() {
           <span class="field-underline"></span>
         </div>
 
-        <div class="field mt-6">
+        <!-- Slot que renderiza os campos especificos da categoria
+             escolhida. Reusa renderCamposCategoria(cat) — mesmo ID
+             bloco-cat-campos (so 1 modal aberto por vez, sem conflito). -->
+        <div id="ro-cat-wrapper" class="hidden mt-6">
+          <p class="h-eyebrow" style="margin:0 0 0.6rem">Detalhes da forma de pagamento</p>
+          <div id="bloco-cat-campos"></div>
+          <div id="bloco-cat-vazio" class="hidden"></div>
+        </div>
+
+        <div class="field mt-7 pt-6" style="border-top:1px solid var(--c-papel-3);margin-bottom:0">
           <label class="field-label" for="ro-devolutiva">
             Devolutiva — o problema da OBS foi resolvido como?
             <span style="color:var(--c-alerta)">*</span>
@@ -1228,7 +1234,7 @@ function abrirSubModoResolverObs() {
               Mínimo 10 caracteres. Fica no histórico do lançamento para auditoria.
             </span>
           </label>
-          <textarea id="ro-devolutiva" name="devolutiva" rows="4" minlength="10" maxlength="1000" required
+          <textarea id="ro-devolutiva" name="devolutiva" rows="3" minlength="10" maxlength="1000" required
                     class="field-input" style="resize:vertical;margin-top:0.45rem"
                     placeholder="Ex.: cliente confirmou pagamento via Pix em 08/05, comprovante anexado ao físico"></textarea>
         </div>
@@ -1259,13 +1265,30 @@ function ligarSubModoResolverObs() {
   const btn = f('btn-ro-confirmar');
   const catEl = f('ro-categoria');
   const devEl = f('ro-devolutiva');
+  const wrapperCat = f('ro-cat-wrapper');
 
   setTimeout(() => catEl?.focus(), 360);
+
+  // Quando seleciona categoria, renderiza os campos especificos
+  catEl?.addEventListener('change', async () => {
+    const cat = catEl.value;
+    if (!cat) {
+      wrapperCat.classList.add('hidden');
+      return;
+    }
+    wrapperCat.classList.remove('hidden');
+    // Reset estado.dadosCategoria pra nao herdar campos antigos da OBS
+    estado.dadosCategoria = {};
+    await renderCamposCategoria(cat);
+    reavaliar();
+  });
 
   const reavaliar = () => {
     const catOk = catEl?.value && catEl.value !== 'obs';
     const devOk = (devEl?.value || '').trim().length >= 10;
-    btn.disabled = !(catOk && devOk);
+    // Valida campos especificos da categoria escolhida (HTML5 required)
+    const camposCatOk = !catOk || verificarCamposCategoria();
+    btn.disabled = !(catOk && devOk && camposCatOk);
   };
   form.addEventListener('input', reavaliar);
   form.addEventListener('change', reavaliar);
@@ -1278,10 +1301,29 @@ function ligarSubModoResolverObs() {
     btn.setAttribute('aria-busy', 'true');
     btn.disabled = true;
 
+    // Coleta os campos especificos da categoria (igual construirPayload
+    // do modo categorizar). Reusa #bloco-cat-campos que esta dentro
+    // do wrapper.
+    const dadosCategoria = {};
+    document.querySelectorAll('#bloco-cat-campos input, #bloco-cat-campos select, #bloco-cat-campos textarea').forEach(el => {
+      if (el.type === 'checkbox') {
+        if (el.checked) dadosCategoria[el.name] = true;
+      } else if (el.name && el.value !== '') {
+        dadosCategoria[el.name] = el.value;
+      }
+    });
+    if (dadosCategoria.parcelas) dadosCategoria.parcelas = Number(dadosCategoria.parcelas);
+    if (dadosCategoria.valor_recebido) dadosCategoria.valor_recebido = Number(dadosCategoria.valor_recebido);
+    if (dadosCategoria.troco != null && dadosCategoria.troco !== '') dadosCategoria.troco = Number(dadosCategoria.troco);
+    if (catEl.value === 'dinheiro' && dadosCategoria.vendedora_id) {
+      const v = estado.vendedoras?.find(x => x.id === dadosCategoria.vendedora_id);
+      if (v) dadosCategoria.vendedora_nome_cache = v.nome;
+    }
+
     const { error } = await supabase.rpc('resolver_obs_lancamento', {
       p_lancamento_id:   estado.lancamento.id,
       p_categoria_nova:  catEl.value,
-      p_dados:           {},
+      p_dados:           dadosCategoria,
       p_devolutiva:      devEl.value.trim(),
     });
 
@@ -1299,6 +1341,15 @@ function ligarSubModoResolverObs() {
     estado.aoSalvar();
     fecharModal(true);
   });
+}
+
+// Checa HTML5 validity dos campos especificos da categoria selecionada
+function verificarCamposCategoria() {
+  const campos = document.querySelectorAll('#bloco-cat-campos input, #bloco-cat-campos select, #bloco-cat-campos textarea');
+  for (const el of campos) {
+    if (!el.checkValidity()) return false;
+  }
+  return true;
 }
 
 async function persistirObservacao(texto) {
