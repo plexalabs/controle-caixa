@@ -22,6 +22,7 @@ import '../styles/modal-edit-v2.css';
 import '../styles/lancamento-v2.css';
 import '../styles/pendencias-v2.css';
 import '../styles/demo-visual.css';
+import '../styles/demo-modal.css';
 
 import * as Sentry              from '@sentry/browser';
 import { despachar }            from './router.js';

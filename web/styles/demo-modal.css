@@ -1,0 +1,475 @@
+/* demo-modal.css — Sandbox /demo-modal: 3 versões do modal de
+   lançamento amplo. Namespace .dm-* (pagina) e .dmm-* (mockup modal).
+*/
+
+.dm-root {
+    min-height: 100vh;
+    background: var(--ui-bg);
+    font-family: 'Manrope', -apple-system, system-ui, sans-serif;
+    color: var(--ui-ink);
+    padding: 2rem 2rem 4rem;
+}
+
+.dm-topo {
+    max-width: 80rem;
+    margin: 0 auto 1.5rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+.dm-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ui-accent);
+    margin: 0 0 0.35rem;
+}
+.dm-titulo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    margin: 0 0 0.3rem;
+}
+.dm-sub {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    max-width: 38rem;
+    line-height: 1.5;
+}
+.dm-switch {
+    display: flex;
+    gap: 0.3rem;
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.25rem;
+}
+.dm-switch-btn {
+    background: none;
+    border: 0;
+    padding: 0.45rem 0.95rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    cursor: pointer;
+    border-radius: calc(var(--ui-r-sm) - 2px);
+    transition: background 160ms var(--ui-ease), color 160ms var(--ui-ease);
+}
+.dm-switch-btn:hover { color: var(--ui-ink); }
+.dm-switch-btn[aria-selected="true"] {
+    background: var(--ui-ink);
+    color: var(--ui-bg);
+}
+
+.dm-palco {
+    max-width: 80rem;
+    margin: 0 auto;
+    /* fundo simulando o blur do backdrop */
+    background:
+      radial-gradient(circle at 30% 20%, rgba(40,62,6,0.05), transparent 50%),
+      var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.dm-legenda {
+    max-width: 80rem;
+    margin: 1rem auto 0;
+    font-size: 0.85rem;
+    color: var(--ui-ink-3);
+    line-height: 1.55;
+    font-style: italic;
+}
+
+/* ===================================================================
+   .dmm — mockup do modal (compartilhado entre as 3 versões)
+   =================================================================== */
+
+.dmm {
+    width: 100%;
+    max-width: 64rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    box-shadow: 0 20px 60px -20px rgba(20,20,20,0.25);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+}
+
+/* Cabeçalho */
+.dmm-cabec {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem 1.1rem;
+    border-bottom: 1px solid var(--ui-border);
+    background: var(--ui-surface);
+}
+.dmm-cabec-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ui-accent);
+    margin: 0 0 0.3rem;
+}
+.dmm-cabec-titulo {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--ui-ink);
+}
+.dmm-cabec-dir { display: flex; align-items: center; gap: 0.7rem; }
+.dmm-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: var(--ui-warn-soft);
+    color: var(--ui-warn);
+}
+.dmm-x {
+    width: 32px; height: 32px;
+    border: 0;
+    background: transparent;
+    color: var(--ui-ink-3);
+    border-radius: var(--ui-r-sm);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 160ms var(--ui-ease);
+}
+.dmm-x:hover { background: var(--ui-surface-2); color: var(--ui-ink); }
+.dmm-x svg { width: 16px; height: 16px; }
+
+/* Corpo split 1/3 + 2/3 */
+.dmm-corpo {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    flex: 1;
+    min-height: 0;
+}
+.dmm-esq {
+    border-right: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    overflow-y: auto;
+    padding: 1.15rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+.dmm-dir {
+    overflow-y: auto;
+    padding: 1.25rem 1.5rem;
+}
+
+/* Bloco de informações (cells) */
+.dmm-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+.dmm-info-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.dmm-info-cell:last-child { border-bottom: 0; padding-bottom: 0; }
+.dmm-info-k {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ui-ink-3);
+}
+.dmm-info-v {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ui-ink);
+}
+.dmm-info-v--forte {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+.dmm-chip {
+    display: inline-flex;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.dmm-chip[data-cat="pix"] { background: rgba(15,118,110,0.12); color: #0F766E; }
+
+/* Timeline */
+.dmm-tl-titulo {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
+    margin: 0 0 0.7rem;
+}
+.dmm-tl-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+}
+.dmm-tl-lista::before {
+    content: '';
+    position: absolute;
+    left: 5px; top: 0.4rem; bottom: 0.4rem;
+    width: 1px;
+    background: var(--ui-border);
+}
+.dmm-tl-item {
+    display: grid;
+    grid-template-columns: 12px 1fr;
+    gap: 0.7rem;
+    padding: 0.55rem 0;
+}
+.dmm-tl-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--ui-ink-4);
+    margin-top: 0.35rem;
+    box-shadow: 0 0 0 3px var(--ui-surface-2);
+}
+.dmm-tl-item[data-tone="criacao"] .dmm-tl-dot { background: var(--ui-info); }
+.dmm-tl-item[data-tone="obs"]     .dmm-tl-dot { background: var(--ui-warn); }
+.dmm-tl-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+.dmm-tl-tipo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    color: var(--ui-ink-3);
+}
+.dmm-tl-head time { font-size: 0.7rem; color: var(--ui-ink-3); }
+.dmm-tl-corpo {
+    font-size: 0.82rem;
+    color: var(--ui-ink-2);
+    margin: 0.2rem 0 0.15rem;
+    line-height: 1.45;
+}
+.dmm-tl-corpo strong { color: var(--ui-ink); font-weight: 600; }
+.dmm-tl-autor { font-size: 0.72rem; color: var(--ui-ink-3); margin: 0; }
+.dmm-tl--compacta .dmm-tl-corpo { font-size: 0.78rem; }
+
+/* Coluna esquerda como trilho (versão B) */
+.dmm-esq--trilho { background: var(--ui-surface); }
+
+/* Formulário (modo edição) */
+.dmm-form { display: flex; flex-direction: column; gap: 0.85rem; }
+.dmm-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+}
+.dmm-form-sep {
+    height: 1px;
+    background: var(--ui-border);
+    margin: 0.3rem 0;
+}
+.dmm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.dmm-field > span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ui-ink-3);
+}
+.dmm-field input,
+.dmm-field select,
+.dmm-field textarea {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.5rem 0.7rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    color: var(--ui-ink);
+}
+.dmm-field input:focus,
+.dmm-field select:focus,
+.dmm-field textarea:focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px rgba(40,62,6,0.1);
+}
+
+/* Leitura — detalhes + obs */
+.dmm-leitura { display: flex; flex-direction: column; gap: 1.25rem; }
+.dmm-leitura-titulo {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
+    margin: 0 0 0.6rem;
+}
+.dmm-leitura-detalhes {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.95rem 1.1rem;
+}
+.dmm-dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.45rem 1rem;
+    margin: 0;
+}
+.dmm-dl dt {
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    text-transform: lowercase;
+    font-weight: 600;
+}
+.dmm-dl dd {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--ui-ink);
+    font-weight: 500;
+}
+.dmm-obs-add textarea {
+    width: 100%;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 0.7rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    resize: vertical;
+}
+
+/* Alterna leitura/edicao por data-modo */
+.dmm[data-modo="leitura"] .dmm-dir-edicao { display: none; }
+.dmm[data-modo="edicao"]  .dmm-dir-leitura { display: none; }
+
+/* Resumo-card (versão C) */
+.dmm-resumo-card {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: flex-start;
+}
+.dmm-resumo-cat {
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.dmm-resumo-cat[data-cat="pix"] { background: rgba(15,118,110,0.12); color: #0F766E; }
+.dmm-resumo-valor {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+}
+.dmm-resumo-pedido { font-size: 0.78rem; color: var(--ui-ink-3); }
+
+/* Abas (versão C) */
+.dmm-abas {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--ui-border);
+    margin-bottom: 1.1rem;
+}
+.dmm-aba {
+    background: none;
+    border: 0;
+    padding: 0.55rem 0.95rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    cursor: pointer;
+    position: relative;
+    transition: color 160ms var(--ui-ease);
+}
+.dmm-aba:hover { color: var(--ui-ink); }
+.dmm-aba[aria-selected="true"] { color: var(--ui-ink); }
+.dmm-aba[aria-selected="true"]::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: var(--ui-accent);
+}
+
+/* Rodapé */
+.dmm-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.85rem 1.5rem;
+    border-top: 1px solid var(--ui-border);
+    background: var(--ui-surface);
+}
+.dmm-rodape-dir { display: flex; gap: 0.5rem; }
+.dmm-btn {
+    border: 0;
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 1.05rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 160ms var(--ui-ease);
+}
+.dmm-btn--primary { background: var(--ui-accent); color: var(--ui-bg); }
+.dmm-btn--primary:hover { background: var(--ui-accent-2); }
+.dmm-btn--ghost {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    color: var(--ui-ink-2);
+}
+.dmm-btn--ghost:hover { background: var(--ui-surface-2); color: var(--ui-ink); }
+.dmm-btn--link {
+    background: none;
+    color: var(--ui-ink-3);
+}
+.dmm-btn--link:hover { color: var(--ui-ink); }
+
+@media (max-width: 720px) {
+    .dmm-corpo { grid-template-columns: 1fr; }
+    .dmm-esq { border-right: 0; border-bottom: 1px solid var(--ui-border); }
+}
