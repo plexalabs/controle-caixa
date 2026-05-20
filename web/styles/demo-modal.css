@@ -252,6 +252,9 @@
     background: var(--ui-ink-4);
     margin-top: 0.35rem;
     box-shadow: 0 0 0 3px var(--ui-surface-2);
+    /* fica acima da linha vertical (::before absoluto) */
+    position: relative;
+    z-index: 1;
 }
 .dmm-card-bloco .dmm-tl-dot { box-shadow: 0 0 0 3px var(--ui-surface); }
 .dmm-tl-item[data-tone="criacao"] .dmm-tl-dot { background: var(--ui-info); }
