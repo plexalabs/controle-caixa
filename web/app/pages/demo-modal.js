@@ -225,17 +225,24 @@ function ligarMockup() {
     motivo.addEventListener('input', sincronizar);
   }
 
-  // Filtro mini com indicador deslizante
+  // Filtro mini com indicador deslizante. O .dmm-filtro-mini é
+  // position:relative, então offsetLeft/offsetWidth dos botões já
+  // são relativos ao trilho — basta copiá-los pro indicador.
   document.querySelectorAll('.dmm-filtro-mini').forEach(grupo => {
     const ind = grupo.querySelector('.dmm-filtro-ind');
     const botoes = [...grupo.querySelectorAll('.dmm-fmini')];
 
     const mover = (btn) => {
       ind.style.width = `${btn.offsetWidth}px`;
-      ind.style.transform = `translateX(${btn.offsetLeft - grupo.offsetLeft - 4}px)`;
+      ind.style.left  = `${btn.offsetLeft}px`;
     };
     // posição inicial
     requestAnimationFrame(() => {
+      const sel = grupo.querySelector('.dmm-fmini[aria-selected="true"]') || botoes[0];
+      mover(sel);
+    });
+    // reposiciona se a janela mudar de tamanho (botões reflowam)
+    window.addEventListener('resize', () => {
       const sel = grupo.querySelector('.dmm-fmini[aria-selected="true"]') || botoes[0];
       mover(sel);
     });
