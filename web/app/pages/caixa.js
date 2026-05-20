@@ -117,14 +117,20 @@ async function carregarCaixa(dataAlvo) {
 
   // Garante cache de permissões populado antes do gating síncrono do botão.
   // Cache TTL de 1min em papeis.js — geralmente já está warmed por main.js.
-  const [{ data: caixa }] = await Promise.all([
+  const [{ data: caixa, error: errCaixa }] = await Promise.all([
     supabase
       .from('caixa')
-      .select('id, data, estado, total_lancamentos, total_pendentes, total_valor, criado_em, aberto_por')
+      .select('id, data, estado, total_lancamentos, total_pendentes, total_valor, criado_em, criado_por, fechado_em, fechado_por')
       .eq('data', dataAlvo)
       .maybeSingle(),
     carregarPermissoes(),
   ]);
+
+  if (errCaixa) {
+    log.erro('falha ao carregar caixa', errCaixa, { dataAlvo });
+    bloco.innerHTML = `<p class="alert">Erro ao carregar caixa: ${esc(errCaixa.message)}</p>`;
+    return;
+  }
 
   // Se não existe → estado vazio com botão criar (apenas se for hoje ou passado).
   if (!caixa) {
