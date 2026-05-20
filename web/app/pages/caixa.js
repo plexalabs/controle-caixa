@@ -312,17 +312,15 @@ function garantirFilterBar() {
     ],
     onChange: () => renderListaFiltrada(),
   });
-
-  configurarOverlayFiltroMobile();
 }
 
-// Em mobile (<=640px), o slot do filter-bar vira overlay position:absolute
-// sobre a row quando o filter abre -- cobre os botões. Como ele sai do
-// fluxo, a .cx-acoes-row mantém altura natural da .resumo-acao (~44px) e
-// a lista de lançamentos NÃO seria empurnada naturalmente. Aqui medimos
-// a altura do filter-bar quando abre e aplicamos padding-bottom dinâmico
-// na row (--fb-overlay-h) -- a lista desce abaixo do filter expandido.
+// Legado — desativado no refactor v2 do /caixa: filter-bar agora fica
+// inline e empurra o conteudo naturalmente (sem overlay absoluto que
+// quebrava layout). Funcao mantida pra compatibilidade caso outro
+// lugar chame, mas e no-op no contexto novo.
 function configurarOverlayFiltroMobile() {
+  return; // no-op: v2 nao usa mais overlay mobile
+  // eslint-disable-next-line no-unreachable
   const row = document.querySelector('.cx-acoes-row');
   const fb  = row?.querySelector('.filter-bar');
   if (!row || !fb) return;
@@ -462,15 +460,26 @@ function linhaLancamento(l) {
 
   const detalhe = detalheBase + detalheSuffix;
 
-  // Tons da categoria pra colorir o chip lateral (rgba leve coerente
-  // com /caixas) — sem filete grosso, so background tonal.
+  // Tom do dot de estado (indicador rapido a esquerda — ajuda o operador
+  // a identificar status sem ler badge)
+  let statusTone = 'pendente';
+  if (ehAtrasado)                          statusTone = 'atrasado';
+  else if (estadoFinal === 'finalizado')   statusTone = 'finalizado';
+  else if (estadoFinal === 'cancelado')    statusTone = 'cancelado';
+  else if (l.estado === 'completo')        statusTone = 'completo';
+  else if (l.estado === 'resolvido')       statusTone = 'resolvido';
+  else if (emAnalise)                      statusTone = 'analise';
+
   return `
     <button class="cxd-lanc" data-cat="${esc(cat)}"
             data-em-analise="${emAnalise}"
             data-estado-final="${esc(estadoFinal)}"
             data-resolvido="${ehResolvido}" data-atrasado="${ehAtrasado}"
+            data-status="${statusTone}"
             data-id="${esc(l.id)}"
             data-numero-nf="${esc(l.numero_nf || '')}">
+      <span class="cxd-lanc-status" aria-hidden="true"></span>
+
       <div class="cxd-lanc-esq">
         <span class="cxd-lanc-nf">NF ${esc(l.numero_nf)}</span>
         <time class="cxd-lanc-hora">${hora(l.criado_em)}</time>
@@ -489,12 +498,6 @@ function linhaLancamento(l) {
           ${esc(labelLongo)}
         </span>
       </div>
-
-      ${ehAtrasado ? `
-        <span class="cxd-lanc-flag" title="Pendente há mais de 3 dias úteis" aria-hidden="true">
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L1.5 13h13Z"/><path d="M8 6.5v3"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor"/></svg>
-        </span>
-      ` : ''}
     </button>`;
 }
 
