@@ -11,6 +11,8 @@ export function abrirModal({
   eyebrow = '',
   conteudo = '',
   lateral = false,
+  amplo = false,          // modal largo (layout split 1/3 + 2/3)
+  headerBadge = '',       // HTML cru do badge ao lado do botão fechar
   rodape = '',
   onConfirmarFechar = null,
   origemEvento = null,    // event do click pra animar 'nascendo' do elemento
@@ -24,7 +26,9 @@ export function abrirModal({
   overlay.setAttribute('aria-modal', 'true');
   if (titulo) overlay.setAttribute('aria-labelledby', 'modal-titulo');
 
-  const cardClass = lateral ? 'painel-lateral' : 'modal-card';
+  const cardClass = lateral
+    ? 'painel-lateral'
+    : ('modal-card' + (amplo ? ' modal-card--amplo' : ''));
 
   overlay.innerHTML = `
     <div class="${cardClass}">
@@ -33,11 +37,14 @@ export function abrirModal({
           ${eyebrow ? `<p class="painel-eyebrow">${esc(eyebrow)}</p>` : ''}
           ${titulo  ? `<h2 id="modal-titulo" class="painel-titulo">${esc(titulo)}</h2>` : ''}
         </div>
-        <button class="painel-fechar" type="button" aria-label="Fechar" data-fechar>
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <path d="M5 5 L15 15 M15 5 L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-        </button>
+        <div class="painel-header-acoes">
+          ${headerBadge || ''}
+          <button class="painel-fechar" type="button" aria-label="Fechar" data-fechar>
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M5 5 L15 15 M15 5 L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
       </header>
       <div class="painel-corpo">${conteudo}</div>
       ${rodape ? `<footer class="painel-rodape">${rodape}</footer>` : ''}

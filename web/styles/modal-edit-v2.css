@@ -687,3 +687,528 @@
     letter-spacing: 0.14em;
     color: var(--ui-accent);
 }
+
+/* ===================================================================
+   MODO GERENCIAR v2 — modal amplo split 1/3 + 2/3 (.mel2-*)
+   Esquerda: resumo + linha do tempo / anotações com filtro.
+   Direita: detalhes do pagamento + anotar  /  edição in-place.
+   =================================================================== */
+
+/* Header — badge de estado ao lado do botão fechar */
+.painel-header-acoes {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+.painel-header-badge {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.painel-header-badge--curso  { background: var(--ui-warn-soft);   color: var(--ui-warn); }
+.painel-header-badge--ok     { background: var(--ui-accent-soft); color: var(--ui-accent-2); }
+.painel-header-badge--alerta { background: var(--ui-danger-soft); color: var(--ui-danger); }
+
+/* Modal amplo — largura maior + altura definida pro split rolar bem */
+.modal-card--amplo {
+    width: min(1060px, calc(100vw - 2.5rem));
+    height: min(86vh, 700px);
+    max-height: 92vh;
+}
+.modal-card--amplo .painel-corpo {
+    padding: 0;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.mel2 {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+.mel2-split {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    flex: 1;
+    min-height: 0;
+}
+
+/* ─── Coluna esquerda — resumo + histórico ─────────────────────────── */
+.mel2-esq {
+    border-right: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    overflow-y: auto;
+    padding: 1.1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.mel2-resumo {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.95rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: flex-start;
+}
+.mel2-resumo-cat {
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.mel2-resumo-valor {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+.mel2-resumo-ped { font-size: 0.78rem; color: var(--ui-ink-3); }
+
+.mel2-hist { display: flex; flex-direction: column; }
+.mel2-sub {
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ui-ink-3);
+    margin: 0.7rem 0 0.6rem;
+}
+
+/* Filtro Tudo / Linha do tempo / Anotações — pílula verde deslizante */
+.mel2-filtro {
+    display: flex;
+    gap: 0;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 999px;
+    padding: 0.2rem;
+    position: relative;
+}
+.mel2-filtro-ind {
+    position: absolute;
+    top: 0.2rem;
+    bottom: 0.2rem;
+    left: 0.2rem;
+    width: 0;
+    background: var(--ui-ink);
+    border-radius: 999px;
+    box-shadow: 0 1px 5px rgba(40, 62, 6, 0.28);
+    transition: left 280ms cubic-bezier(0.22, 1, 0.36, 1),
+                width 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 0;
+    pointer-events: none;
+}
+.mel2-fbtn {
+    flex: 1;
+    background: none;
+    border: 0;
+    padding: 0.4rem 0.45rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    cursor: pointer;
+    border-radius: 999px;
+    transition: color 200ms var(--ui-ease);
+    position: relative;
+    z-index: 1;
+    white-space: nowrap;
+}
+.mel2-fbtn:hover { color: var(--ui-ink-2); }
+.mel2-fbtn[aria-selected="true"] { color: var(--ui-bg); font-weight: 700; }
+
+/* Visibilidade dos grupos conforme o filtro ativo */
+.mel2[data-filtro="tempo"] [data-grupo="anot"] { display: none; }
+.mel2[data-filtro="anot"]  [data-grupo="tempo"] { display: none; }
+
+.mel2-vazio {
+    color: var(--ui-ink-3);
+    font-size: 0.8rem;
+    font-style: italic;
+    padding: 0.4rem 0;
+    list-style: none;
+}
+
+/* Linha do tempo */
+.mel2-tl, .mel2-anot { list-style: none; margin: 0; padding: 0; }
+.mel2-tl { position: relative; }
+.mel2-tl::before {
+    content: '';
+    position: absolute;
+    left: 5px; top: 0.5rem; bottom: 0.5rem;
+    width: 1px;
+    background: var(--ui-border);
+}
+.mel2-tl-item {
+    display: grid;
+    grid-template-columns: 12px 1fr;
+    gap: 0.7rem;
+    padding: 0.5rem 0;
+}
+.mel2-tl-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--ui-ink-4);
+    margin-top: 0.3rem;
+    box-shadow: 0 0 0 3px var(--ui-surface-2);
+    position: relative;
+    z-index: 1;
+}
+.mel2-tl-item[data-tone="criacao"]   .mel2-tl-dot { background: var(--ui-info); }
+.mel2-tl-item[data-tone="edicao"]    .mel2-tl-dot { background: var(--ui-warn); }
+.mel2-tl-item[data-tone="resolucao"] .mel2-tl-dot { background: var(--ui-accent); }
+.mel2-tl-item[data-tone="ok"]        .mel2-tl-dot { background: var(--ui-accent); }
+.mel2-tl-item[data-tone="alerta"]    .mel2-tl-dot { background: var(--ui-danger); }
+.mel2-tl-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+.mel2-tl-tipo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ui-ink-3);
+}
+.mel2-tl-head time { font-size: 0.7rem; color: var(--ui-ink-3); white-space: nowrap; }
+.mel2-tl-texto {
+    font-size: 0.8rem;
+    color: var(--ui-ink-2);
+    margin: 0.2rem 0 0.15rem;
+    line-height: 1.45;
+}
+.mel2-tl-autor { font-size: 0.72rem; color: var(--ui-ink-3); margin: 0; }
+
+/* Anotações */
+.mel2-anot { display: flex; flex-direction: column; gap: 0.5rem; }
+.mel2-anot-item {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.6rem 0.75rem;
+}
+.mel2-anot-texto {
+    font-size: 0.82rem;
+    color: var(--ui-ink-2);
+    margin: 0 0 0.25rem;
+    line-height: 1.45;
+}
+.mel2-anot-meta {
+    font-size: 0.7rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    font-weight: 500;
+}
+.mel2-anot-item.lanc-row--flash {
+    animation: mel2-flash 1.6s var(--ui-ease);
+}
+@keyframes mel2-flash {
+    0%   { background: var(--ui-warn-soft); border-color: color-mix(in srgb, var(--ui-warn) 35%, var(--ui-border)); }
+    100% { background: var(--ui-surface);   border-color: var(--ui-border); }
+}
+
+/* ─── Coluna direita — detalhes / edição ───────────────────────────── */
+.mel2-dir {
+    overflow-y: auto;
+    padding: 1.1rem 1.4rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.mel2-dir-barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.mel2-dir-label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
+}
+
+/* Botão editar — ícone-lápis + texto, fica verde quando ativo */
+.mel2-editar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--ui-r-sm);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    color: var(--ui-ink-2);
+    padding: 0.4rem 0.8rem;
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease), color 160ms var(--ui-ease);
+}
+.mel2-editar:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border-strong);
+    color: var(--ui-ink);
+}
+.mel2-editar svg { width: 14px; height: 14px; }
+.mel2-editar.is-ativo {
+    background: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 30%, var(--ui-border));
+    color: var(--ui-accent);
+}
+
+/* Detalhes da categoria dentro da direita — zera margem herdada */
+.mel2-dir .lanc-leitura-detalhes { margin-top: 0; }
+.mel2-sem-detalhe {
+    background: var(--ui-surface-2);
+    border: 1px dashed var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 1.1rem 1rem;
+    text-align: center;
+    color: var(--ui-ink-3);
+    font-size: 0.84rem;
+    font-style: italic;
+    margin: 0;
+}
+
+/* Bloco "Adicionar anotação" — abaixo dos detalhes */
+.mel2-anot-add {
+    border-top: 1px solid var(--ui-border);
+    padding-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.mel2-anot-add-titulo {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
+    margin: 0;
+}
+.mel2-anot-add textarea {
+    width: 100%;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 0.7rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.85rem;
+    color: var(--ui-ink);
+    resize: vertical;
+    min-height: 3.2rem;
+}
+.mel2-anot-add textarea:focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.1);
+}
+.mel2-btn-anotar {
+    align-self: flex-end;
+    background: var(--ui-accent);
+    color: var(--ui-bg);
+    border: 0;
+    border-radius: var(--ui-r-sm);
+    padding: 0.45rem 0.95rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 160ms var(--ui-ease);
+}
+.mel2-btn-anotar:hover { background: var(--ui-accent-2); }
+.mel2-btn-anotar:disabled { opacity: 0.45; cursor: default; }
+
+/* ─── Formulário de edição in-place ────────────────────────────────── */
+.mel2-form { display: flex; flex-direction: column; gap: 0.9rem; }
+.mel2-grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+}
+.mel2-campo { display: flex; flex-direction: column; gap: 0.3rem; }
+.mel2-campo-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ui-ink-3);
+}
+.mel2-hint {
+    font-weight: 400;
+    font-style: normal;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ui-ink-3);
+    font-size: 0.74rem;
+    margin-left: 0.3rem;
+}
+.mel2-req { color: var(--ui-danger); font-style: normal; font-weight: 800; }
+.mel2-campo input,
+.mel2-campo select,
+.mel2-campo textarea {
+    width: 100%;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.5rem 0.7rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.88rem;
+    color: var(--ui-ink);
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.mel2-campo input:focus,
+.mel2-campo select:focus,
+.mel2-campo textarea:focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.1);
+}
+.mel2-campo input[readonly] {
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+    cursor: default;
+}
+.mel2-campo select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1l4 4 4-4' stroke='%23283E06' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 9px 5px;
+    cursor: pointer;
+}
+
+/* Motivo da edição — destacado, vem antes dos campos */
+.mel2-campo--motivo {
+    background: var(--ui-warn-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-warn) 22%, var(--ui-border));
+    border-radius: var(--ui-r-md);
+    padding: 0.75rem 0.85rem;
+}
+.mel2-campo--motivo .mel2-campo-label { color: var(--ui-warn); }
+.mel2-campo--motivo textarea { resize: vertical; min-height: 3rem; }
+
+/* Campos da edição — bloqueados até o motivo estar preenchido */
+.mel2-edit-campos { position: relative; }
+.mel2-edit-aviso {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--ui-warn);
+    background: var(--ui-warn-soft);
+    border: 1px dashed color-mix(in srgb, var(--ui-warn) 35%, var(--ui-border));
+    border-radius: var(--ui-r-sm);
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.85rem;
+}
+.mel2-edit-aviso svg { width: 16px; height: 16px; flex-shrink: 0; }
+.mel2-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    transition: opacity 240ms var(--ui-ease), filter 240ms var(--ui-ease);
+}
+.mel2-edit-campos[data-bloqueado="true"] .mel2-edit-form {
+    opacity: 0.45;
+    filter: grayscale(0.4);
+    pointer-events: none;
+    user-select: none;
+}
+.mel2-edit-campos[data-bloqueado="false"] .mel2-edit-aviso { display: none; }
+.mel2-edit-nota {
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    line-height: 1.5;
+    margin: 0.1rem 0 0;
+    font-style: italic;
+}
+.mel2-erro {
+    background: var(--ui-danger-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
+    border-left: 3px solid var(--ui-danger);
+    color: var(--ui-danger);
+    border-radius: var(--ui-r-sm);
+    padding: 0.6rem 0.8rem;
+    font-size: 0.83rem;
+    line-height: 1.45;
+}
+
+/* ─── Rodapé do modal amplo — grupos leitura / edição ──────────────── */
+.mel2-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+.mel2-rodape[hidden] { display: none; }
+.mel2-rodape-acoes {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+.mel2-rodape-aviso {
+    font-size: 0.8rem;
+    color: var(--ui-ink-3);
+    font-style: italic;
+}
+.mel2-link-hist {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--ui-accent);
+    text-decoration: none;
+}
+.mel2-link-hist:hover { text-decoration: underline; text-underline-offset: 3px; }
+.mel2-acao-musgo  { color: var(--ui-accent) !important; font-weight: 600; }
+.mel2-acao-alerta { color: var(--ui-danger) !important; }
+
+/* Alternância leitura/edição */
+[data-leitura][hidden], [data-edicao][hidden] { display: none !important; }
+
+/* ─── Responsivo — colapsa pra 1 coluna ────────────────────────────── */
+@media (max-width: 720px) {
+    .modal-card--amplo {
+        width: 100%;
+        height: auto;
+        max-height: 96vh;
+    }
+    .modal-card--amplo .painel-corpo { overflow-y: auto; }
+    .mel2-split { grid-template-columns: 1fr; }
+    .mel2-esq {
+        border-right: 0;
+        border-bottom: 1px solid var(--ui-border);
+    }
+}

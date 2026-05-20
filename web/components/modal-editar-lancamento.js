@@ -45,6 +45,11 @@ let janelaEditarCategoriaMin = JANELA_EDITAR_CAT_MIN_DEFAULT;
   } catch (_) { /* fallback default */ }
 })();
 
+// Ícones SVG inline reusados no layout amplo v2 (modo gerenciar).
+const ICON_LAPIS = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.6 2.4a1.4 1.4 0 0 1 2 2L5.5 12.5 2.5 13.5l1-3 8.1-8.1Z"/><path d="M10.5 3.5l2 2"/></svg>`;
+const ICON_ALERTA = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5.5v3M8 11h.01M8 1.5 1 14h14L8 1.5Z"/></svg>`;
+const ICON_SETA = `<svg width="13" height="9" viewBox="0 0 16 10" fill="none" aria-hidden="true"><path d="M1 5 H14 M10 1 L14 5 L10 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
 // Estado interno do drawer (limpo a cada abertura).
 let estado = null;
 
@@ -569,81 +574,184 @@ function esc(s) {
 // ════════════════════════════════════════════════════════════════════════
 function abrirModoGerenciarOuFinalizado() {
   const l = estado.lancamento;
-  const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
-  const ehCancelado = ['cancelado_pos','cancelado'].includes(l.estado);
-  const eyebrow = finalizadoOuCancelado
-    ? `NF ${l.numero_nf} · ${ehCancelado ? 'cancelado' : 'finalizado'}`
-    : `NF ${l.numero_nf} · ${LABEL_CATEGORIA[l.categoria] || l.categoria}`;
-  const titulo  = finalizadoOuCancelado ? 'Histórico do lançamento.' : 'Lançamento em curso.';
 
   abrirModal({
     lateral: false,
+    amplo: true,
     origemEvento: estado.origemEvento,
-    eyebrow,
-    titulo,
+    eyebrow: `Nota fiscal · ${l.numero_nf}`,
+    titulo:  l.cliente_nome || '— sem cliente —',
+    headerBadge: badgeEstado(l.estado),
     conteudo: corpoGerenciar(),
     rodape:   rodapeGerenciar(),
     onConfirmarFechar: () => { desligarRealtimeObs(); return true; },
   });
 
   ligarGerenciar();
-  carregarObservacoes();   // popula lista a partir da tabela real
+  carregarObservacoes();   // popula linha do tempo + anotações
   ligarRealtimeObs();      // subscribe em lancamento_observacao
 }
 
+// Badge de estado mostrado no header do modal amplo.
+function badgeEstado(est) {
+  const map = {
+    completo:      ['Em curso',   'curso'],
+    finalizado:    ['Finalizado', 'ok'],
+    resolvido:     ['Finalizado', 'ok'],
+    cancelado_pos: ['Cancelado',  'alerta'],
+    cancelado:     ['Cancelado',  'alerta'],
+  };
+  const [txt, tom] = map[est] || ['—', 'curso'];
+  return `<span class="painel-header-badge painel-header-badge--${tom}">${esc(txt)}</span>`;
+}
+
+// Corpo do modo gerenciar — layout amplo split: esquerda 1/3 (resumo
+// + linha do tempo / anotações com filtro), direita 2/3 (detalhes do
+// pagamento + anotar  /  formulário de edição in-place).
 function corpoGerenciar() {
-  const l  = estado.lancamento;
+  const l = estado.lancamento;
   const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
   const ehCancelado = ['cancelado_pos','cancelado'].includes(l.estado);
   const tsFinal = l.resolvido_em || l.atualizado_em;
+  const podeEditar = !finalizadoOuCancelado && temPermissaoSync('lancamento.editar');
+  const detalhes = dadosCategoriaLeitura(l);
 
   return `
-    <a href="/lancamento/${esc(l.id)}" data-link id="link-historico-completo"
-       class="lanc-link-historico" style="display:inline-flex;align-items:center;gap:0.4rem;font-family:'Manrope',sans-serif;font-size:0.85rem;font-weight:500;color:var(--c-musgo);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(15,76,58,0.35);margin-bottom:1.1rem">
-      Ver histórico completo
-      <svg width="13" height="9" viewBox="0 0 16 10" fill="none" aria-hidden="true">
-        <path d="M1 5 H14 M10 1 L14 5 L10 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </a>
+    <div class="mel2" id="mel2" data-modo="leitura" data-filtro="tudo">
+      <div class="mel2-split">
+        <aside class="mel2-esq">
+          <div class="mel2-resumo">
+            <span class="mel2-resumo-cat" style="background:${corBgCat(l.categoria)};color:${corTextoCat(l.categoria)}">
+              ${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}
+            </span>
+            <span class="mel2-resumo-valor">${formatBRL(l.valor_nf)}</span>
+            <span class="mel2-resumo-ped">Pedido ${esc(l.codigo_pedido)} · NF ${esc(l.numero_nf)}</span>
+          </div>
 
-    ${finalizadoOuCancelado ? bannerFinal(ehCancelado, tsFinal) : ''}
+          <div class="mel2-hist">
+            <div class="mel2-filtro" role="group" aria-label="Filtrar histórico">
+              <span class="mel2-filtro-ind" aria-hidden="true"></span>
+              <button type="button" class="mel2-fbtn" data-f="tudo"  aria-selected="true">Tudo</button>
+              <button type="button" class="mel2-fbtn" data-f="tempo" aria-selected="false">Linha do tempo</button>
+              <button type="button" class="mel2-fbtn" data-f="anot"  aria-selected="false">Anotações</button>
+            </div>
+            <div data-grupo="tempo">
+              <p class="mel2-sub">Linha do tempo</p>
+              <ul class="mel2-tl" id="mel2-timeline">
+                <li class="mel2-vazio">Carregando…</li>
+              </ul>
+            </div>
+            <div data-grupo="anot">
+              <p class="mel2-sub">Anotações</p>
+              <ul class="mel2-anot" id="mel2-anotacoes">
+                <li class="mel2-vazio">Carregando…</li>
+              </ul>
+            </div>
+          </div>
+        </aside>
 
-    <section class="lanc-leitura">
-      ${cardLeitura('Categoria',
-        `<span class="lanc-categoria" style="background:${corBgCat(l.categoria)};color:${corTextoCat(l.categoria)}">
-           ${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}
-         </span>`)}
-      ${cardLeitura('Cliente',  esc(l.cliente_nome))}
-      ${cardLeitura('Código',   esc(l.codigo_pedido) + ' · NF ' + esc(l.numero_nf))}
-      ${cardLeitura('Valor',    `<strong style="font-family:'Fraunces';font-variant-numeric:tabular-nums;font-size:1.2rem">${formatBRL(l.valor_nf)}</strong>`)}
-    </section>
+        <section class="mel2-dir">
+          <div class="mel2-dir-barra">
+            <span class="mel2-dir-label" data-leitura>Detalhes do pagamento</span>
+            <span class="mel2-dir-label" data-edicao hidden>Editar lançamento</span>
+            ${podeEditar ? `
+              <button type="button" id="mel2-btn-editar" class="mel2-editar" aria-label="Editar lançamento">
+                ${ICON_LAPIS}<span>Editar</span>
+              </button>` : ''}
+          </div>
 
-    ${dadosCategoriaLeitura(l)}
+          <div data-leitura>
+            ${finalizadoOuCancelado ? bannerFinal(ehCancelado, tsFinal) : ''}
+            ${detalhes || `<p class="mel2-sem-detalhe">Sem detalhes de pagamento registrados para esta categoria.</p>`}
+            <div class="mel2-anot-add">
+              <p class="mel2-anot-add-titulo">Adicionar anotação</p>
+              <textarea id="nova-obs" rows="2" maxlength="2000"
+                        placeholder="ex.: avisei o cliente em 02/05, vence dia 05/05"></textarea>
+              <button type="button" id="btn-add-obs" class="mel2-btn-anotar" disabled>Anotar</button>
+            </div>
+          </div>
 
-    <section class="lanc-obs-bloco">
-      <h3 class="h-eyebrow" style="margin-top:1.75rem;margin-bottom:0.85rem">Observações</h3>
-      <ul id="lista-obs" class="lanc-obs-lista">
-        <li class="lanc-obs-vazio">Carregando observações…</li>
-      </ul>
-      <div class="lanc-obs-novo">
-        <label class="field-label" for="nova-obs" style="margin-bottom:0.4rem">Adicionar observação</label>
-        <textarea id="nova-obs" rows="2" class="field-input"
-                  placeholder="ex.: avisei o cliente em 02/05, vence dia 05/05"
-                  maxlength="2000" style="resize:vertical"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:0.5rem">
-          <button type="button" id="btn-add-obs" class="btn-primary" style="padding:0.55rem 1.1rem;font-size:0.85rem" disabled>
-            Adicionar
-          </button>
+          <div data-edicao hidden>
+            ${podeEditar ? formEditarInline(l) : ''}
+          </div>
+        </section>
+      </div>
+    </div>
+  `;
+}
+
+// Formulário de edição renderizado in-place na direita do modal amplo.
+// O motivo da edição vem ANTES dos campos — os campos ficam bloqueados
+// até o motivo ter 10+ caracteres (regra do operador).
+function formEditarInline(l) {
+  const podeEditarCategoria = temPermissaoSync('lancamento.editar_categoria');
+  return `
+    <form id="form-editar" novalidate class="mel2-form">
+      <label class="mel2-campo mel2-campo--motivo">
+        <span class="mel2-campo-label">
+          Motivo da edição <em class="mel2-req">*</em>
+          <em class="mel2-hint">mínimo 10 caracteres</em>
+        </span>
+        <textarea id="ed-motivo" name="motivo" rows="2" minlength="10" maxlength="500" required
+                  placeholder="Ex.: cliente informou valor correto após emissão"></textarea>
+      </label>
+
+      <div class="mel2-edit-campos" id="mel2-edit-campos" data-bloqueado="true">
+        <div class="mel2-edit-aviso">
+          ${ICON_ALERTA}<span>Preencha o motivo da edição acima para liberar os campos.</span>
+        </div>
+        <div class="mel2-edit-form">
+          <div class="mel2-grid2">
+            <label class="mel2-campo">
+              <span class="mel2-campo-label">Número da NF</span>
+              <input id="ed-numero_nf" name="numero_nf" maxlength="15" value="${esc(l.numero_nf || '')}" />
+            </label>
+            <label class="mel2-campo">
+              <span class="mel2-campo-label">Código do pedido</span>
+              <input id="ed-codigo_pedido" name="codigo_pedido" maxlength="20" value="${esc(l.codigo_pedido || '')}" />
+            </label>
+          </div>
+          <label class="mel2-campo">
+            <span class="mel2-campo-label">Cliente</span>
+            <input id="ed-cliente_nome" name="cliente_nome" maxlength="120" value="${esc(l.cliente_nome || '')}" />
+          </label>
+          <div class="mel2-grid2">
+            ${podeEditarCategoria ? `
+              <label class="mel2-campo">
+                <span class="mel2-campo-label">Categoria</span>
+                <select id="ed-categoria" name="categoria">
+                  ${CATEGORIAS.map(c => `
+                    <option value="${c.valor}" ${c.valor === l.categoria ? 'selected' : ''}>${c.rotulo}</option>
+                  `).join('')}
+                </select>
+              </label>` : `
+              <label class="mel2-campo">
+                <span class="mel2-campo-label">Categoria</span>
+                <input value="${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}" readonly />
+              </label>`}
+            <label class="mel2-campo">
+              <span class="mel2-campo-label">Valor (R$)</span>
+              <input id="ed-valor_nf" name="valor_nf" type="number" step="0.01" min="0.01"
+                     inputmode="decimal" value="${esc(l.valor_nf ?? '')}" />
+            </label>
+          </div>
+          ${podeEditarCategoria ? `
+            <p class="mel2-edit-nota">
+              Trocar a categoria preserva o lançamento. Detalhes específicos da nova
+              categoria (chave Pix, autorização do cartão, etc) são preenchidos depois,
+              na tela completa do lançamento.
+            </p>` : ''}
         </div>
       </div>
-    </section>
+      <div id="erro-edit" role="alert" aria-live="polite" class="mel2-erro hidden"></div>
+    </form>
   `;
 }
 
 function rodapeGerenciar() {
   const l  = estado.lancamento;
   const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
-  const podeEditar = temPermissaoSync('lancamento.editar');
+  const podeEditar  = !finalizadoOuCancelado && temPermissaoSync('lancamento.editar');
   const podeExcluir = temPermissaoSync('lancamento.excluir');
 
   // OBS pode ser resolvida em qualquer estado (exceto excluido — esse
@@ -652,36 +760,31 @@ function rodapeGerenciar() {
   const ehObs = l.categoria === 'obs';
   const podeResolver = ehObs && temPermissaoSync('lancamento.editar_categoria');
 
-  if (finalizadoOuCancelado) {
-    const ehCancelado = ['cancelado_pos','cancelado'].includes(l.estado);
-    return `<div class="painel-rodape-acoes" style="flex-wrap:wrap;gap:0.5rem">
-      <span class="text-body" style="font-size:0.82rem;color:var(--c-tinta-3);flex:1 1 100%;margin-bottom:0.4rem">
-        Lançamento ${ehCancelado ? 'cancelado' : 'finalizado'}. Apenas observações continuam editáveis.
-      </span>
-      ${podeResolver ? `<button type="button" id="btn-resolver-obs" class="btn-link" style="color:var(--c-musgo);font-weight:600">↻ Resolver OBS</button>` : ''}
-      ${podeExcluir ? `
-        <button type="button" id="btn-excluir" class="btn-link" style="color:var(--c-alerta);text-decoration-color:rgba(154,42,31,0.4)">
-          Excluir lançamento
-        </button>` : ''}
-      <button type="button" id="btn-fechar-leitura" class="btn-link" style="margin-left:auto">Fechar</button>
-    </div>`;
-  }
-
   return `
-    <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
-    ${(podeEditar || podeExcluir || podeResolver) ? `
-      <div class="painel-acoes-secundarias">
-        ${podeResolver ? `<button type="button" id="btn-resolver-obs" class="btn-link" style="color:var(--c-musgo);font-weight:600">↻ Resolver OBS</button>` : ''}
-        ${podeEditar ? `<button type="button" id="btn-editar" class="btn-link">✎ Editar lançamento</button>` : ''}
-        ${podeExcluir ? `<button type="button" id="btn-excluir" class="btn-link" style="color:var(--c-alerta);text-decoration-color:rgba(154,42,31,0.4)">Excluir lançamento</button>` : ''}
-      </div>` : ''}
-    <div class="painel-acoes-finais">
-      <button type="button" id="btn-cancelar-pos" class="btn-secundario btn-secundario--alerta">
-        ✕ Marcar como cancelado
-      </button>
-      <button type="button" id="btn-finalizar" class="btn-primary">
-        ✓ Marcar como finalizado
-      </button>
+    <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.7rem"></div>
+
+    <div id="mel2-rodape-leitura" class="mel2-rodape">
+      <a href="/lancamento/${esc(l.id)}" data-link id="link-historico-completo" class="mel2-link-hist">
+        Ver histórico completo ${ICON_SETA}
+      </a>
+      <div class="mel2-rodape-acoes">
+        ${podeResolver ? `<button type="button" id="btn-resolver-obs" class="btn-link mel2-acao-musgo">↻ Resolver OBS</button>` : ''}
+        ${podeExcluir  ? `<button type="button" id="btn-excluir" class="btn-link mel2-acao-alerta">Excluir</button>` : ''}
+        ${finalizadoOuCancelado ? `
+          <button type="button" id="btn-fechar-leitura" class="btn-secundario">Fechar</button>
+        ` : `
+          <button type="button" id="btn-cancelar-pos" class="btn-secundario btn-secundario--alerta">✕ Cancelar lançamento</button>
+          <button type="button" id="btn-finalizar" class="btn-primary">✓ Finalizar</button>
+        `}
+      </div>
+    </div>
+
+    <div id="mel2-rodape-edicao" class="mel2-rodape" hidden>
+      <span class="mel2-rodape-aviso">A edição preserva o histórico — gera registro com motivo e autor.</span>
+      <div class="mel2-rodape-acoes">
+        <button type="button" id="btn-edit-cancelar" class="btn-link">Cancelar edição</button>
+        <button type="submit" form="form-editar" id="btn-edit-salvar" class="btn-primary" disabled>Salvar edição</button>
+      </div>
     </div>`;
 }
 
@@ -754,7 +857,7 @@ function dadosCategoriaLeitura(l) {
 
   return `
     <section class="lanc-leitura-detalhes">
-      <h3 class="h-eyebrow" style="margin-top:1.6rem;margin-bottom:0.65rem">Detalhes do pagamento</h3>
+      <h3 class="h-eyebrow" style="margin:0 0 0.65rem">Detalhes do pagamento</h3>
       <dl class="lanc-leitura-dl">
         ${pares.map(([k, v]) => `
           <dt>${esc(k)}</dt>
@@ -764,20 +867,47 @@ function dadosCategoriaLeitura(l) {
     </section>`;
 }
 
-function linhaObs(o) {
+// Rótulo/cor da linha do tempo conforme a fonte da observação-evento.
+function rotuloFonte(fonte) {
+  return ({
+    edicao: 'Edição', resolucao_obs: 'Resolução de OBS', exclusao: 'Exclusão',
+    sistema: 'Sistema', finalizacao: 'Finalização', cancelamento: 'Cancelamento',
+  })[fonte] || 'Evento';
+}
+function toneFonte(fonte) {
+  return ({
+    edicao: 'edicao', resolucao_obs: 'resolucao', exclusao: 'alerta',
+    cancelamento: 'alerta', finalizacao: 'ok', sistema: 'sistema',
+  })[fonte] || 'sistema';
+}
+
+function itemTimeline(ev) {
+  const autor = (ev.autor || 'sistema').split('@')[0];
+  return `
+    <li class="mel2-tl-item" data-tone="${esc(ev.tone)}">
+      <span class="mel2-tl-dot"></span>
+      <div class="mel2-tl-corpo">
+        <div class="mel2-tl-head">
+          <span class="mel2-tl-tipo">${esc(ev.tipo)}</span>
+          <time>${formatarTs(ev.criado_em)}</time>
+        </div>
+        <p class="mel2-tl-texto">${esc(ev.texto)}</p>
+        <p class="mel2-tl-autor">por ${esc(autor)}</p>
+      </div>
+    </li>`;
+}
+function itemAnotacao(o) {
   // Email truncado em "@" para visual mais limpo.
   const autor = (o.autor_email || 'operador').split('@')[0];
   return `
-    <li class="lanc-obs-item" data-obs-id="${esc(o.id)}">
-      <p class="lanc-obs-texto">${esc(o.texto)}</p>
-      <p class="lanc-obs-meta">${esc(autor)} · ${formatarTs(o.criado_em)}${o.fonte && o.fonte !== 'manual' ? ` · ${esc(o.fonte)}` : ''}</p>
+    <li class="mel2-anot-item" data-obs-id="${esc(o.id)}">
+      <p class="mel2-anot-texto">${esc(o.texto)}</p>
+      <p class="mel2-anot-meta">${esc(autor)} · ${formatarTs(o.criado_em)}</p>
     </li>`;
 }
 
 // ─── Carrega observacoes da tabela lancamento_observacao ─────────────
 async function carregarObservacoes() {
-  const lista = document.querySelector('#lista-obs');
-  if (!lista) return;
   const { data, error } = await supabase
     .from('lancamento_observacao')
     .select('id, texto, autor_email, criado_em, fonte')
@@ -785,20 +915,54 @@ async function carregarObservacoes() {
     .order('criado_em', { ascending: false });
 
   if (error) {
-    lista.innerHTML = `<li class="lanc-obs-vazio">Não foi possível carregar observações.</li>`;
+    const tl = document.querySelector('#mel2-timeline');
+    const an = document.querySelector('#mel2-anotacoes');
+    const msg = `<li class="mel2-vazio">Não foi possível carregar.</li>`;
+    if (tl) tl.innerHTML = msg;
+    if (an) an.innerHTML = msg;
     return;
   }
   estado.observacoes = data || [];
-  renderListaObs();
+  renderHistorico();
 }
 
-function renderListaObs() {
-  const lista = document.querySelector('#lista-obs');
-  if (!lista) return;
-  const arr = estado.observacoes || [];
-  lista.innerHTML = arr.length === 0
-    ? `<li class="lanc-obs-vazio">Nenhuma observação ainda.</li>`
-    : arr.map(linhaObs).join('');
+// Separa as observações: fonte 'manual' (ou vazia) vira Anotação;
+// o resto vira evento da Linha do tempo. O evento sintético de
+// Criação é derivado do próprio lançamento, quando disponível.
+function renderHistorico() {
+  const l = estado.lancamento;
+  const obs = estado.observacoes || [];
+  const anotacoes  = obs.filter(o => !o.fonte || o.fonte === 'manual');
+  const eventosObs = obs.filter(o => o.fonte && o.fonte !== 'manual');
+
+  const eventos = [];
+  if (l.criado_em) {
+    eventos.push({
+      tipo: 'Criação', tone: 'criacao', criado_em: l.criado_em,
+      texto: `NF ${l.numero_nf} registrada — ${formatBRL(l.valor_nf)}`,
+      autor: l.criado_por,
+    });
+  }
+  for (const o of eventosObs) {
+    eventos.push({
+      tipo: rotuloFonte(o.fonte), tone: toneFonte(o.fonte),
+      criado_em: o.criado_em, texto: o.texto, autor: o.autor_email,
+    });
+  }
+  eventos.sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
+
+  const tl = document.querySelector('#mel2-timeline');
+  if (tl) {
+    tl.innerHTML = eventos.length
+      ? eventos.map(itemTimeline).join('')
+      : `<li class="mel2-vazio">Sem eventos registrados.</li>`;
+  }
+  const an = document.querySelector('#mel2-anotacoes');
+  if (an) {
+    an.innerHTML = anotacoes.length
+      ? anotacoes.map(itemAnotacao).join('')
+      : `<li class="mel2-vazio">Nenhuma anotação ainda.</li>`;
+  }
 }
 
 // ─── Realtime: subscribe em lancamento_observacao do lancamento atual ─
@@ -816,10 +980,10 @@ function ligarRealtimeObs() {
           // Anti-duplicacao: se ja temos pela inserção otimista, ignora.
           if (arr.some(o => o.id === nova.id)) return;
           estado.observacoes = [nova, ...arr];
-          renderListaObs();
-          // Flash ambar leve no item recem-chegado
+          renderHistorico();
+          // Flash ambar leve na anotação recem-chegada
           requestAnimationFrame(() => {
-            const el = document.querySelector(`.lanc-obs-item[data-obs-id="${nova.id}"]`);
+            const el = document.querySelector(`.mel2-anot-item[data-obs-id="${nova.id}"]`);
             if (el) el.classList.add('lanc-row--flash');
           });
         })
@@ -835,17 +999,18 @@ function desligarRealtimeObs() {
 function ligarGerenciar() {
   const l = estado.lancamento;
   const finalizadoOuCancelado = ['finalizado','cancelado_pos','resolvido','cancelado'].includes(l.estado);
+  const mel2 = document.querySelector('#mel2');
 
-  // Link "Ver histórico completo" — fecha drawer antes da navegação client-side
-  const linkHist = document.querySelector('#link-historico-completo');
-  if (linkHist) {
-    linkHist.addEventListener('click', () => {
-      desligarRealtimeObs();
-      fecharModal(true);
-    });
-  }
+  // Link "Ver histórico completo" — fecha modal antes da navegação client-side
+  document.querySelector('#link-historico-completo')?.addEventListener('click', () => {
+    desligarRealtimeObs();
+    fecharModal(true);
+  });
 
-  // Sempre liga: textarea de adicionar observacao.
+  // Filtro Tudo / Linha do tempo / Anotações (pílula deslizante).
+  ligarFiltroHistorico();
+
+  // Adicionar anotação.
   const tx = document.querySelector('#nova-obs');
   const btnAdd = document.querySelector('#btn-add-obs');
   if (tx && btnAdd) {
@@ -861,26 +1026,30 @@ function ligarGerenciar() {
       btnAdd.removeAttribute('aria-busy');
       if (!ok) { btnAdd.disabled = false; return; }
       tx.value = '';
-      mostrarToast('Observação adicionada.', 'ok', 1800);
-      await carregarObservacoes();   // re-fetch para refletir o novo + outros que chegaram
+      mostrarToast('Anotação adicionada.', 'ok', 1800);
+      await carregarObservacoes();   // re-fetch reflete o novo + outros que chegaram
     });
   }
 
-  // Botão Excluir aparece em qualquer modo gerenciar/finalizado se tem permissão
+  // Botões secundários do rodapé.
   document.querySelector('#btn-excluir')?.addEventListener('click', () => abrirSubModoExcluir());
-  // Botão Resolver OBS — só aparece se categoria='obs' (gating no HTML)
   document.querySelector('#btn-resolver-obs')?.addEventListener('click', () => abrirSubModoResolverObs());
+  document.querySelector('#btn-fechar-leitura')?.addEventListener('click', () => {
+    desligarRealtimeObs(); fecharModal(true);
+  });
 
-  // Modos finalizado/cancelado: so botao fechar.
-  if (finalizadoOuCancelado) {
-    document.querySelector('#btn-fechar-leitura')?.addEventListener('click', () => {
-      desligarRealtimeObs(); fecharModal(true);
-    });
-    return;
+  // Editar in-place: o lápis troca a direita por formulário; o rodapé
+  // alterna entre o grupo de leitura e o de edição.
+  const btnEditar = document.querySelector('#mel2-btn-editar');
+  if (btnEditar && mel2) {
+    btnEditar.addEventListener('click', () => entrarModoEdicao(mel2));
+    document.querySelector('#btn-edit-cancelar')?.addEventListener('click', () => sairModoEdicao(mel2));
+    ligarEdicaoInline();
   }
 
-  // Modo gerenciar: liga botoes finalizar / cancelar-pos / editar.
-  document.querySelector('#btn-editar')?.addEventListener('click', () => abrirSubModoEditar());
+  // Modos finalizado/cancelado: sem finalizar/cancelar.
+  if (finalizadoOuCancelado) return;
+
   document.querySelector('#btn-finalizar')?.addEventListener('click', async () => {
     if (!confirm('Confirma que o cliente buscou e o lançamento está finalizado?')) return;
     await chamarMarcarFinalizado();
@@ -893,6 +1062,122 @@ function ligarGerenciar() {
       return;
     }
     await chamarMarcarCanceladoPos(motivo.trim());
+  });
+}
+
+// ─── Alternância leitura ⇄ edição (in-place na direita) ──────────────
+function entrarModoEdicao(mel2) {
+  mel2.dataset.modo = 'edicao';
+  mel2.querySelectorAll('[data-leitura]').forEach(el => { el.hidden = true; });
+  mel2.querySelectorAll('[data-edicao]').forEach(el => { el.hidden = false; });
+  document.querySelector('#mel2-rodape-leitura')?.setAttribute('hidden', '');
+  document.querySelector('#mel2-rodape-edicao')?.removeAttribute('hidden');
+  document.querySelector('#mel2-btn-editar')?.classList.add('is-ativo');
+  document.querySelector('#ed-motivo')?.focus();
+}
+function sairModoEdicao(mel2) {
+  mel2.dataset.modo = 'leitura';
+  mel2.querySelectorAll('[data-leitura]').forEach(el => { el.hidden = false; });
+  mel2.querySelectorAll('[data-edicao]').forEach(el => { el.hidden = true; });
+  document.querySelector('#mel2-rodape-edicao')?.setAttribute('hidden', '');
+  document.querySelector('#mel2-rodape-leitura')?.removeAttribute('hidden');
+  document.querySelector('#mel2-btn-editar')?.classList.remove('is-ativo');
+}
+
+// ─── Filtro do histórico com indicador deslizante ────────────────────
+function ligarFiltroHistorico() {
+  const grupo = document.querySelector('.mel2-filtro');
+  const mel2  = document.querySelector('#mel2');
+  if (!grupo || !mel2) return;
+  const ind = grupo.querySelector('.mel2-filtro-ind');
+  const botoes = [...grupo.querySelectorAll('.mel2-fbtn')];
+
+  const mover = (btn) => {
+    ind.style.width = `${btn.offsetWidth}px`;
+    ind.style.left  = `${btn.offsetLeft}px`;
+  };
+  requestAnimationFrame(() => {
+    mover(grupo.querySelector('.mel2-fbtn[aria-selected="true"]') || botoes[0]);
+  });
+
+  botoes.forEach(b => {
+    b.addEventListener('click', () => {
+      const alvo = b.dataset.f;
+      botoes.forEach(x => x.setAttribute('aria-selected', String(x.dataset.f === alvo)));
+      mover(b);
+      mel2.dataset.filtro = alvo;
+    });
+  });
+}
+
+// ─── Formulário de edição in-place ───────────────────────────────────
+// O motivo destrava os campos (10+ chars). Submit usa editar_lancamento.
+function ligarEdicaoInline() {
+  const form = document.querySelector('#form-editar');
+  if (!form) return;
+  const l = estado.lancamento;
+  const motivoEl  = document.querySelector('#ed-motivo');
+  const campos    = document.querySelector('#mel2-edit-campos');
+  const erroEl    = document.querySelector('#erro-edit');
+  const btnSalvar = document.querySelector('#btn-edit-salvar');
+  const editaveis = campos.querySelectorAll('input:not([readonly]), select, textarea');
+
+  const sincronizar = () => {
+    const motivoOk = (motivoEl.value || '').trim().length >= 10;
+    campos.dataset.bloqueado = motivoOk ? 'false' : 'true';
+    editaveis.forEach(c => { c.disabled = !motivoOk; });
+    if (btnSalvar) btnSalvar.disabled = !motivoOk;
+  };
+  sincronizar();
+  motivoEl.addEventListener('input', sincronizar);
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    erroEl.classList.add('hidden');
+
+    const f = (id) => document.querySelector(`#${id}`);
+    const dados = {};
+    const novoNumero  = f('ed-numero_nf')?.value.trim();
+    const novoCodigo  = f('ed-codigo_pedido')?.value.trim();
+    const novoCliente = f('ed-cliente_nome')?.value.trim();
+    const novoValor   = Number(f('ed-valor_nf')?.value);
+    const novaCat     = f('ed-categoria')?.value || null;
+
+    if (novoNumero  && novoNumero  !== (l.numero_nf || ''))     dados.numero_nf     = novoNumero;
+    if (novoCodigo  && novoCodigo  !== (l.codigo_pedido || '')) dados.codigo_pedido = novoCodigo;
+    if (novoCliente && novoCliente !== (l.cliente_nome || ''))  dados.cliente_nome  = novoCliente;
+    if (novoValor   && novoValor   !== Number(l.valor_nf))      dados.valor_nf      = novoValor;
+    if (novaCat     && novaCat     !== l.categoria)             dados.categoria     = novaCat;
+
+    if (Object.keys(dados).length === 0) {
+      erroEl.classList.remove('hidden');
+      erroEl.textContent = 'Nenhum campo foi alterado.';
+      return;
+    }
+
+    if (btnSalvar) { btnSalvar.setAttribute('aria-busy', 'true'); btnSalvar.disabled = true; }
+
+    const { data, error } = await supabase.rpc('editar_lancamento', {
+      p_lancamento_id: l.id,
+      p_dados:         dados,
+      p_motivo:        motivoEl.value.trim(),
+    });
+
+    if (btnSalvar) btnSalvar.removeAttribute('aria-busy');
+
+    if (error) {
+      if (btnSalvar) btnSalvar.disabled = false;
+      erroEl.classList.remove('hidden');
+      erroEl.textContent = traduzirErroBanco(error);
+      log.warn('falha ao editar lancamento', { code: error.code, msg: error.message });
+      return;
+    }
+
+    if (data) estado.lancamento = data;
+    mostrarToast('Lançamento editado.', 'ok', 2200);
+    estado.aoSalvar();
+    desligarRealtimeObs();
+    fecharModal(true);
   });
 }
 
