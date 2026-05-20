@@ -701,7 +701,7 @@
     gap: 0.7rem;
 }
 .painel-header-badge {
-    font-size: 0.66rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -713,11 +713,14 @@
 .painel-header-badge--ok     { background: var(--ui-accent-soft); color: var(--ui-accent-2); }
 .painel-header-badge--alerta { background: var(--ui-danger-soft); color: var(--ui-danger); }
 
-/* Modal amplo — largura maior + altura definida pro split rolar bem */
+/* Modal amplo — espelha exatamente o mockup .dmm da sandbox
+   /demo-modal: 66rem de largura, altura NATURAL até 82vh (sem
+   altura fixa — o modal cresce com o conteúdo e só rola as colunas
+   quando bate o teto), e a mesma sombra. */
 .modal-card--amplo {
-    width: min(1060px, calc(100vw - 2.5rem));
-    height: min(86vh, 700px);
-    max-height: 92vh;
+    width: min(66rem, calc(100vw - 2.5rem));
+    max-height: 82vh;
+    box-shadow: 0 20px 60px -20px rgba(20, 20, 20, 0.25);
 }
 .modal-card--amplo .painel-corpo {
     padding: 0;
@@ -726,6 +729,12 @@
     min-height: 0;
     overflow: hidden;
 }
+/* Header / rodapé com o mesmo respiro do mockup (.dmm-cabec /
+   .dmm-rodape) — sobrescreve o padding maior do .painel-* padrão. */
+.modal-card--amplo .painel-header { padding: 1.2rem 1.5rem 1.05rem; }
+.modal-card--amplo .painel-eyebrow { margin: 0 0 0.3rem; }
+.modal-card--amplo .painel-titulo  { font-size: 1.3rem; }
+.modal-card--amplo .painel-rodape  { padding: 0.85rem 1.5rem; }
 
 .mel2 {
     display: flex;
@@ -763,7 +772,7 @@
     align-items: flex-start;
 }
 .mel2-resumo-cat {
-    padding: 0.18rem 0.6rem;
+    padding: 0.15rem 0.55rem;
     border-radius: 999px;
     font-size: 0.66rem;
     font-weight: 700;
@@ -787,7 +796,7 @@
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--ui-ink-3);
-    margin: 0.7rem 0 0.6rem;
+    margin: 0.7rem 0 0.5rem;
 }
 
 /* Filtro Tudo / Linha do tempo / Anotações — pílula verde deslizante */
@@ -928,7 +937,7 @@
 /* ─── Coluna direita — detalhes / edição ───────────────────────────── */
 .mel2-dir {
     overflow-y: auto;
-    padding: 1.1rem 1.4rem 1.4rem;
+    padding: 1.1rem 1.5rem 1.4rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -992,13 +1001,12 @@
     margin: 0;
 }
 
-/* Bloco "Adicionar anotação" — abaixo dos detalhes */
+/* Bloco "Adicionar anotação" — abaixo dos detalhes (igual .dmm-anot-add) */
 .mel2-anot-add {
-    border-top: 1px solid var(--ui-border);
-    padding-top: 1rem;
+    margin-top: 0.7rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.45rem;
 }
 .mel2-anot-add-titulo {
     font-size: 0.66rem;
@@ -1006,19 +1014,18 @@
     text-transform: uppercase;
     letter-spacing: 0.14em;
     color: var(--ui-accent);
-    margin: 0;
+    margin: 0 0 0.5rem;
 }
 .mel2-anot-add textarea {
     width: 100%;
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-sm);
-    padding: 0.55rem 0.7rem;
+    padding: 0.5rem 0.65rem;
     font-family: 'Manrope', sans-serif;
-    font-size: 0.85rem;
+    font-size: 0.83rem;
     color: var(--ui-ink);
     resize: vertical;
-    min-height: 3.2rem;
 }
 .mel2-anot-add textarea:focus {
     outline: 0;
@@ -1031,9 +1038,9 @@
     color: var(--ui-bg);
     border: 0;
     border-radius: var(--ui-r-sm);
-    padding: 0.45rem 0.95rem;
+    padding: 0.42rem 0.85rem;
     font-family: 'Manrope', sans-serif;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 160ms var(--ui-ease);
@@ -1042,7 +1049,7 @@
 .mel2-btn-anotar:disabled { opacity: 0.45; cursor: default; }
 
 /* ─── Formulário de edição in-place ────────────────────────────────── */
-.mel2-form { display: flex; flex-direction: column; gap: 0.9rem; }
+.mel2-form { display: flex; flex-direction: column; gap: 0.85rem; }
 .mel2-grid2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
