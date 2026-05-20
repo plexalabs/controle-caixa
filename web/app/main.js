@@ -20,6 +20,7 @@ import '../styles/caixas-v2.css';
 import '../styles/caixa-v2.css';
 import '../styles/modal-edit-v2.css';
 import '../styles/lancamento-v2.css';
+import '../styles/pendencias-v2.css';
 import '../styles/demo-visual.css';
 
 import * as Sentry              from '@sentry/browser';
