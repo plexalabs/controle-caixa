@@ -1,0 +1,544 @@
+/* vendedoras-v2.css — Tela /configuracoes/vendedoras refator v2
+   "Clean Profissional". Namespace .vnd-*. Layout em 2 colunas: grade
+   de cartões à esquerda, resumo com filtro por situação à direita.
+   Tokens --ui-*. */
+
+.vnd {
+    max-width: 76rem;
+    margin: 0 auto;
+    padding: 1.75rem 1.75rem 3.5rem;
+    color: var(--ui-ink);
+}
+@media (max-width: 767px) {
+    .vnd { padding: 1.1rem 1rem 2.5rem; }
+}
+
+.vnd-voltar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    text-decoration: none;
+    margin-bottom: 1rem;
+    transition: color 140ms var(--ui-ease);
+}
+.vnd-voltar:hover { color: var(--ui-ink); }
+.vnd-voltar svg { width: 13px; height: 13px; }
+
+/* ─── Cabeçalho ─────────────────────────────────────────────────────── */
+.vnd-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+.vnd-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ui-accent);
+    margin: 0 0 0.35rem;
+}
+.vnd-title {
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    margin: 0 0 0.4rem;
+    line-height: 1.15;
+}
+.vnd-sub {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    max-width: 38rem;
+    line-height: 1.5;
+}
+.vnd-novo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--ui-accent);
+    border: 1px solid var(--ui-accent);
+    border-radius: var(--ui-r-sm);
+    padding: 0.6rem 1.05rem;
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease);
+}
+.vnd-novo:hover { background: var(--ui-accent-2); border-color: var(--ui-accent-2); }
+.vnd-novo svg { width: 14px; height: 14px; }
+
+/* ─── Layout 2 colunas ──────────────────────────────────────────────── */
+.vnd-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 16rem;
+    gap: 1.6rem;
+    align-items: start;
+}
+.vnd-main { min-width: 0; }
+@media (max-width: 880px) {
+    .vnd-layout { grid-template-columns: 1fr; }
+}
+
+/* ─── Busca ─────────────────────────────────────────────────────────── */
+.vnd-busca-wrap { position: relative; margin-bottom: 1rem; }
+.vnd-busca {
+    width: 100%;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.6rem 0.8rem 0.6rem 2.3rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    color: var(--ui-ink);
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.vnd-busca::placeholder { color: var(--ui-ink-3); }
+.vnd-busca:hover { border-color: var(--ui-border-strong); }
+.vnd-busca:focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.12);
+}
+.vnd-busca-icone {
+    position: absolute;
+    left: 0.8rem; top: 50%;
+    transform: translateY(-50%);
+    color: var(--ui-ink-3);
+    pointer-events: none;
+}
+.vnd-busca-icone svg { width: 15px; height: 15px; display: block; }
+
+/* ─── Grade de cartões ──────────────────────────────────────────────── */
+.vnd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+    gap: 0.8rem;
+}
+
+.vnd-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    padding: 1rem 1.05rem 0.85rem;
+    animation: vnd-fade-up 420ms var(--ui-ease) backwards;
+}
+.vnd-card[data-ativa="false"] { background: var(--ui-surface-2); }
+@keyframes vnd-fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.vnd-card-topo {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    margin-bottom: 0.7rem;
+}
+.vnd-card-avatar {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    background: var(--ui-accent);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+}
+.vnd-card[data-ativa="false"] .vnd-card-avatar {
+    background: var(--ui-surface-3);
+    color: var(--ui-ink-3);
+}
+.vnd-card-id { min-width: 0; flex: 1; }
+.vnd-card-nome {
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.014em;
+    line-height: 1.25;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.vnd-card-apelido {
+    font-size: 0.78rem;
+    font-style: italic;
+    color: var(--ui-ink-3);
+    margin: 0.1rem 0 0;
+}
+.vnd-card-badge {
+    flex-shrink: 0;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+}
+.vnd-card-badge[data-tom="ativa"]   { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.vnd-card-badge[data-tom="inativa"] { background: var(--ui-surface-3);   color: var(--ui-ink-3); }
+
+.vnd-card-contato {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.55rem;
+}
+.vnd-card-linha {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--ui-ink-2);
+    min-width: 0;
+}
+.vnd-card-linha svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--ui-ink-3); }
+.vnd-card-linha span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.vnd-card-obs {
+    font-size: 0.79rem;
+    color: var(--ui-ink-3);
+    line-height: 1.45;
+    margin: 0 0 0.55rem;
+    padding-left: 0.6rem;
+    border-left: 2px solid var(--ui-border);
+}
+
+.vnd-card-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-top: auto;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--ui-border);
+}
+.vnd-card-data {
+    font-size: 0.7rem;
+    color: var(--ui-ink-4);
+}
+.vnd-card-acoes { display: flex; gap: 0.35rem; }
+.vnd-card-btn {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.35rem 0.7rem;
+    font-family: inherit;
+    font-size: 0.77rem;
+    font-weight: 600;
+    color: var(--ui-ink-2);
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease), border-color 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.vnd-card-btn:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border-strong);
+    color: var(--ui-ink);
+}
+.vnd-card-btn--perigo:hover {
+    background: var(--ui-danger-soft);
+    border-color: color-mix(in srgb, var(--ui-danger) 35%, var(--ui-border));
+    color: var(--ui-danger);
+}
+.vnd-card[data-ativa="false"] .vnd-card-btn { background: var(--ui-surface); }
+
+/* ─── Resumo lateral ────────────────────────────────────────────────── */
+.vnd-resumo {
+    position: sticky;
+    top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    padding: 1.1rem 1.1rem 1.2rem;
+}
+@media (max-width: 880px) {
+    .vnd-resumo { position: static; order: -1; }
+}
+.vnd-resumo-eyebrow {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ui-accent);
+    margin: 0;
+}
+.vnd-resumo-total {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.8rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.vnd-resumo-num {
+    font-size: 1.9rem;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+}
+.vnd-resumo-lab {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    text-transform: lowercase;
+    letter-spacing: 0.03em;
+}
+.vnd-resumo-sec { border-top: 1px solid var(--ui-border); padding-top: 0.9rem; }
+.vnd-resumo-sec-titulo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--ui-ink-3);
+    margin: 0 0 0.5rem;
+}
+.vnd-filtros { display: flex; flex-direction: column; gap: 0.1rem; }
+.vnd-filtro {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    margin: 0 -0.45rem;
+    padding: 0.46rem 0.45rem;
+    background: none;
+    border: 0;
+    border-radius: var(--ui-r-sm);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease);
+}
+.vnd-filtro:hover { background: var(--ui-surface-2); }
+.vnd-filtro:focus-visible { outline: 0; box-shadow: 0 0 0 2px rgba(40, 62, 6, 0.14); }
+.vnd-filtro[aria-pressed="true"] { background: var(--ui-surface-2); }
+.vnd-filtro-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--ui-ink-4);
+}
+.vnd-filtro[data-f="ativas"]   .vnd-filtro-dot { background: var(--ui-accent); }
+.vnd-filtro[data-f="inativas"] .vnd-filtro-dot { background: var(--ui-ink-3); }
+.vnd-filtro[data-f="todas"]    .vnd-filtro-dot {
+    background: var(--ui-surface);
+    box-shadow: inset 0 0 0 2px var(--ui-ink-4);
+}
+.vnd-filtro-label {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+}
+.vnd-filtro[aria-pressed="true"] .vnd-filtro-label { color: var(--ui-accent); }
+.vnd-filtro-num {
+    flex-shrink: 0;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--ui-ink-2);
+    font-variant-numeric: tabular-nums;
+}
+.vnd-filtro[aria-pressed="true"] .vnd-filtro-num { color: var(--ui-accent); }
+
+/* ─── Vazio / skeleton ──────────────────────────────────────────────── */
+.vnd-vazio {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: var(--ui-surface);
+    border: 1px dashed var(--ui-border);
+    border-radius: var(--ui-r-lg);
+}
+.vnd-vazio-icone {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 0.9rem;
+}
+.vnd-vazio-icone svg { width: 22px; height: 22px; }
+.vnd-vazio-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.015em;
+}
+.vnd-vazio-msg {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    margin: 0 auto;
+    line-height: 1.55;
+    max-width: 26rem;
+}
+.vnd-skel {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+    gap: 0.8rem;
+}
+.vnd-skel-item {
+    height: 11rem;
+    border-radius: var(--ui-r-lg);
+    background: linear-gradient(100deg,
+        var(--ui-surface-2) 30%, var(--ui-surface-3) 50%, var(--ui-surface-2) 70%);
+    background-size: 200% 100%;
+    animation: vnd-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes vnd-shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+}
+
+.vnd-erro {
+    background: var(--ui-danger-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
+    border-left: 3px solid var(--ui-danger);
+    color: var(--ui-danger);
+    border-radius: var(--ui-r-sm);
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+}
+
+/* ─── Helper de formulário no drawer ────────────────────────────────── */
+.vnd-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 1rem;
+}
+@media (max-width: 460px) {
+    .vnd-2col { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vnd-card { animation: none; }
+    .vnd-skel-item { animation: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Modal de criar/editar — amplo e centralizado, do mesmo tamanho do
+   modal de lançamento (66rem × 82vh, via .modal-card--amplo). Split:
+   preview da vendedora à esquerda, formulário à direita.
+   ════════════════════════════════════════════════════════════════════ */
+.vnd-modal {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+.vnd-modal-split {
+    display: grid;
+    grid-template-columns: 1fr 1.7fr;
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+}
+.vnd-modal-aside {
+    border-right: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    overflow-y: auto;
+    min-height: 0; min-width: 0;
+    padding: 1.7rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.3rem;
+}
+.vnd-modal-corpo {
+    overflow-y: auto;
+    min-height: 0; min-width: 0;
+    padding: 1.6rem 1.7rem;
+}
+
+/* Preview — avatar + nome/apelido atualizam ao vivo conforme digita */
+.vnd-modal-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.55rem;
+}
+.vnd-modal-av {
+    width: 5rem; height: 5rem;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 2rem;
+    font-weight: 700;
+    box-shadow: var(--ui-shadow-md);
+}
+.vnd-modal-prev-nome {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.vnd-modal-prev-nome.is-vazio {
+    color: var(--ui-ink-3);
+    font-style: italic;
+    font-weight: 500;
+}
+.vnd-modal-prev-apelido {
+    font-size: 0.82rem;
+    font-style: italic;
+    color: var(--ui-ink-3);
+    margin: 0;
+    min-height: 1em;
+}
+.vnd-modal-nota {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.95rem 1rem;
+}
+.vnd-modal-nota-titulo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
+    margin: 0 0 0.5rem;
+}
+.vnd-modal-nota-txt {
+    font-size: 0.8rem;
+    color: var(--ui-ink-3);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.vnd-modal-form { display: flex; flex-direction: column; gap: 1rem; }
+.vnd-modal-form .field { margin-bottom: 0; }
+
+@media (max-width: 720px) {
+    .vnd-modal-split { grid-template-columns: 1fr; grid-template-rows: none; }
+    .vnd-modal-aside {
+        border-right: 0;
+        border-bottom: 1px solid var(--ui-border);
+    }
+}

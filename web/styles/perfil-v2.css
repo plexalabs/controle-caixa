@@ -1,0 +1,347 @@
+/* perfil-v2.css — Tela /perfil refator v2: um perfil no estilo
+   GitHub × Instagram, com a identidade do sistema (verde-musgo,
+   Manrope, superfícies brancas). Namespace .pf-*. */
+
+.pf {
+    max-width: 58rem;
+    margin: 0 auto;
+    padding: 1.75rem 1.75rem 3.5rem;
+    color: var(--ui-ink);
+}
+@media (max-width: 767px) {
+    .pf { padding: 1rem 1rem 2.5rem; }
+}
+
+.pf-voltar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    text-decoration: none;
+    margin-bottom: 1rem;
+    transition: color 140ms var(--ui-ease);
+}
+.pf-voltar:hover { color: var(--ui-ink); }
+.pf-voltar svg { width: 13px; height: 13px; }
+
+/* ─── Cartão principal do perfil ────────────────────────────────────── */
+.pf-card {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    overflow: hidden;
+}
+
+/* Capa — faixa verde-musgo com textura de pontos */
+.pf-capa {
+    height: 150px;
+    background:
+        radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1.4px) 0 0 / 18px 18px,
+        linear-gradient(125deg, #1b2a04 0%, #2f4708 52%, #3d5a0e 100%);
+    position: relative;
+}
+.pf-capa::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.18));
+}
+
+.pf-corpo { padding: 0 1.6rem 1.5rem; }
+@media (max-width: 600px) { .pf-corpo { padding: 0 1.1rem 1.3rem; } }
+
+/* ─── Avatar (sobreposto à capa) ─────────────────────────────────────── */
+.pf-topo {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: -56px;
+    margin-bottom: 0.9rem;
+}
+.pf-topo-acoes {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.2rem;
+}
+.pf-avatar {
+    width: 112px; height: 112px;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    color: #fff;
+    border: 4px solid var(--ui-surface);
+    box-shadow: var(--ui-shadow-md);
+    display: grid;
+    place-items: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: transform 160ms var(--ui-ease);
+}
+.pf-avatar:hover { transform: scale(1.02); }
+.pf-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+}
+/* Overlay "alterar foto" no hover */
+.pf-avatar-cam {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    background: rgba(20, 24, 14, 0.55);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0;
+    transition: opacity 160ms var(--ui-ease);
+}
+.pf-avatar:hover .pf-avatar-cam,
+.pf-avatar:focus-visible .pf-avatar-cam { opacity: 1; }
+.pf-avatar-cam svg { width: 20px; height: 20px; }
+.pf-avatar:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 3px; }
+/* Estado enviando */
+.pf-avatar.is-enviando { cursor: progress; }
+.pf-avatar.is-enviando .pf-avatar-cam { opacity: 1; }
+.pf-avatar-spin {
+    display: none;
+    width: 22px; height: 22px;
+    border: 2.5px solid rgba(255,255,255,0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: pf-spin 700ms linear infinite;
+}
+/* Enviando: troca o ícone-câmera + texto pelo spinner. */
+.pf-avatar.is-enviando .pf-avatar-spin { display: block; }
+.pf-avatar.is-enviando .pf-avatar-cam > svg,
+.pf-avatar.is-enviando .pf-avatar-cam > span:not(.pf-avatar-spin) { display: none; }
+@keyframes pf-spin { to { transform: rotate(360deg); } }
+
+.pf-editar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.5rem 0.95rem;
+    font-family: inherit;
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: var(--ui-ink-2);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease), color 160ms var(--ui-ease);
+}
+.pf-editar:hover { background: var(--ui-surface-2); border-color: var(--ui-border-strong); color: var(--ui-ink); }
+.pf-editar svg { width: 14px; height: 14px; }
+
+/* ─── Identidade ─────────────────────────────────────────────────────── */
+.pf-nome {
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    margin: 0;
+    line-height: 1.15;
+}
+.pf-linha-id {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    margin-top: 0.3rem;
+}
+.pf-handle {
+    font-size: 0.9rem;
+    color: var(--ui-ink-3);
+    font-weight: 500;
+}
+.pf-papel {
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-2);
+    border: 1px solid var(--ui-border);
+}
+.pf-papel--super {
+    background: var(--ui-ink);
+    color: var(--ui-bg);
+    border-color: var(--ui-ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.pf-papel--super svg { width: 9px; height: 9px; color: #FBBF24; }
+
+.pf-desde {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--ui-ink-3);
+    margin-top: 0.55rem;
+}
+.pf-desde svg { width: 14px; height: 14px; }
+
+/* ─── Faixa de stats (estilo Instagram) ──────────────────────────────── */
+.pf-stats {
+    display: flex;
+    margin-top: 1.3rem;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    background: var(--ui-surface-2);
+    overflow: hidden;
+}
+.pf-stat {
+    flex: 1;
+    padding: 0.85rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.pf-stat + .pf-stat { border-left: 1px solid var(--ui-border); }
+.pf-stat-num {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+.pf-stat-lab {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+}
+@media (max-width: 520px) {
+    .pf-stat-num { font-size: 1.15rem; }
+    .pf-stat { padding: 0.7rem 0.6rem; }
+}
+
+/* ─── Seções de conta / acesso ───────────────────────────────────────── */
+.pf-secoes {
+    margin-top: 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+@media (max-width: 680px) { .pf-secoes { grid-template-columns: 1fr; } }
+
+.pf-sec {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    padding: 1.15rem 1.2rem 1.05rem;
+}
+.pf-sec-titulo {
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
+    margin: 0 0 0.9rem;
+}
+.pf-linha {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--ui-border);
+}
+.pf-linha:first-of-type { border-top: 0; padding-top: 0; }
+.pf-linha-meta { min-width: 0; flex: 1; }
+.pf-linha-rotulo {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ui-ink-3);
+    margin: 0 0 0.15rem;
+}
+.pf-linha-valor {
+    font-size: 0.9rem;
+    color: var(--ui-ink);
+    font-weight: 600;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.pf-linha-valor--mono { font-variant-numeric: tabular-nums; }
+.pf-linha-acao {
+    flex-shrink: 0;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.4rem 0.8rem;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ui-ink-2);
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease), border-color 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.pf-linha-acao:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border-strong);
+    color: var(--ui-ink);
+}
+
+/* ─── Drawer de edição: bloco da foto ────────────────────────────────── */
+.pf-foto-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.9rem;
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    margin-bottom: 1.25rem;
+}
+.pf-foto-edit-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.pf-foto-edit-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pf-foto-edit-acoes { display: flex; flex-direction: column; gap: 0.35rem; }
+.pf-foto-edit-link {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    color: var(--ui-accent);
+    transition: color 140ms var(--ui-ease);
+}
+.pf-foto-edit-link:hover { color: var(--ui-accent-2); }
+.pf-foto-edit-link--danger { color: var(--ui-danger); }
+.pf-foto-edit-link--danger:hover { color: #991B1B; }

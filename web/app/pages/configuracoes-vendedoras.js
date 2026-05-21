@@ -1,12 +1,11 @@
-// configuracoes-vendedoras.js — CRUD de vendedoras (CP5.1).
-// Lista ativas em cards (papel + filete âmbar), bloco colapsável de
-// inativas, drawer de criar/editar, modal de confirmação de desativação.
+// configuracoes-vendedoras.js — /configuracoes/vendedoras (refator v2).
 //
-// RLS:
-//   SELECT — todos authenticated
-//   INSERT — admin OU operador
-//   UPDATE — admin OU operador (via fn_tem_papel)
-//   DELETE — bloqueado (false). Soft-delete via ativa=false.
+// CRUD da equipe de vendedoras. Layout em 2 colunas: grade de cartões
+// à esquerda (com busca), resumo com filtro por situação à direita.
+// Drawer de criar/editar; modal centralizado de confirmação ao desativar.
+//
+// RLS: SELECT — todos; INSERT/UPDATE — admin ou operador; DELETE
+// bloqueado (soft-delete via ativa=false).
 
 import { supabase } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
@@ -14,59 +13,106 @@ import { abrirModal, fecharModal } from '../../components/modal.js';
 import { mostrarToast } from '../notifications.js';
 import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
 
+let TODAS = [];
+let filtroSituacao = 'ativas';   // 'todas' | 'ativas' | 'inativas'
+let busca = '';
+let podeEditar = false;
+
+const SVG = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`;
+const ICON_VOLTAR = `<svg ${SVG}><path d="M9.5 3.5 5 8l4.5 4.5"/></svg>`;
+const ICON_MAIS   = `<svg viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>`;
+const ICON_LUPA   = `<svg ${SVG}><circle cx="7" cy="7" r="4.3"/><path d="M10.2 10.2 14 14"/></svg>`;
+const ICON_MAIL   = `<svg ${SVG}><rect x="2" y="3.5" width="12" height="9" rx="1.5"/><path d="M2.5 4.5 8 8.7l5.5-4.2"/></svg>`;
+const ICON_FONE   = `<svg ${SVG}><path d="M3 2.7h2.4l1 3-1.6 1.2a8 8 0 0 0 3.3 3.3l1.2-1.6 3 1V14a1 1 0 0 1-1.1 1A11.5 11.5 0 0 1 2 3.8 1 1 0 0 1 3 2.7Z"/></svg>`;
+const ICON_EQUIPE = `<svg ${SVG}><circle cx="6" cy="5.4" r="2.4"/><path d="M1.6 13.4c0-2.5 2-4.1 4.4-4.1s4.4 1.6 4.4 4.1"/><path d="M10.5 3.4a2.3 2.3 0 0 1 0 4.3M11.6 9.5c1.9.4 2.9 1.9 2.9 3.9"/></svg>`;
+
 export async function renderVendedoras() {
-  // RBAC Sessao 3: pre-carrega cache de permissoes pra cardVendedora()
-  // (chamada em loop) usar temPermissaoSync sem await em cada iteracao.
   await carregarPermissoes();
+  podeEditar = temPermissaoSync('vendedora.editar');
+  filtroSituacao = 'ativas';
+  busca = '';
 
   document.querySelector('#app').innerHTML = await renderShell({
-    rotaAtiva: 'config',
+    rotaAtiva: '',
     conteudo: `
-    <main id="main" class="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
-      <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
-        <a href="/configuracoes" data-link class="btn-link" style="font-size:0.85rem">← Configurações</a>
-      </nav>
+    <main id="main" class="vnd">
+      <a href="/configuracoes" data-link class="vnd-voltar">${ICON_VOLTAR} Configurações</a>
 
-      <header class="tela-cabec reveal reveal-2">
-        <div class="tela-cabec-texto">
-          <p class="h-eyebrow">Operação · Equipe</p>
-          <h1 class="tela-cabec-titulo">Vendedoras</h1>
-          <p class="tela-cabec-sub">
+      <header class="vnd-header">
+        <div class="vnd-header-texto">
+          <p class="vnd-eyebrow">Operação · Equipe</p>
+          <h1 class="vnd-title">Vendedoras</h1>
+          <p class="vnd-sub">
             Quem aparece nos lançamentos pagos em dinheiro. Operadores
-            podem cadastrar e atualizar; admin pode desativar — sem deletar,
-            o histórico fica preservado.
+            cadastram e atualizam; admin desativa — sem excluir, o
+            histórico fica preservado.
           </p>
         </div>
-        <button id="vd-btn-novo" class="btn-primary">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M7 1 V13 M1 7 H13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-          Nova vendedora
-        </button>
+        <button type="button" id="vnd-novo" class="vnd-novo">${ICON_MAIS} Nova vendedora</button>
       </header>
 
-      <section id="vd-bloco-ativas" class="reveal reveal-3"></section>
-      <div id="vd-bloco-inativas" class="reveal reveal-4"></div>
-    </main>
-  `,
+      <div class="vnd-layout">
+        <div class="vnd-main">
+          <div class="vnd-busca-wrap">
+            <span class="vnd-busca-icone" aria-hidden="true">${ICON_LUPA}</span>
+            <input type="search" id="vnd-busca" class="vnd-busca"
+                   placeholder="Buscar por nome ou apelido…" autocomplete="off">
+          </div>
+          <section id="vnd-conteudo" aria-live="polite"></section>
+        </div>
+
+        <aside class="vnd-resumo">
+          <p class="vnd-resumo-eyebrow">Equipe</p>
+          <div class="vnd-resumo-total">
+            <span class="vnd-resumo-num" id="vnd-total">—</span>
+            <span class="vnd-resumo-lab">vendedoras no total</span>
+          </div>
+          <div class="vnd-resumo-sec">
+            <p class="vnd-resumo-sec-titulo">Situação</p>
+            <div class="vnd-filtros">
+              <button type="button" class="vnd-filtro" data-f="ativas">
+                <span class="vnd-filtro-dot" aria-hidden="true"></span>
+                <span class="vnd-filtro-label">Ativas</span>
+                <span class="vnd-filtro-num" id="vnd-n-ativas">—</span>
+              </button>
+              <button type="button" class="vnd-filtro" data-f="inativas">
+                <span class="vnd-filtro-dot" aria-hidden="true"></span>
+                <span class="vnd-filtro-label">Inativas</span>
+                <span class="vnd-filtro-num" id="vnd-n-inativas">—</span>
+              </button>
+              <button type="button" class="vnd-filtro" data-f="todas">
+                <span class="vnd-filtro-dot" aria-hidden="true"></span>
+                <span class="vnd-filtro-label">Todas</span>
+                <span class="vnd-filtro-num" id="vnd-n-todas">—</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>`,
   });
 
   ligarShell();
-  document.querySelector('#vd-btn-novo').addEventListener('click', () => abrirDrawerVendedora(null));
+  document.querySelector('#vnd-novo')?.addEventListener('click', (e) => abrirModalVendedora(null, e));
+  document.querySelector('#vnd-busca')?.addEventListener('input', (e) => {
+    busca = e.target.value.trim().toLowerCase();
+    renderGrid();
+  });
+  document.querySelectorAll('.vnd-filtro').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filtroSituacao = btn.dataset.f;
+      renderTudo();
+    });
+  });
+
   await carregarLista();
 }
 
-// ─── Lista ──────────────────────────────────────────────────────────
+// ─── Carga e render ──────────────────────────────────────────────────
 async function carregarLista() {
-  const blocoAtivas   = document.querySelector('#vd-bloco-ativas');
-  const blocoInativas = document.querySelector('#vd-bloco-inativas');
-  if (!blocoAtivas || !blocoInativas) return;
-
-  blocoAtivas.innerHTML = `
-    <div class="vd-grid">
-      ${[1,2,3,4].map(() => `<div class="skel" style="height:9rem"></div>`).join('')}
-    </div>`;
-  blocoInativas.innerHTML = '';
+  const slot = document.querySelector('#vnd-conteudo');
+  if (!slot) return;
+  slot.innerHTML = `<div class="vnd-skel">${[1,2,3,4,5,6].map(() => `<div class="vnd-skel-item"></div>`).join('')}</div>`;
 
   const { data, error } = await supabase
     .from('vendedora')
@@ -75,173 +121,206 @@ async function carregarLista() {
     .order('nome',  { ascending: true });
 
   if (error) {
-    blocoAtivas.innerHTML = `<p class="alert">Não foi possível carregar a equipe. ${esc(error.message)}</p>`;
+    slot.innerHTML = `<p class="vnd-erro">Não foi possível carregar a equipe. ${esc(error.message)}</p>`;
+    return;
+  }
+  TODAS = data || [];
+  renderTudo();
+}
+
+function renderTudo() {
+  renderResumo();
+  renderGrid();
+}
+
+function renderResumo() {
+  const nAtivas   = TODAS.filter(v => v.ativa).length;
+  const nInativas = TODAS.length - nAtivas;
+  const set = (id, v) => { const el = document.querySelector(id); if (el) el.textContent = String(v); };
+  set('#vnd-total', TODAS.length);
+  set('#vnd-n-ativas', nAtivas);
+  set('#vnd-n-inativas', nInativas);
+  set('#vnd-n-todas', TODAS.length);
+  document.querySelectorAll('.vnd-filtro').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.f === filtroSituacao)));
+}
+
+function listaFiltrada() {
+  let lista = TODAS;
+  if (filtroSituacao === 'ativas')   lista = lista.filter(v => v.ativa);
+  if (filtroSituacao === 'inativas') lista = lista.filter(v => !v.ativa);
+  if (busca) {
+    lista = lista.filter(v =>
+      (v.nome || '').toLowerCase().includes(busca) ||
+      (v.apelido || '').toLowerCase().includes(busca));
+  }
+  return lista;
+}
+
+function renderGrid() {
+  const slot = document.querySelector('#vnd-conteudo');
+  if (!slot) return;
+  const lista = listaFiltrada();
+
+  if (lista.length === 0) {
+    slot.innerHTML = vazioHtml();
     return;
   }
 
-  const todas = data || [];
-  const ativas   = todas.filter(v => v.ativa);
-  const inativas = todas.filter(v => !v.ativa);
-
-  if (ativas.length === 0 && inativas.length === 0) {
-    blocoAtivas.innerHTML = `
-      <div class="vazio">
-        <div class="vazio-num">∅</div>
-        <p class="vazio-titulo">Nenhuma vendedora cadastrada ainda.</p>
-        <p class="vazio-desc">
-          Adicione a primeira pelo botão <strong>+ Nova vendedora</strong>
-          no canto superior direito. Ela ficará disponível imediatamente
-          nos novos lançamentos em dinheiro.
-        </p>
-      </div>`;
-    return;
-  }
-
-  if (ativas.length === 0) {
-    blocoAtivas.innerHTML = `
-      <div class="vazio" style="padding:2rem 1.5rem">
-        <p class="vazio-titulo" style="font-size:1.1rem">
-          Sem vendedoras ativas — só inativas abaixo.
-        </p>
-        <p class="vazio-desc">
-          Reative alguma do bloco de inativas, ou cadastre uma nova.
-        </p>
-      </div>`;
-  } else {
-    blocoAtivas.innerHTML = `
-      <div class="vd-grid">
-        ${ativas.map((v, i) => cardVendedora(v, i)).join('')}
-      </div>`;
-  }
-
-  if (inativas.length > 0) {
-    blocoInativas.innerHTML = `
-      <button class="vd-inativas-toggle" type="button" aria-expanded="false" aria-controls="vd-inativas-grid">
-        <span>Inativas (${inativas.length})</span>
-        <span class="vd-toggle-caret" aria-hidden="true">
-          <svg width="12" height="8" viewBox="0 0 12 8"><path d="M1 1.5 L6 6.5 L11 1.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-      </button>
-      <div id="vd-inativas-grid" class="vd-inativas vd-grid" hidden>
-        ${inativas.map((v, i) => cardVendedora(v, i)).join('')}
-      </div>`;
-  }
-
-  // Liga ações dos cards (delegação simples).
-  const todoBloco = document.querySelector('#main');
-  todoBloco.querySelectorAll('[data-vd-acao]').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
+  slot.innerHTML = `<div class="vnd-grid">${lista.map((v, i) => cardVendedora(v, i)).join('')}</div>`;
+  slot.querySelectorAll('[data-vd-acao]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const id = btn.dataset.vdId;
-      const acao = btn.dataset.vdAcao;
-      const v = todas.find(x => x.id === id);
+      const v = TODAS.find(x => x.id === btn.dataset.vdId);
       if (!v) return;
-      if (acao === 'editar')    abrirDrawerVendedora(v);
-      if (acao === 'desativar') confirmarDesativar(v);
-      if (acao === 'reativar')  reativar(v);
+      if (btn.dataset.vdAcao === 'editar')    abrirModalVendedora(v, e);
+      if (btn.dataset.vdAcao === 'desativar') confirmarDesativar(v);
+      if (btn.dataset.vdAcao === 'reativar')  reativar(v);
     });
   });
+}
 
-  const tog = document.querySelector('.vd-inativas-toggle');
-  if (tog) {
-    tog.addEventListener('click', () => {
-      const exp = tog.getAttribute('aria-expanded') === 'true';
-      tog.setAttribute('aria-expanded', String(!exp));
-      const grid = document.querySelector('#vd-inativas-grid');
-      if (grid) grid.hidden = exp;
-    });
+function vazioHtml() {
+  let titulo, msg;
+  if (TODAS.length === 0) {
+    titulo = 'Nenhuma vendedora cadastrada.';
+    msg = 'Adicione a primeira pelo botão “Nova vendedora” — ela fica disponível na hora nos lançamentos em dinheiro.';
+  } else if (busca) {
+    titulo = 'Nada encontrado.';
+    msg = `Nenhuma vendedora ${rotuloSituacao()} corresponde a “${esc(busca)}”.`;
+  } else {
+    titulo = `Nenhuma vendedora ${rotuloSituacao()}.`;
+    msg = filtroSituacao === 'inativas'
+      ? 'Toda a equipe está ativa — bom sinal.'
+      : 'Cadastre uma nova ou veja as outras situações no resumo ao lado.';
   }
+  return `
+    <div class="vnd-vazio">
+      <div class="vnd-vazio-icone" aria-hidden="true">${ICON_EQUIPE}</div>
+      <p class="vnd-vazio-title">${titulo}</p>
+      <p class="vnd-vazio-msg">${msg}</p>
+    </div>`;
+}
+function rotuloSituacao() {
+  return filtroSituacao === 'ativas' ? 'ativa' : filtroSituacao === 'inativas' ? 'inativa' : '';
 }
 
 function cardVendedora(v, i) {
-  // Permissao: vendedora.editar (cobre desativar/reativar tambem -- 1
-  // permissao para os 3 verbos no desenho atual).
-  const ehAdmin = temPermissaoSync('vendedora.editar');
+  const inicial = (v.nome || '?').trim().charAt(0).toUpperCase();
+  const delay = `style="animation-delay:${Math.min(i * 45, 360)}ms"`;
+
   const acoes = [];
   if (v.ativa) {
-    acoes.push(`<button class="vd-card-btn" data-vd-acao="editar" data-vd-id="${esc(v.id)}">Editar</button>`);
-    if (ehAdmin) {
-      acoes.push(`<button class="vd-card-btn" data-vd-acao="desativar" data-vd-id="${esc(v.id)}">Desativar</button>`);
+    acoes.push(`<button class="vnd-card-btn" data-vd-acao="editar" data-vd-id="${esc(v.id)}">Editar</button>`);
+    if (podeEditar) {
+      acoes.push(`<button class="vnd-card-btn vnd-card-btn--perigo" data-vd-acao="desativar" data-vd-id="${esc(v.id)}">Desativar</button>`);
     }
-  } else if (ehAdmin) {
-    acoes.push(`<button class="vd-card-btn" data-vd-acao="reativar" data-vd-id="${esc(v.id)}">Reativar</button>`);
-    acoes.push(`<button class="vd-card-btn" data-vd-acao="editar" data-vd-id="${esc(v.id)}">Editar</button>`);
+  } else if (podeEditar) {
+    acoes.push(`<button class="vnd-card-btn" data-vd-acao="editar" data-vd-id="${esc(v.id)}">Editar</button>`);
+    acoes.push(`<button class="vnd-card-btn" data-vd-acao="reativar" data-vd-id="${esc(v.id)}">Reativar</button>`);
   }
 
-  const contato = [v.email, v.telefone].filter(Boolean).join(' · ') || '—';
-  const dataCad = formatarDataCurta(v.criada_em);
+  const contato = [];
+  if (v.email)    contato.push(`<span class="vnd-card-linha">${ICON_MAIL}<span>${esc(v.email)}</span></span>`);
+  if (v.telefone) contato.push(`<span class="vnd-card-linha">${ICON_FONE}<span>${esc(v.telefone)}</span></span>`);
 
   return `
-    <article class="vd-card" data-ativa="${v.ativa}" style="animation-delay:${i * 50}ms">
-      <div class="vd-card-cabec">
-        <h3 class="vd-card-nome">${esc(v.nome)}</h3>
-        <span class="vd-card-badge" data-tom="${v.ativa ? 'ativa' : 'inativa'}">
+    <article class="vnd-card" data-ativa="${v.ativa}" ${delay}>
+      <div class="vnd-card-topo">
+        <span class="vnd-card-avatar" aria-hidden="true">${esc(inicial)}</span>
+        <div class="vnd-card-id">
+          <h3 class="vnd-card-nome">${esc(v.nome)}</h3>
+          ${v.apelido ? `<p class="vnd-card-apelido">“${esc(v.apelido)}”</p>` : ''}
+        </div>
+        <span class="vnd-card-badge" data-tom="${v.ativa ? 'ativa' : 'inativa'}">
           ${v.ativa ? 'Ativa' : 'Inativa'}
         </span>
       </div>
-      ${v.apelido ? `<p class="vd-card-meta" style="font-style:italic">"${esc(v.apelido)}"</p>` : ''}
-      <p class="vd-card-meta">${esc(contato)}</p>
-      ${v.observacoes ? `<p class="vd-card-meta" style="opacity:0.85">${esc(v.observacoes.slice(0, 120))}${v.observacoes.length > 120 ? '…' : ''}</p>` : ''}
-      <p class="vd-card-data">cadastrada em ${dataCad}</p>
-      ${acoes.length ? `<div class="vd-card-acoes">${acoes.join('')}</div>` : ''}
+      ${contato.length ? `<div class="vnd-card-contato">${contato.join('')}</div>` : ''}
+      ${v.observacoes
+        ? `<p class="vnd-card-obs">${esc(v.observacoes.slice(0, 140))}${v.observacoes.length > 140 ? '…' : ''}</p>`
+        : ''}
+      <div class="vnd-card-rodape">
+        <span class="vnd-card-data">desde ${esc(formatarDataCurta(v.criada_em))}</span>
+        ${acoes.length ? `<div class="vnd-card-acoes">${acoes.join('')}</div>` : ''}
+      </div>
     </article>`;
 }
 
-// ─── Drawer criar/editar ────────────────────────────────────────────
-function abrirDrawerVendedora(v) {
+// ─── Modal criar/editar (amplo, centralizado — igual ao de lançamento) ─
+function abrirModalVendedora(v, origemEv) {
   const isEdit = !!v;
-  const corpo = `
-    <form id="vd-form" novalidate>
-      <div class="field">
-        <label class="field-label" for="vd-nome">Nome *</label>
-        <input id="vd-nome" name="nome" required minlength="2" maxlength="80"
-               class="field-input" autocomplete="name"
-               value="${esc(v?.nome || '')}" />
-        <span class="field-underline"></span>
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="vd-apelido">Apelido (interno)</label>
-        <input id="vd-apelido" name="apelido" maxlength="40"
-               class="field-input" autocomplete="off"
-               placeholder="opcional, como o time chama"
-               value="${esc(v?.apelido || '')}" />
-        <span class="field-underline"></span>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="vd-email">Email</label>
-          <input id="vd-email" name="email" type="email" maxlength="160"
-                 class="field-input" autocomplete="email"
-                 value="${esc(v?.email || '')}" />
-          <span class="field-underline"></span>
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="vd-telefone">Telefone</label>
-          <input id="vd-telefone" name="telefone" maxlength="20"
-                 class="field-input" autocomplete="tel"
-                 placeholder="(11) 99999-9999"
-                 value="${esc(v?.telefone || '')}" />
-          <span class="field-underline"></span>
-        </div>
-      </div>
-
-      <div class="field mt-5">
-        <label class="field-label" for="vd-obs">Observações</label>
-        <textarea id="vd-obs" name="observacoes" maxlength="600" rows="4"
-                  class="field-input" style="resize:vertical;min-height:5rem"
-                  placeholder="opcional — turno, divisão de comissão, etc.">${esc(v?.observacoes || '')}</textarea>
-        <span class="field-underline"></span>
-      </div>
-    </form>
-  `;
+  const inicial = ((v?.nome || '?').trim().charAt(0) || '?').toUpperCase();
 
   abrirModal({
-    lateral: true,
+    amplo: true,
+    origemEvento: origemEv || null,
     eyebrow: isEdit ? `Editando · ${v.nome}` : 'Nova vendedora',
     titulo:  isEdit ? 'Atualizar dados.' : 'Adicionar à equipe.',
-    conteudo: corpo,
+    conteudo: `
+      <div class="vnd-modal">
+        <div class="vnd-modal-split">
+          <aside class="vnd-modal-aside">
+            <div class="vnd-modal-preview">
+              <div class="vnd-modal-av" id="vd-prev-av">${esc(inicial)}</div>
+              <p class="vnd-modal-prev-nome ${v?.nome ? '' : 'is-vazio'}" id="vd-prev-nome">${esc(v?.nome || 'Nome da vendedora')}</p>
+              <p class="vnd-modal-prev-apelido" id="vd-prev-apelido">${v?.apelido ? '“' + esc(v.apelido) + '”' : ''}</p>
+              ${isEdit
+                ? `<span class="vnd-card-badge" data-tom="${v.ativa ? 'ativa' : 'inativa'}">${v.ativa ? 'Ativa' : 'Inativa'}</span>`
+                : ''}
+            </div>
+            <div class="vnd-modal-nota">
+              <p class="vnd-modal-nota-titulo">Como funciona</p>
+              <p class="vnd-modal-nota-txt">
+                A vendedora aparece na lista de quem recebe lançamentos
+                pagos em dinheiro. Fica disponível assim que você salva — e
+                o histórico nunca se perde, mesmo se ela for desativada depois.
+              </p>
+            </div>
+          </aside>
+
+          <div class="vnd-modal-corpo">
+            <form id="vd-form" novalidate class="vnd-modal-form">
+              <div class="field">
+                <label class="field-label" for="vd-nome">Nome *</label>
+                <input id="vd-nome" name="nome" required minlength="2" maxlength="80"
+                       class="field-input" autocomplete="name" value="${esc(v?.nome || '')}" />
+                <span class="field-underline"></span>
+              </div>
+              <div class="field">
+                <label class="field-label" for="vd-apelido">Apelido (interno)</label>
+                <input id="vd-apelido" name="apelido" maxlength="40" class="field-input"
+                       autocomplete="off" placeholder="opcional, como o time chama"
+                       value="${esc(v?.apelido || '')}" />
+                <span class="field-underline"></span>
+              </div>
+              <div class="vnd-2col">
+                <div class="field">
+                  <label class="field-label" for="vd-email">E-mail</label>
+                  <input id="vd-email" name="email" type="email" maxlength="160"
+                         class="field-input" autocomplete="email" value="${esc(v?.email || '')}" />
+                  <span class="field-underline"></span>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="vd-telefone">Telefone</label>
+                  <input id="vd-telefone" name="telefone" maxlength="20" class="field-input"
+                         autocomplete="tel" placeholder="(11) 99999-9999"
+                         value="${esc(v?.telefone || '')}" />
+                  <span class="field-underline"></span>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="vd-obs">Observações</label>
+                <textarea id="vd-obs" name="observacoes" maxlength="600" rows="6"
+                          class="field-input" style="resize:vertical"
+                          placeholder="opcional — turno, divisão de comissão, etc.">${esc(v?.observacoes || '')}</textarea>
+                <span class="field-underline"></span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `,
     rodape: `
       <div id="vd-erro" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
       <div class="painel-rodape-acoes">
@@ -255,11 +334,21 @@ function abrirDrawerVendedora(v) {
   const f = (id) => document.querySelector(`#${id}`);
   setTimeout(() => f('vd-nome')?.focus(), 360);
 
-  // Máscara de telefone simples — formato (DD) 9XXXX-XXXX ou (DD) XXXX-XXXX.
+  // Preview ao vivo — avatar + nome/apelido acompanham o que se digita.
+  f('vd-nome').addEventListener('input', (e) => {
+    const nm = e.target.value.trim();
+    f('vd-prev-av').textContent = (nm.charAt(0) || '?').toUpperCase();
+    const prev = f('vd-prev-nome');
+    prev.textContent = nm || 'Nome da vendedora';
+    prev.classList.toggle('is-vazio', !nm);
+  });
+  f('vd-apelido').addEventListener('input', (e) => {
+    const ap = e.target.value.trim();
+    f('vd-prev-apelido').textContent = ap ? '“' + ap + '”' : '';
+  });
   f('vd-telefone').addEventListener('input', (e) => {
     e.target.value = mascaraTelefone(e.target.value);
   });
-
   f('vd-cancelar').addEventListener('click', () => fecharModal(false));
 
   f('vd-form').addEventListener('submit', async (ev) => {
@@ -277,7 +366,7 @@ function abrirDrawerVendedora(v) {
     const email = f('vd-email').value.trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       erroEl.classList.remove('hidden');
-      erroEl.textContent = 'Email com formato inválido.';
+      erroEl.textContent = 'E-mail com formato inválido.';
       return;
     }
 
@@ -292,15 +381,11 @@ function abrirDrawerVendedora(v) {
     btn.setAttribute('aria-busy', 'true');
     btn.disabled = true;
 
-    let resp;
-    if (isEdit) {
-      resp = await supabase.from('vendedora').update(payload).eq('id', v.id);
-    } else {
-      resp = await supabase.from('vendedora').insert(payload);
-    }
+    const resp = isEdit
+      ? await supabase.from('vendedora').update(payload).eq('id', v.id)
+      : await supabase.from('vendedora').insert(payload);
 
     btn.removeAttribute('aria-busy');
-
     if (resp.error) {
       btn.disabled = false;
       erroEl.classList.remove('hidden');
@@ -314,24 +399,25 @@ function abrirDrawerVendedora(v) {
   });
 }
 
-// ─── Confirmação desativar ──────────────────────────────────────────
+// ─── Confirmação desativar (modal centralizado) ─────────────────────
 function confirmarDesativar(v) {
   abrirModal({
+    eyebrow: 'Equipe',
     titulo: 'Desativar vendedora?',
     conteudo: `
-      <p class="text-body" style="color:var(--c-tinta-2);line-height:1.55">
-        <strong style="font-family:'Fraunces',serif;font-style:italic;font-weight:500;color:var(--c-tinta);font-size:1.05rem">${esc(v.nome)}</strong>
-        ficará indisponível em novos lançamentos. O histórico permanece
-        preservado e ela pode ser <em>reativada</em> a qualquer momento.
+      <p class="text-body" style="font-size:0.9rem;color:var(--ui-ink-2);line-height:1.6">
+        <strong style="color:var(--ui-ink);font-weight:700">${esc(v.nome)}</strong>
+        fica indisponível em novos lançamentos. O histórico permanece
+        preservado, e ela pode ser reativada a qualquer momento.
       </p>
-      <p class="text-body" style="margin-top:0.75rem;font-size:0.85rem;color:var(--c-tinta-3)">
+      <p class="text-body" style="margin-top:0.7rem;font-size:0.82rem;color:var(--ui-ink-3)">
         Não há exclusão definitiva — apenas baixa lógica.
       </p>`,
     rodape: `
       <div class="painel-rodape-acoes">
         <button type="button" id="vd-conf-cancelar" class="btn-link">Não, manter ativa</button>
         <button type="button" id="vd-conf-desativar" class="btn-primary"
-                style="background:var(--c-alerta);box-shadow:0 1px 0 0 rgba(154,42,31,0.4) inset, 0 6px 14px -8px rgba(154,42,31,0.45)">
+                style="background:var(--ui-danger);border-color:var(--ui-danger);box-shadow:none">
           Sim, desativar
         </button>
       </div>`,
@@ -388,10 +474,9 @@ function traduzirErroVendedora(err) {
 
 function formatarDataCurta(ts) {
   if (!ts) return '—';
-  const d = new Date(ts);
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: 'short', year: 'numeric',
-  }).format(d).replace('.', '');
+  }).format(new Date(ts)).replace('.', '');
 }
 
 function esc(s) {

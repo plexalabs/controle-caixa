@@ -713,13 +713,18 @@
 .painel-header-badge--ok     { background: var(--ui-accent-soft); color: var(--ui-accent-2); }
 .painel-header-badge--alerta { background: var(--ui-danger-soft); color: var(--ui-danger); }
 
-/* Modal amplo — espelha exatamente o mockup .dmm da sandbox
-   /demo-modal: 66rem de largura, altura NATURAL até 82vh (sem
-   altura fixa — o modal cresce com o conteúdo e só rola as colunas
-   quando bate o teto), e a mesma sombra. */
+/* Modal amplo — espelha exatamente o mockup .dmm da sandbox /demo-modal:
+   66rem de largura e 82vh de altura FIXA. Altura fixa (não max-height)
+   é proposital: todo lançamento abre no mesmo tamanho, independente de
+   ter 2 ou 20 eventos na linha do tempo — quem rola é cada coluna
+   internamente (.mel2-esq / .mel2-dir têm overflow-y:auto).
+   IMPORTANTE: o .modal-card base (components.css) tem max-width:560px;
+   sem zerar isso aqui o modal amplo fica preso em 560px (estreito,
+   layout quebrado). O width já cuida do limite responsivo. */
 .modal-card--amplo {
     width: min(66rem, calc(100vw - 2.5rem));
-    max-height: 82vh;
+    max-width: none;
+    height: 82vh;
     box-shadow: 0 20px 60px -20px rgba(20, 20, 20, 0.25);
 }
 .modal-card--amplo .painel-corpo {
@@ -746,6 +751,10 @@
 .mel2-split {
     display: grid;
     grid-template-columns: 1fr 2fr;
+    /* Linha única forçada a preencher a altura fixa do modal — assim as
+       colunas têm altura definida e o overflow-y:auto delas rola de
+       verdade em vez de esticar o modal. */
+    grid-template-rows: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
 }
@@ -755,6 +764,8 @@
     border-right: 1px solid var(--ui-border);
     background: var(--ui-surface-2);
     overflow-y: auto;
+    min-height: 0;
+    min-width: 0;
     padding: 1.1rem 1.2rem;
     display: flex;
     flex-direction: column;
@@ -807,6 +818,7 @@
     border: 1px solid var(--ui-border);
     border-radius: 999px;
     padding: 0.2rem;
+    margin-bottom: 0.85rem;
     position: relative;
 }
 .mel2-filtro-ind {
@@ -937,6 +949,8 @@
 /* ─── Coluna direita — detalhes / edição ───────────────────────────── */
 .mel2-dir {
     overflow-y: auto;
+    min-height: 0;
+    min-width: 0;
     padding: 1.1rem 1.5rem 1.4rem;
     display: flex;
     flex-direction: column;
@@ -987,8 +1001,10 @@
     color: var(--ui-accent);
 }
 
-/* Detalhes da categoria dentro da direita — zera margem herdada */
-.mel2-dir .lanc-leitura-detalhes { margin-top: 0; }
+/* Detalhes da categoria dentro da direita — espelha .dmm-leitura-detalhes
+   do mockup /demo-modal: zera a margem herdada e alinha padding/gaps. */
+.mel2-dir .lanc-leitura-detalhes { margin-top: 0; padding: 0.95rem 1.1rem; }
+.mel2-dir .lanc-leitura-dl { gap: 0.5rem 1rem; }
 .mel2-sem-detalhe {
     background: var(--ui-surface-2);
     border: 1px dashed var(--ui-border);
@@ -1055,6 +1071,8 @@
     grid-template-columns: 1fr 1fr;
     gap: 0.85rem;
 }
+/* Separador entre blocos do formulário — espelha .dmm-form-sep */
+.mel2-form-sep { height: 1px; background: var(--ui-border); margin: 0.3rem 0; }
 .mel2-campo { display: flex; flex-direction: column; gap: 0.3rem; }
 .mel2-campo-label {
     font-size: 0.68rem;
@@ -1142,6 +1160,7 @@
     gap: 0.85rem;
     transition: opacity 240ms var(--ui-ease), filter 240ms var(--ui-ease);
 }
+.mel2-edit-form textarea { resize: vertical; min-height: 3rem; }
 .mel2-edit-campos[data-bloqueado="true"] .mel2-edit-form {
     opacity: 0.45;
     filter: grayscale(0.4);
@@ -1213,7 +1232,13 @@
         max-height: 96vh;
     }
     .modal-card--amplo .painel-corpo { overflow-y: auto; }
-    .mel2-split { grid-template-columns: 1fr; }
+    /* Empilha as colunas: volta as linhas pro fluxo automático
+       (sem o minmax(0,1fr) da altura fixa do desktop). */
+    .mel2-split { grid-template-columns: 1fr; grid-template-rows: none; }
+    /* Empilhado, quem rola é só o .painel-corpo. As colunas não criam
+       container de rolagem aninhado — senão o toque fica preso numa
+       coluna e o resto do modal não rola. */
+    .mel2-esq, .mel2-dir { overflow: visible; }
     .mel2-esq {
         border-right: 0;
         border-bottom: 1px solid var(--ui-border);

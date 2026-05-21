@@ -1,0 +1,517 @@
+/* feriados-v2.css — Tela /configuracoes/feriados refator v2.
+   Lista cronológica por ano + resumo com filtro por tipo. Modal de
+   adicionar amplo, com prévia de calendário. Namespace .frd-*. */
+
+.frd {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 1.75rem 1.75rem 3.5rem;
+    color: var(--ui-ink);
+}
+@media (max-width: 767px) { .frd { padding: 1.1rem 1rem 2.5rem; } }
+
+.frd-voltar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    text-decoration: none;
+    margin-bottom: 1rem;
+    transition: color 140ms var(--ui-ease);
+}
+.frd-voltar:hover { color: var(--ui-ink); }
+.frd-voltar svg { width: 13px; height: 13px; }
+
+/* ─── Cabeçalho ─────────────────────────────────────────────────────── */
+.frd-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+.frd-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ui-accent);
+    margin: 0 0 0.35rem;
+}
+.frd-title {
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    margin: 0 0 0.4rem;
+    line-height: 1.15;
+}
+.frd-sub {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    max-width: 40rem;
+    line-height: 1.5;
+}
+.frd-novo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--ui-accent);
+    border: 1px solid var(--ui-accent);
+    border-radius: var(--ui-r-sm);
+    padding: 0.6rem 1.05rem;
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease);
+}
+.frd-novo:hover { background: var(--ui-accent-2); border-color: var(--ui-accent-2); }
+.frd-novo svg { width: 14px; height: 14px; }
+
+/* ─── Layout 2 colunas ──────────────────────────────────────────────── */
+.frd-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 16rem;
+    gap: 1.6rem;
+    align-items: start;
+}
+.frd-main { min-width: 0; }
+@media (max-width: 880px) { .frd-layout { grid-template-columns: 1fr; } }
+
+/* ─── Barra do ano ──────────────────────────────────────────────────── */
+.frd-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+.frd-toolbar-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ui-ink-3);
+}
+.frd-ano {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.45rem 2rem 0.45rem 0.75rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1l4 4 4-4' stroke='%23283E06' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 9px 5px;
+    transition: border-color 150ms var(--ui-ease);
+}
+.frd-ano:hover { border-color: var(--ui-border-strong); }
+.frd-ano:focus { outline: 0; border-color: var(--ui-ink); box-shadow: 0 0 0 3px rgba(40,62,6,0.12); }
+
+/* ─── Lista ─────────────────────────────────────────────────────────── */
+.frd-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+.frd-card {
+    display: flex;
+    align-items: center;
+    gap: 0.95rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.7rem 0.9rem;
+    animation: frd-fade-up 420ms var(--ui-ease) backwards;
+}
+.frd-card:hover { border-color: var(--ui-border-strong); }
+@keyframes frd-fade-up {
+    from { opacity: 0; transform: translateY(7px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Tile de calendário — faixa de mês colorida + dia grande */
+.frd-card-data {
+    flex-shrink: 0;
+    width: 3.5rem;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    overflow: hidden;
+    text-align: center;
+    background: var(--ui-surface);
+}
+.frd-card-data-mes {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.18rem 0;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+}
+.frd-card-data-dia {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--ui-ink);
+    line-height: 1;
+    padding: 0.28rem 0;
+    font-variant-numeric: tabular-nums;
+}
+.frd-card[data-tipo="nacional"]  .frd-card-data-mes { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.frd-card[data-tipo="estadual"]  .frd-card-data-mes { background: var(--ui-info-soft);   color: var(--ui-info); }
+.frd-card[data-tipo="municipal"] .frd-card-data-mes { background: var(--ui-warn-soft);   color: var(--ui-warn); }
+.frd-card[data-tipo="empresa"]   .frd-card-data-mes { background: var(--ui-surface-3);   color: var(--ui-ink-2); }
+
+.frd-card-corpo { flex: 1; min-width: 0; }
+.frd-card-nome {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.012em;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.frd-card-sub {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.22rem;
+}
+.frd-card-semana {
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    text-transform: capitalize;
+}
+.frd-tipo {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 0.14rem 0.5rem;
+    border-radius: 999px;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+}
+.frd-tipo[data-tipo="nacional"]  { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.frd-tipo[data-tipo="estadual"]  { background: var(--ui-info-soft);   color: var(--ui-info); }
+.frd-tipo[data-tipo="municipal"] { background: var(--ui-warn-soft);   color: var(--ui-warn); }
+.frd-tipo[data-tipo="empresa"]   { background: var(--ui-surface-3);   color: var(--ui-ink-2); }
+
+.frd-card-acao { flex-shrink: 0; }
+.frd-btn {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.4rem 0.8rem;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ui-ink-2);
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease), border-color 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.frd-btn:hover {
+    background: var(--ui-danger-soft);
+    border-color: color-mix(in srgb, var(--ui-danger) 35%, var(--ui-border));
+    color: var(--ui-danger);
+}
+
+/* ─── Resumo lateral ────────────────────────────────────────────────── */
+.frd-resumo {
+    position: sticky;
+    top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    padding: 1.1rem 1.1rem 1.2rem;
+}
+@media (max-width: 880px) { .frd-resumo { position: static; order: -1; } }
+.frd-resumo-eyebrow {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ui-accent);
+    margin: 0;
+}
+.frd-resumo-total {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.8rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.frd-resumo-num {
+    font-size: 1.9rem;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+}
+.frd-resumo-lab {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+}
+.frd-resumo-sec { border-top: 1px solid var(--ui-border); padding-top: 0.9rem; }
+.frd-resumo-sec-titulo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--ui-ink-3);
+    margin: 0 0 0.5rem;
+}
+.frd-filtros { display: flex; flex-direction: column; gap: 0.1rem; }
+.frd-filtro {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    margin: 0 -0.45rem;
+    padding: 0.46rem 0.45rem;
+    background: none;
+    border: 0;
+    border-radius: var(--ui-r-sm);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease);
+}
+.frd-filtro:hover { background: var(--ui-surface-2); }
+.frd-filtro:focus-visible { outline: 0; box-shadow: 0 0 0 2px rgba(40,62,6,0.14); }
+.frd-filtro[aria-pressed="true"] { background: var(--ui-surface-2); }
+.frd-filtro-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--ui-ink-4);
+}
+.frd-filtro[data-tipo="nacional"]  .frd-filtro-dot { background: var(--ui-accent); }
+.frd-filtro[data-tipo="estadual"]  .frd-filtro-dot { background: var(--ui-info); }
+.frd-filtro[data-tipo="municipal"] .frd-filtro-dot { background: var(--ui-warn); }
+.frd-filtro[data-tipo="empresa"]   .frd-filtro-dot { background: var(--ui-ink-3); }
+.frd-filtro[data-tipo="todos"]     .frd-filtro-dot {
+    background: var(--ui-surface);
+    box-shadow: inset 0 0 0 2px var(--ui-ink-4);
+}
+.frd-filtro-label {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+}
+.frd-filtro[aria-pressed="true"] .frd-filtro-label { color: var(--ui-accent); }
+.frd-filtro-num {
+    flex-shrink: 0;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--ui-ink-2);
+    font-variant-numeric: tabular-nums;
+}
+.frd-filtro[aria-pressed="true"] .frd-filtro-num { color: var(--ui-accent); }
+
+/* ─── Vazio / skeleton ──────────────────────────────────────────────── */
+.frd-vazio {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: var(--ui-surface);
+    border: 1px dashed var(--ui-border);
+    border-radius: var(--ui-r-lg);
+}
+.frd-vazio-icone {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 0.9rem;
+}
+.frd-vazio-icone svg { width: 22px; height: 22px; }
+.frd-vazio-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin: 0 0 0.4rem;
+}
+.frd-vazio-msg {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    margin: 0 auto;
+    line-height: 1.55;
+    max-width: 24rem;
+}
+.frd-skel { display: flex; flex-direction: column; gap: 0.55rem; }
+.frd-skel-item {
+    height: 3.6rem;
+    border-radius: var(--ui-r-md);
+    background: linear-gradient(100deg,
+        var(--ui-surface-2) 30%, var(--ui-surface-3) 50%, var(--ui-surface-2) 70%);
+    background-size: 200% 100%;
+    animation: frd-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes frd-shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+}
+.frd-erro {
+    background: var(--ui-danger-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
+    border-left: 3px solid var(--ui-danger);
+    color: var(--ui-danger);
+    border-radius: var(--ui-r-sm);
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+}
+.frd-restrito {
+    max-width: 30rem;
+    margin: 3rem auto;
+    text-align: center;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    padding: 2.5rem 1.5rem;
+}
+.frd-restrito-title { font-size: 1.1rem; font-weight: 700; color: var(--ui-ink); margin: 0 0 0.4rem; }
+.frd-restrito-msg { font-size: 0.88rem; color: var(--ui-ink-3); margin: 0; }
+
+/* ════════════════════════════════════════════════════════════════════
+   Modal de adicionar — amplo, com prévia de calendário à esquerda
+   ════════════════════════════════════════════════════════════════════ */
+.frd-modal {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+.frd-modal-split {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+}
+.frd-modal-aside {
+    border-right: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    overflow-y: auto;
+    min-height: 0; min-width: 0;
+    padding: 1.7rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+}
+.frd-modal-corpo {
+    overflow-y: auto;
+    min-height: 0; min-width: 0;
+    padding: 1.6rem 1.7rem;
+}
+@media (max-width: 720px) {
+    .frd-modal-split { grid-template-columns: 1fr; grid-template-rows: none; }
+    .frd-modal-aside { border-right: 0; border-bottom: 1px solid var(--ui-border); }
+}
+
+/* Prévia em forma de página de calendário */
+.frd-cal {
+    width: 100%;
+    max-width: 14rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    overflow: hidden;
+    box-shadow: var(--ui-shadow-md);
+}
+.frd-cal-topo {
+    background: var(--ui-accent);
+    color: #fff;
+    text-align: center;
+    padding: 0.45rem 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    transition: background 200ms var(--ui-ease);
+}
+.frd-cal[data-tipo="estadual"]  .frd-cal-topo { background: var(--ui-info); }
+.frd-cal[data-tipo="municipal"] .frd-cal-topo { background: var(--ui-warn); }
+.frd-cal[data-tipo="empresa"]   .frd-cal-topo { background: var(--ui-ink); }
+.frd-cal-dia {
+    font-size: 3.6rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--ui-ink);
+    text-align: center;
+    padding: 1rem 0 0.2rem;
+    font-variant-numeric: tabular-nums;
+}
+.frd-cal-semana {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--ui-ink-3);
+    text-transform: capitalize;
+    padding-bottom: 1rem;
+}
+.frd-cal-rodape {
+    border-top: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    padding: 0.7rem 0.85rem;
+    text-align: center;
+}
+.frd-cal-nome {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+.frd-cal-nome.is-vazio { color: var(--ui-ink-3); font-style: italic; font-weight: 500; }
+.frd-cal-tipo { margin-top: 0.4rem; }
+
+.frd-modal-nota {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.85rem 0.95rem;
+    width: 100%;
+}
+.frd-modal-nota-txt {
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    line-height: 1.6;
+    margin: 0;
+}
+.frd-modal-form { display: flex; flex-direction: column; gap: 1rem; }
+.frd-modal-form .field { margin-bottom: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .frd-card { animation: none; }
+    .frd-skel-item { animation: none; }
+}

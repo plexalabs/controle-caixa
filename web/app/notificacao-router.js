@@ -8,8 +8,8 @@
 //   - 'invalida'     → falta dado essencial no payload (loga warn)
 //   - 'sem_destino'  → tipo desconhecido ou notificação informativa
 //
-// Tipos atualmente no banco (verificado via SQL em 2026-05-02):
-//   pendencia_aberta, caixa_nao_fechado, bom_dia_resumo
+// Tipos atualmente no banco (verificado via SQL em 2026-05-20):
+//   pendencia_aberta, pendencia_atrasada, caixa_nao_fechado, bom_dia_resumo
 
 export function destinoNotificacao(notif) {
   const tipo       = notif.tipo;
@@ -18,7 +18,10 @@ export function destinoNotificacao(notif) {
 
   switch (tipo) {
     case 'pendencia_aberta':
+    case 'pendencia_atrasada':
       // Vai pro caixa que originou + destaca a NF na lista (?nf=NUMERO).
+      // pendencia_atrasada é uma pendencia_aberta que estourou o prazo —
+      // mesmo destino, só muda a severidade/cor do aviso.
       if (caixaData) {
         const url = `/caixa/${caixaData}` +
                     (numeroNf ? `?nf=${encodeURIComponent(numeroNf)}` : '');

@@ -129,8 +129,9 @@ export function instalarPopSelect(select) {
       window.addEventListener('mousedown', clickFora);
       window.addEventListener('keydown',  tecla);
       window.addEventListener('resize',   fechar);
-      // Captura scroll em qualquer ancestral (drawer, body, etc).
-      window.addEventListener('scroll', fechar, true);
+      // Captura scroll em qualquer ancestral (drawer, body, etc) — mas
+      // onScrollFora ignora a rolagem feita DENTRO do próprio menu.
+      window.addEventListener('scroll', onScrollFora, true);
     }, 0);
   }
 
@@ -166,12 +167,20 @@ export function instalarPopSelect(select) {
     window.removeEventListener('mousedown', clickFora);
     window.removeEventListener('keydown',  tecla);
     window.removeEventListener('resize',   fechar);
-    window.removeEventListener('scroll',   fechar, true);
+    window.removeEventListener('scroll',   onScrollFora, true);
   }
 
   function clickFora(e) {
     if (!menu) return;
     if (!menu.contains(e.target) && !trigger.contains(e.target)) fechar();
+  }
+
+  // Fecha ao rolar a página/modal — mas NÃO quando a rolagem acontece
+  // dentro do próprio menu (a lista de opções tem scroll próprio). Sem
+  // isso, tocar pra rolar o dropdown no mobile fechava o menu na hora.
+  function onScrollFora(e) {
+    if (menu && menu.contains(e.target)) return;
+    fechar();
   }
 
   function tecla(e) {

@@ -13,10 +13,19 @@
 import { supabase, pegarSessao } from '../app/supabase.js';
 import { sair } from '../app/auth.js';
 import { navegar } from '../app/router.js';
+import { carregarPermissoes, temPermissaoSync } from '../app/papeis.js';
 import { abrirUserMenu } from './user-menu.js';
 import { montarSino, desmontarSino } from './notification-bell.js';
 
 const BREAKPOINT_MOBILE = 768;
+const COLLAPSE_KEY = 'sb-collapsed';
+
+// Boot: aplica o estado recolhido salvo ANTES de qualquer render. Fica
+// no <html> — sobrevive às trocas de innerHTML do #app, então nunca
+// pisca. (Roda no carregamento do módulo, antes do primeiro despacho.)
+if (typeof localStorage !== 'undefined' && localStorage.getItem(COLLAPSE_KEY) === '1') {
+  document.documentElement.dataset.sbCollapsed = '1';
+}
 
 // ─── Render ─────────────────────────────────────────────────────────
 export async function renderSidebar(rotaAtiva) {
@@ -26,7 +35,12 @@ export async function renderSidebar(rotaAtiva) {
   const nome   = (meta.nome || email.split('@')[0] || 'Operador').trim();
   const nomeCompleto = [meta.nome, meta.sobrenome].filter(Boolean).join(' ').trim() || nome;
   const inicial = ((meta.nome?.[0] || email?.[0]) || '?').toUpperCase();
+  const avatarUrl = meta.avatar_url || '';
   const cargo = await pegarCargo(sessao?.user?.id);
+  const recolhido = document.documentElement.dataset.sbCollapsed === '1';
+  await carregarPermissoes();
+  const podeAuditoria = temPermissaoSync('auditoria.visualizar');
+  const podeLixeira   = temPermissaoSync('lixeira.visualizar');
 
   return `
     <aside class="sb" data-mobile="fechado" role="navigation" aria-label="Menu principal">
@@ -49,24 +63,30 @@ export async function renderSidebar(rotaAtiva) {
           ${navItem('notificacoes', '/notificacoes', 'Notificações', svgSino(),    rotaAtiva, { bellSlot: true })}
         </div>
 
-        <div class="sb-nav-group">
+        <div class="sb-nav-group" data-grupo="analise">
           <p class="sb-nav-group-label">Análise</p>
           ${navItem('relatorios', '/relatorios', 'Relatórios', svgRelatorio(), rotaAtiva)}
-        </div>
-
-        <div class="sb-nav-group">
-          <p class="sb-nav-group-label">Sistema</p>
-          ${navItem('config', '/configuracoes', 'Configurações', svgGear(), rotaAtiva)}
+          ${podeAuditoria
+            ? navItem('auditoria', '/configuracoes/auditoria', 'Auditoria', svgAuditoria(), rotaAtiva)
+            : ''}
+          ${podeLixeira
+            ? navItem('lixeira', '/configuracoes/lixeira', 'Lixeira', svgLixeira(), rotaAtiva)
+            : ''}
         </div>
       </nav>
 
       <div class="sb-foot">
+        <button id="sb-collapse" type="button" class="sb-collapse"
+                aria-label="${recolhido ? 'Expandir menu' : 'Recolher menu'}">
+          <span class="sb-collapse-icon" aria-hidden="true">${svgChevronDuplo()}</span>
+          <span class="sb-collapse-label">Recolher menu</span>
+        </button>
         <button id="sb-user" type="button" class="sb-user"
                 aria-haspopup="menu" aria-expanded="false"
                 aria-label="Abrir menu de ${esc(nomeCompleto)}"
                 data-nome="${esc(nomeCompleto)}"
                 data-email="${esc(email)}">
-          <span class="sb-user-avatar" aria-hidden="true">${esc(inicial)}</span>
+          <span class="sb-user-avatar" aria-hidden="true">${avatarUrl ? `<img src="${esc(avatarUrl)}" alt="" />` : esc(inicial)}</span>
           <span class="sb-user-meta">
             <span class="sb-user-name">${esc(nome)}</span>
             <span class="sb-user-role">${esc(cargo)}</span>
@@ -74,12 +94,15 @@ export async function renderSidebar(rotaAtiva) {
           <span class="sb-user-dots" aria-hidden="true">${svgDots()}</span>
         </button>
       </div>
+
+      <!-- Grip do pull-down (mobile): fechado, só esta barra aparece no
+           topo da tela; arrastando-a pra baixo o menu desce. -->
+      <button type="button" class="sb-grip" id="sb-grip"
+              aria-label="Puxar para abrir o menu" aria-expanded="false">
+        <span class="sb-grip-pill" aria-hidden="true"></span>
+      </button>
     </aside>
 
-    <button id="sb-mobile-toggle" type="button" class="sb-mobile-toggle"
-            aria-label="Abrir menu" aria-expanded="false">
-      ${svgHamburguer()}
-    </button>
     <div id="sb-mobile-overlay" class="sb-mobile-overlay" hidden></div>
   `;
 }
@@ -103,7 +126,7 @@ function navItem(chave, href, label, icone, rotaAtiva, opcoes = {}) {
     : '';
   return `
     <a href="${href}" data-link class="sb-nav-item"
-       data-rota="${chave}"
+       data-rota="${chave}" title="${esc(label)}"
        ${ativo ? 'aria-current="page"' : ''}>
       <span class="sb-nav-icon" aria-hidden="true">${icone}</span>
       <span class="sb-nav-label">${esc(label)}</span>
@@ -116,14 +139,11 @@ export function ligarSidebar() {
   const aside = document.querySelector('.sb');
   if (!aside) return;
 
-  document.querySelector('#sb-mobile-toggle')?.addEventListener('click', () => {
-    const atual = aside.dataset.mobile;
-    setMobile(atual === 'aberto' ? 'fechado' : 'aberto');
-  });
-
   document.querySelector('#sb-mobile-overlay')?.addEventListener('click', () => {
     setMobile('fechado');
   });
+
+  ligarGrip();
 
   document.addEventListener('keydown', escFechaMobile);
 
@@ -144,8 +164,26 @@ export function ligarSidebar() {
     });
   });
 
+  document.querySelector('#sb-collapse')?.addEventListener('click', alternarRecolhido);
+
   montarSino({ slotBadge: '#sidebar-bell-badge' }).catch(e =>
     console.warn('[sb] bell falhou:', e));
+}
+
+// Alterna o estado recolhido. O atributo vive no <html> (sobrevive à
+// troca de tela) e é persistido em localStorage (sobrevive ao reload).
+function alternarRecolhido() {
+  const html = document.documentElement;
+  const recolhido = html.dataset.sbCollapsed === '1';
+  if (recolhido) {
+    delete html.dataset.sbCollapsed;
+    try { localStorage.removeItem(COLLAPSE_KEY); } catch (_) {}
+  } else {
+    html.dataset.sbCollapsed = '1';
+    try { localStorage.setItem(COLLAPSE_KEY, '1'); } catch (_) {}
+  }
+  document.querySelector('#sb-collapse')?.setAttribute(
+    'aria-label', html.dataset.sbCollapsed === '1' ? 'Expandir menu' : 'Recolher menu');
 }
 
 function escFechaMobile(e) {
@@ -157,14 +195,77 @@ function escFechaMobile(e) {
 function setMobile(novo) {
   const aside = document.querySelector('.sb');
   const overlay = document.querySelector('#sb-mobile-overlay');
-  const tog = document.querySelector('#sb-mobile-toggle');
+  const grip = document.querySelector('#sb-grip');
   if (!aside) return;
   aside.dataset.mobile = novo;
   if (overlay) overlay.hidden = (novo !== 'aberto');
-  if (tog) {
-    tog.setAttribute('aria-expanded', String(novo === 'aberto'));
-    tog.setAttribute('aria-label', novo === 'aberto' ? 'Fechar menu' : 'Abrir menu');
+  if (grip) grip.setAttribute('aria-expanded', String(novo === 'aberto'));
+}
+
+// ─── Pull-down (mobile) ─────────────────────────────────────────────
+// A sidebar mobile abre arrastando o grip pra baixo — ou tocando nele.
+// Substitui o antigo botão hamburguer. O grip é a borda de baixo do
+// painel; fechado, é a única parte visível (no topo da tela).
+function ligarGrip() {
+  const sheet = document.querySelector('.sb');
+  const grip  = document.querySelector('#sb-grip');
+  if (!sheet || !grip) return;
+
+  let dragging = false, startY = 0, lastDy = 0, sheetH = 0, gripH = 44, eraAberto = false;
+  let ultimoToque = 0;
+  const baseFechado = () => -(sheetH - gripH);
+
+  function inicio(clientY) {
+    dragging = true;
+    startY = clientY;
+    lastDy = 0;
+    sheetH = sheet.offsetHeight;
+    gripH  = grip.offsetHeight || 44;
+    eraAberto = sheet.dataset.mobile === 'aberto';
+    sheet.style.transition = 'none';
   }
+  function mover(clientY) {
+    if (!dragging) return;
+    lastDy = clientY - startY;
+    const base = eraAberto ? 0 : baseFechado();
+    const t = Math.max(baseFechado(), Math.min(0, base + lastDy));
+    sheet.style.transform = `translateY(${t}px)`;
+  }
+  function fim() {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = '';
+    sheet.style.transform = '';
+    const dy = lastDy;
+    // Toque (mexeu < 10px) → alterna na hora — sem exigir arraste.
+    // Arraste de ~48px no sentido certo → abre/fecha. Arraste curto
+    // demais → volta ao estado anterior.
+    if (Math.abs(dy) < 10) {
+      setMobile(eraAberto ? 'fechado' : 'aberto');
+    } else if (!eraAberto && dy > 48) {
+      setMobile('aberto');
+    } else if (eraAberto && dy < -48) {
+      setMobile('fechado');
+    } else {
+      setMobile(eraAberto ? 'aberto' : 'fechado');
+    }
+  }
+
+  grip.addEventListener('touchstart', e => inicio(e.touches[0].clientY), { passive: true });
+  grip.addEventListener('touchmove',  e => mover(e.touches[0].clientY),  { passive: true });
+  grip.addEventListener('touchend', e => {
+    ultimoToque = Date.now();
+    e.preventDefault();
+    fim();
+  }, { passive: false });
+  grip.addEventListener('touchcancel', fim);
+  // Teclado / mouse. Ignora o ghost-click que o navegador dispara logo
+  // depois de um toque — senão o toggle aconteceria duas vezes (abre
+  // e fecha no mesmo gesto, e o menu parecia não responder).
+  grip.addEventListener('click', () => {
+    if (Date.now() - ultimoToque < 600) return;
+    setMobile(sheet.dataset.mobile === 'aberto' ? 'fechado' : 'aberto');
+  });
 }
 
 export function desmontarSidebar() {
@@ -198,8 +299,14 @@ function svgGear() {
 function svgDots() {
   return `<svg ${SVG_ATTRS} stroke-width="1.7"><circle cx="3" cy="8" r="0.8" fill="currentColor"/><circle cx="8" cy="8" r="0.8" fill="currentColor"/><circle cx="13" cy="8" r="0.8" fill="currentColor"/></svg>`;
 }
-function svgHamburguer() {
-  return `<svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7 H18 M4 11 H18 M4 15 H18"/></svg>`;
+function svgChevronDuplo() {
+  return `<svg ${SVG_ATTRS}><path d="M8.5 3.5 4 8l4.5 4.5M13 3.5 8.5 8l4.5 4.5"/></svg>`;
+}
+function svgAuditoria() {
+  return `<svg ${SVG_ATTRS}><rect x="3" y="2.8" width="10" height="11.2" rx="1.6"/><rect x="5.6" y="1.5" width="4.8" height="2.6" rx="0.8"/><path d="M5.7 8.4 7.2 9.9 10.5 6.6"/></svg>`;
+}
+function svgLixeira() {
+  return `<svg ${SVG_ATTRS}><path d="M2.5 4.3h11M6 4.3V2.8h4v1.5M3.8 4.3l.7 9.2a1 1 0 0 0 1 .9h4.9a1 1 0 0 0 1-.9l.7-9.2"/><path d="M6.6 7v4.4M9.4 7v4.4"/></svg>`;
 }
 
 function esc(s) {

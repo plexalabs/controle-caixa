@@ -681,71 +681,155 @@ function corpoGerenciar() {
 }
 
 // Formulário de edição renderizado in-place na direita do modal amplo.
-// O motivo da edição vem ANTES dos campos — os campos ficam bloqueados
-// até o motivo ter 10+ caracteres (regra do operador).
+// Espelha o mockup /demo-modal (.dmm-form): campos básicos (NF, pedido,
+// cliente, categoria, valor) sempre editáveis no topo; separador; o
+// 'Motivo da edição'; e por fim o bloco de detalhes da categoria, que
+// fica bloqueado até o motivo ter 10+ caracteres.
 function formEditarInline(l) {
   const podeEditarCategoria = temPermissaoSync('lancamento.editar_categoria');
   return `
     <form id="form-editar" novalidate class="mel2-form">
+      <div class="mel2-grid2">
+        <label class="mel2-campo">
+          <span class="mel2-campo-label">Número da NF</span>
+          <input id="ed-numero_nf" name="numero_nf" maxlength="15" value="${esc(l.numero_nf || '')}" />
+        </label>
+        <label class="mel2-campo">
+          <span class="mel2-campo-label">Código do pedido</span>
+          <input id="ed-codigo_pedido" name="codigo_pedido" maxlength="20" value="${esc(l.codigo_pedido || '')}" />
+        </label>
+      </div>
+      <label class="mel2-campo">
+        <span class="mel2-campo-label">Cliente</span>
+        <input id="ed-cliente_nome" name="cliente_nome" maxlength="120" value="${esc(l.cliente_nome || '')}" />
+      </label>
+
+      <div class="mel2-form-sep"></div>
+
+      <div class="mel2-grid2">
+        ${podeEditarCategoria ? `
+          <label class="mel2-campo">
+            <span class="mel2-campo-label">Categoria</span>
+            <select id="ed-categoria" name="categoria">
+              ${CATEGORIAS.map(c => `<option value="${c.valor}" ${c.valor === l.categoria ? 'selected' : ''}>${c.rotulo}</option>`).join('')}
+            </select>
+          </label>` : `
+          <label class="mel2-campo">
+            <span class="mel2-campo-label">Categoria</span>
+            <input value="${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}" readonly />
+          </label>`}
+        <label class="mel2-campo">
+          <span class="mel2-campo-label">Valor (R$)</span>
+          <input id="ed-valor_nf" name="valor_nf" type="number" step="0.01" min="0.01"
+                 inputmode="decimal" value="${esc(l.valor_nf ?? '')}" />
+        </label>
+      </div>
+
       <label class="mel2-campo mel2-campo--motivo">
-        <span class="mel2-campo-label">
-          Motivo da edição <em class="mel2-req">*</em>
-          <em class="mel2-hint">mínimo 10 caracteres</em>
-        </span>
+        <span class="mel2-campo-label">Motivo da edição <em class="mel2-req">*</em></span>
         <textarea id="ed-motivo" name="motivo" rows="2" minlength="10" maxlength="500" required
-                  placeholder="Ex.: cliente informou valor correto após emissão"></textarea>
+                  placeholder="Explique a edição — mínimo 10 caracteres"></textarea>
       </label>
 
       <div class="mel2-edit-campos" id="mel2-edit-campos" data-bloqueado="true">
         <div class="mel2-edit-aviso">
-          ${ICON_ALERTA}<span>Preencha o motivo da edição acima para liberar os campos.</span>
+          ${ICON_ALERTA}<span>Preencha o motivo da edição acima para liberar os detalhes da categoria.</span>
         </div>
-        <div class="mel2-edit-form">
-          <div class="mel2-grid2">
-            <label class="mel2-campo">
-              <span class="mel2-campo-label">Número da NF</span>
-              <input id="ed-numero_nf" name="numero_nf" maxlength="15" value="${esc(l.numero_nf || '')}" />
-            </label>
-            <label class="mel2-campo">
-              <span class="mel2-campo-label">Código do pedido</span>
-              <input id="ed-codigo_pedido" name="codigo_pedido" maxlength="20" value="${esc(l.codigo_pedido || '')}" />
-            </label>
-          </div>
-          <label class="mel2-campo">
-            <span class="mel2-campo-label">Cliente</span>
-            <input id="ed-cliente_nome" name="cliente_nome" maxlength="120" value="${esc(l.cliente_nome || '')}" />
-          </label>
-          <div class="mel2-grid2">
-            ${podeEditarCategoria ? `
-              <label class="mel2-campo">
-                <span class="mel2-campo-label">Categoria</span>
-                <select id="ed-categoria" name="categoria">
-                  ${CATEGORIAS.map(c => `
-                    <option value="${c.valor}" ${c.valor === l.categoria ? 'selected' : ''}>${c.rotulo}</option>
-                  `).join('')}
-                </select>
-              </label>` : `
-              <label class="mel2-campo">
-                <span class="mel2-campo-label">Categoria</span>
-                <input value="${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}" readonly />
-              </label>`}
-            <label class="mel2-campo">
-              <span class="mel2-campo-label">Valor (R$)</span>
-              <input id="ed-valor_nf" name="valor_nf" type="number" step="0.01" min="0.01"
-                     inputmode="decimal" value="${esc(l.valor_nf ?? '')}" />
-            </label>
-          </div>
-          ${podeEditarCategoria ? `
-            <p class="mel2-edit-nota">
-              Trocar a categoria preserva o lançamento. Detalhes específicos da nova
-              categoria (chave Pix, autorização do cartão, etc) são preenchidos depois,
-              na tela completa do lançamento.
-            </p>` : ''}
+        <div class="mel2-edit-form" id="mel2-edit-detalhes">
+          ${camposDetalheEdicao(l, podeEditarCategoria)}
         </div>
       </div>
       <div id="erro-edit" role="alert" aria-live="polite" class="mel2-erro hidden"></div>
     </form>
   `;
+}
+
+// Campos de detalhe da categoria (dados_categoria) renderizados dentro
+// do bloco bloqueado da edição in-place. Espelham o .dmm-cat-form do
+// mockup /demo-modal. Pré-preenchidos com o que já está salvo. Cada
+// campo carrega data-cd com a chave de dados_categoria pra coleta.
+function camposDetalheEdicao(l, editavel) {
+  const d     = l.dados_categoria || {};
+  const ro    = editavel ? '' : 'readonly';
+  const roSel = editavel ? '' : 'disabled';
+
+  const txt = (name, label, valor, tipo = 'text') => `
+    <label class="mel2-campo">
+      <span class="mel2-campo-label">${esc(label)}</span>
+      <input id="ed-cd-${name}" data-cd="${name}" type="${tipo}" value="${esc(valor ?? '')}" ${ro} />
+    </label>`;
+  const area = (name, label, valor) => `
+    <label class="mel2-campo">
+      <span class="mel2-campo-label">${esc(label)}</span>
+      <textarea id="ed-cd-${name}" data-cd="${name}" rows="2" ${ro}>${esc(valor ?? '')}</textarea>
+    </label>`;
+  const sel = (name, label, valor, opcoes) => `
+    <label class="mel2-campo">
+      <span class="mel2-campo-label">${esc(label)}</span>
+      <select id="ed-cd-${name}" data-cd="${name}" ${roSel}>
+        <option value="">— selecionar —</option>
+        ${opcoes.map(o => `<option value="${esc(o)}" ${String(o) === String(valor ?? '') ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+      </select>
+    </label>`;
+  const grid = (a, b) => `<div class="mel2-grid2">${a}${b}</div>`;
+
+  switch (l.categoria) {
+    case 'pix':
+      return grid(
+          txt('comprovante_id_externo', 'Identificador do comprovante', d.comprovante_id_externo),
+          txt('data_hora_pix', 'Data e hora do Pix', (d.data_hora_pix || '').slice(0, 16), 'datetime-local'))
+        + txt('chave_recebedora', 'Chave Pix recebedora', d.chave_recebedora)
+        + txt('nome_remetente', 'Nome do remetente', d.nome_remetente);
+
+    case 'cartao':
+      return txt('codigo_autorizacao', 'Código de autorização', d.codigo_autorizacao)
+        + grid(
+            sel('bandeira', 'Bandeira', d.bandeira, BANDEIRAS),
+            sel('modalidade', 'Modalidade', d.modalidade, MODALIDADES))
+        + grid(
+            txt('parcelas', 'Parcelas', d.parcelas, 'number'),
+            txt('ultimos_4_digitos', 'Últimos 4 dígitos', d.ultimos_4_digitos));
+
+    case 'dinheiro':
+      return `
+        <label class="mel2-campo">
+          <span class="mel2-campo-label">Vendedora que recebeu</span>
+          <select id="ed-cd-vendedora_id" data-cd="vendedora_id" ${roSel}>
+            <option value="${esc(d.vendedora_id || '')}" selected>${esc(d.vendedora_nome_cache || '— selecionar —')}</option>
+          </select>
+        </label>`
+        + grid(
+            txt('valor_recebido', 'Valor recebido (R$)', d.valor_recebido, 'number'),
+            txt('troco', 'Troco (R$)', d.troco, 'number'))
+        + area('observacao_caixa', 'Observação', d.observacao_caixa);
+
+    case 'cancelado':
+      return area('motivo_cancelamento', 'Motivo do cancelamento', d.motivo_cancelamento)
+        + grid(
+            txt('cancelado_por', 'Cancelado por', d.cancelado_por),
+            txt('data_cancelamento', 'Data do cancelamento', (d.data_cancelamento || '').slice(0, 10), 'date'))
+        + txt('numero_estorno', 'Número do estorno', d.numero_estorno);
+
+    case 'cartao_link':
+      return txt('link_url', 'URL do link de pagamento', d.link_url, 'url')
+        + grid(
+            sel('status_link', 'Status', d.status_link, STATUS_LINK),
+            txt('data_envio_link', 'Data de envio', (d.data_envio_link || '').slice(0, 16), 'datetime-local'));
+
+    case 'obs':
+      return sel('tipo_obs', 'Tipo de observação', d.tipo_obs, TIPOS_OBS)
+        + area('descricao', 'Descrição', d.descricao);
+
+    case 'disponivel_retirada':
+      return area('motivo_interno', 'Motivo interno', d.motivo_interno)
+        + grid(
+            txt('previsao_retirada', 'Previsão de retirada', (d.previsao_retirada || '').slice(0, 10), 'date'),
+            txt('forma_pagamento', 'Forma de pagamento', d.forma_pagamento))
+        + txt('data_pagamento', 'Data do pagamento', (d.data_pagamento || '').slice(0, 10), 'date');
+
+    default:
+      return '<p class="mel2-edit-nota">Sem detalhes específicos para esta categoria.</p>';
+  }
 }
 
 function rodapeGerenciar() {
@@ -855,9 +939,10 @@ function dadosCategoriaLeitura(l) {
   pares = pares.filter(([, v]) => v != null && v !== '');
   if (!pares.length) return '';
 
+  // Sem heading interno: o rótulo "Detalhes do pagamento" já vem na
+  // barra superior da direita (.mel2-dir-label), igual ao mockup.
   return `
     <section class="lanc-leitura-detalhes">
-      <h3 class="h-eyebrow" style="margin:0 0 0.65rem">Detalhes do pagamento</h3>
       <dl class="lanc-leitura-dl">
         ${pares.map(([k, v]) => `
           <dt>${esc(k)}</dt>
@@ -1111,25 +1196,67 @@ function ligarFiltroHistorico() {
 }
 
 // ─── Formulário de edição in-place ───────────────────────────────────
-// O motivo destrava os campos (10+ chars). Submit usa editar_lancamento.
+// O motivo destrava o bloco de detalhes da categoria (10+ chars). Os
+// campos básicos ficam sempre editáveis. Submit usa editar_lancamento.
 function ligarEdicaoInline() {
   const form = document.querySelector('#form-editar');
   if (!form) return;
   const l = estado.lancamento;
-  const motivoEl  = document.querySelector('#ed-motivo');
-  const campos    = document.querySelector('#mel2-edit-campos');
-  const erroEl    = document.querySelector('#erro-edit');
-  const btnSalvar = document.querySelector('#btn-edit-salvar');
-  const editaveis = campos.querySelectorAll('input:not([readonly]), select, textarea');
+  const podeEditarCategoria = temPermissaoSync('lancamento.editar_categoria');
+  const motivoEl   = document.querySelector('#ed-motivo');
+  const campos     = document.querySelector('#mel2-edit-campos');
+  const detalhesEl = document.querySelector('#mel2-edit-detalhes');
+  const erroEl     = document.querySelector('#erro-edit');
+  const btnSalvar  = document.querySelector('#btn-edit-salvar');
+  const catSel     = document.querySelector('#ed-categoria');
+
+  // Categoria cujos campos de detalhe estão renderizados agora. Vira
+  // null se o operador trocar a categoria — os detalhes da nova
+  // categoria são preenchidos depois, na tela completa do lançamento.
+  let catDetalhe = l.categoria;
 
   const sincronizar = () => {
     const motivoOk = (motivoEl.value || '').trim().length >= 10;
     campos.dataset.bloqueado = motivoOk ? 'false' : 'true';
-    editaveis.forEach(c => { c.disabled = !motivoOk; });
+    detalhesEl.querySelectorAll('input:not([readonly]), select:not([disabled]), textarea:not([readonly])')
+      .forEach(c => { c.disabled = !motivoOk; });
     if (btnSalvar) btnSalvar.disabled = !motivoOk;
   };
+
+  // Popula o select de vendedora (categoria dinheiro) de forma assíncrona.
+  const popularVendedoras = () => {
+    const vsel = detalhesEl.querySelector('#ed-cd-vendedora_id');
+    if (!vsel) return;
+    supabase.from('vendedora').select('id, nome').eq('ativa', true).order('nome')
+      .then(({ data }) => {
+        if (!data || !detalhesEl.contains(vsel)) return;
+        const atual = vsel.value;
+        const estavaDesabilitado = vsel.disabled;
+        vsel.innerHTML = `<option value="">— selecionar —</option>`
+          + data.map(v => `<option value="${esc(v.id)}" ${v.id === atual ? 'selected' : ''}>${esc(v.nome)}</option>`).join('');
+        vsel.disabled = estavaDesabilitado;
+      });
+  };
+
+  if (l.categoria === 'dinheiro' && podeEditarCategoria) popularVendedoras();
   sincronizar();
   motivoEl.addEventListener('input', sincronizar);
+
+  // Trocar a categoria: detalhes da MESMA categoria continuam editáveis;
+  // ao escolher OUTRA categoria, mostra aviso (detalhes preenchidos depois).
+  catSel?.addEventListener('change', () => {
+    if (catSel.value === l.categoria) {
+      catDetalhe = l.categoria;
+      detalhesEl.innerHTML = camposDetalheEdicao(l, podeEditarCategoria);
+      if (l.categoria === 'dinheiro' && podeEditarCategoria) popularVendedoras();
+    } else {
+      catDetalhe = null;
+      detalhesEl.innerHTML = `<p class="mel2-edit-nota">Os detalhes específicos de `
+        + `${esc(LABEL_CATEGORIA[catSel.value] || catSel.value)} são preenchidos na tela `
+        + `completa do lançamento depois de salvar a nova categoria.</p>`;
+    }
+    sincronizar();
+  });
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -1148,6 +1275,35 @@ function ligarEdicaoInline() {
     if (novoCliente && novoCliente !== (l.cliente_nome || ''))  dados.cliente_nome  = novoCliente;
     if (novoValor   && novoValor   !== Number(l.valor_nf))      dados.valor_nf      = novoValor;
     if (novaCat     && novaCat     !== l.categoria)             dados.categoria     = novaCat;
+
+    // Detalhes da categoria → dados_categoria. A RPC editar_lancamento
+    // substitui o jsonb inteiro, então mandamos o objeto completo
+    // (valores já salvos + edições). Só quando a categoria não mudou.
+    if (podeEditarCategoria && catDetalhe === l.categoria) {
+      const detalheEls = detalhesEl.querySelectorAll('[data-cd]');
+      if (detalheEls.length) {
+        const dcat = { ...(l.dados_categoria || {}) };
+        let mudou = false;
+        detalheEls.forEach(el => {
+          const key = el.dataset.cd;
+          const bruto = el.value;
+          if (bruto == null || bruto === '') {
+            if (dcat[key] != null) { delete dcat[key]; mudou = true; }
+            return;
+          }
+          const val = el.type === 'number' ? Number(bruto) : bruto;
+          if (String(dcat[key] ?? '') !== String(val)) mudou = true;
+          dcat[key] = val;
+        });
+        if (mudou) {
+          if (l.categoria === 'dinheiro' && dcat.vendedora_id) {
+            const opt = detalhesEl.querySelector('#ed-cd-vendedora_id')?.selectedOptions?.[0];
+            if (opt && opt.value) dcat.vendedora_nome_cache = opt.textContent.trim();
+          }
+          dados.dados_categoria = dcat;
+        }
+      }
+    }
 
     if (Object.keys(dados).length === 0) {
       erroEl.classList.remove('hidden');

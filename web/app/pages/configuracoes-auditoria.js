@@ -1,540 +1,515 @@
-// configuracoes-auditoria.js — /configuracoes/auditoria
+// configuracoes-auditoria.js — /configuracoes/auditoria (refator v2).
 //
-// Tela com duas abas:
-//   01 Linha do tempo (default) — log forense, item por item, com filtros
-//      (data, usuário, entidade, ação, busca).
-//   02 Lixeira — soft-deletes restauráveis (lançamentos) ou apenas
-//      consultáveis (notificações descartadas, push subs removidas).
+// Linha do tempo forense (esquerda) + resumo com legenda das ações
+// (direita, clicável pra filtrar). Cada evento abre um "delta amigável"
+// num modal centralizado: a diferença campo a campo, legível, com o
+// JSON cru disponível num detalhe expansível.
 //
-// Adota o vocabulario visual do projeto:
-//   tela-cabec[data-etiqueta=AUDITORIA]  cabecalho com tira musgo lateral
-//   field / field-label / field-input    filtros padronizados
-//   reveal reveal-N                      entradas escalonadas
-//   filete lateral (var(--c-ambar))      assinatura de cards do sistema
-//   border-radius: 0 r-md r-md 0         identidade do papel rasgado a esquerda
+// Backend: RPC listar_auditoria(p_filtros, p_limit, p_offset).
 
 import { supabase } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
-import { mostrarToast } from '../notifications.js';
 import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
-import { abrirModal, fecharModal } from '../../components/modal.js';
-import { instalarPopDatasEm } from '../../components/pop-data.js';
+import { abrirModal } from '../../components/modal.js';
 
 const POR_PAGINA = 30;
-
-let abaAtual = 'log';        // 'log' | 'lixeira'
-let podeRestaurar = false;
 let filtros = {};
 let pagina = 1;
 let total = 0;
 
-// Codigo (esquerda) e o nome real da tabela/acao no backend — vai pro RPC.
-// Rotulo (direita) e o que aparece pro humano no dropdown.
+// Catálogo de ENTIDADES — o "ponto" onde a ação aconteceu.
 const ENTIDADES = [
-  { codigo: 'lancamento',                rotulo: 'Lançamento' },
-  { codigo: 'lancamento_observacao',     rotulo: 'Observação' },
-  { codigo: 'caixa',                     rotulo: 'Caixa' },
-  { codigo: 'notificacao',               rotulo: 'Notificação' },
-  { codigo: 'push_subscription',         rotulo: 'Push (device)' },
-  { codigo: 'config',                    rotulo: 'Configuração' },
-  { codigo: 'vendedora',                 rotulo: 'Vendedora' },
-  { codigo: 'feriado',                   rotulo: 'Feriado' },
-  { codigo: 'perfil',                    rotulo: 'Perfil (RBAC)' },
-  { codigo: 'perfil_permissao',          rotulo: 'Permissão de perfil' },
-  { codigo: 'usuario_perfil',            rotulo: 'Perfil de usuário' },
-  { codigo: 'usuario_permissao_extra',   rotulo: 'Permissão extra' },
+  { codigo: 'lancamento',              rotulo: 'Lançamento' },
+  { codigo: 'lancamento_observacao',   rotulo: 'Observação' },
+  { codigo: 'caixa',                   rotulo: 'Caixa' },
+  { codigo: 'notificacao',             rotulo: 'Notificação' },
+  { codigo: 'push_subscription',       rotulo: 'Push (device)' },
+  { codigo: 'config',                  rotulo: 'Configuração' },
+  { codigo: 'vendedora',               rotulo: 'Vendedora' },
+  { codigo: 'feriado',                 rotulo: 'Feriado' },
+  { codigo: 'perfil',                  rotulo: 'Perfil (RBAC)' },
+  { codigo: 'perfil_permissao',        rotulo: 'Permissão de perfil' },
+  { codigo: 'usuario_perfil',          rotulo: 'Perfil de usuário' },
+  { codigo: 'usuario_permissao_extra', rotulo: 'Permissão extra' },
 ];
 
+// Catálogo de AÇÕES — com tom (cor da bolinha) e descrição (legenda).
 const ACOES = [
-  { codigo: 'INSERT',          rotulo: 'Criação' },
-  { codigo: 'UPDATE',          rotulo: 'Edição' },
-  { codigo: 'SOFT_DELETE',     rotulo: 'Exclusão (lixeira)' },
-  { codigo: 'DELETE',          rotulo: 'Exclusão definitiva' },
-  { codigo: 'RESTAURACAO',     rotulo: 'Restauração' },
-  { codigo: 'LOGIN',           rotulo: 'Entrada (login)' },
-  { codigo: 'LOGOUT',          rotulo: 'Saída (logout)' },
-  { codigo: 'RPC',             rotulo: 'Operação de sistema' },
-  { codigo: 'PUSH_ENVIADO',    rotulo: 'Push enviado' },
-  { codigo: 'CONFIG_ALTERADA', rotulo: 'Configuração alterada' },
+  { codigo: 'INSERT',          rotulo: 'Criação',             tom: 'info',   desc: 'Um registro novo entrou no sistema.' },
+  { codigo: 'UPDATE',          rotulo: 'Edição',              tom: 'warn',   desc: 'Um registro existente teve campos alterados.' },
+  { codigo: 'SOFT_DELETE',     rotulo: 'Exclusão',            tom: 'danger', desc: 'Item mandado para a lixeira — ainda recuperável.' },
+  { codigo: 'DELETE',          rotulo: 'Exclusão definitiva', tom: 'danger', desc: 'Item removido em definitivo, sem volta.' },
+  { codigo: 'RESTAURACAO',     rotulo: 'Restauração',         tom: 'accent', desc: 'Item recuperado da lixeira e devolvido à fila.' },
+  { codigo: 'LOGIN',           rotulo: 'Entrada',             tom: '',       desc: 'Um usuário entrou no sistema.' },
+  { codigo: 'LOGOUT',          rotulo: 'Saída',               tom: '',       desc: 'Um usuário encerrou a sessão.' },
+  { codigo: 'RPC',             rotulo: 'Operação de sistema', tom: '',       desc: 'Uma rotina interna foi executada.' },
+  { codigo: 'PUSH_ENVIADO',    rotulo: 'Push enviado',        tom: 'info',   desc: 'Uma notificação foi disparada a um dispositivo.' },
+  { codigo: 'CONFIG_ALTERADA', rotulo: 'Configuração',        tom: 'warn',   desc: 'Um ajuste global do sistema foi alterado.' },
 ];
+const MAP_ACAO = Object.fromEntries(ACOES.map(a => [a.codigo, a]));
+const MAP_ENT  = Object.fromEntries(ENTIDADES.map(e => [e.codigo, e.rotulo]));
+
+// Campos ignorados no delta amigável — ids e carimbos internos que não
+// dizem nada ao leitor (o JSON cru, no detalhe, mostra tudo).
+const CAMPOS_OCULTOS = new Set([
+  'id', 'criado_em', 'atualizado_em', 'criado_por', 'atualizado_por', 'hash_conteudo',
+]);
+const CAMPO_ROTULO = {
+  numero_nf: 'Número da NF', codigo_pedido: 'Código do pedido', cliente_nome: 'Cliente',
+  valor_nf: 'Valor', categoria: 'Categoria', estado: 'Estado',
+  dados_categoria: 'Detalhes do pagamento', data_caixa: 'Data do caixa', data: 'Data',
+  titulo: 'Título', mensagem: 'Mensagem', texto: 'Texto', severidade: 'Severidade',
+  tipo: 'Tipo', fonte: 'Fonte', lida_em: 'Lida em', descartada_em: 'Descartada em',
+  resolvido_em: 'Resolvido em', nome: 'Nome', apelido: 'Apelido', ativa: 'Ativa',
+  ativo: 'Ativo', email: 'E-mail', chave: 'Chave', valor: 'Valor', motivo: 'Motivo',
+  observacao: 'Observação', autor_email: 'Autor', descricao: 'Descrição',
+};
+
+const SVG = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`;
+const ICON_SETA = `<svg viewBox="0 0 14 11" fill="none"><path d="M1 5.5h11M8 1l4 4.5L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const ICON_LUPA = `<svg ${SVG}><rect x="3" y="2.8" width="10" height="11.2" rx="1.6"/><path d="M5.6 8.4 7.1 9.9 10.4 6.6"/></svg>`;
 
 export async function renderAuditoria() {
   await carregarPermissoes();
-  const podeVerLog     = temPermissaoSync('auditoria.visualizar');
-  const podeVerLixeira = temPermissaoSync('lixeira.visualizar');
-  podeRestaurar        = temPermissaoSync('lixeira.restaurar');
-
-  if (!podeVerLog && !podeVerLixeira) {
+  if (!temPermissaoSync('auditoria.visualizar')) {
     document.querySelector('#app').innerHTML = await renderShell({
-      rotaAtiva: 'config',
+      rotaAtiva: 'auditoria',
       conteudo: `
-        <main class="max-w-3xl mx-auto px-5 sm:px-8 py-12">
-          <a href="/configuracoes" data-link class="btn-link" style="font-size:0.85rem">← Configurações</a>
-          <div class="alert mt-6">Esta seção é restrita a administradores.</div>
+        <main class="adt">
+          <div class="adt-restrito">
+            <p class="adt-restrito-title">Acesso restrito</p>
+            <p class="adt-restrito-msg">A linha do tempo de auditoria é restrita a administradores.</p>
+          </div>
         </main>`,
     });
     ligarShell();
     return;
   }
 
-  abaAtual = podeVerLog ? 'log' : 'lixeira';
+  filtros = {};
+  pagina = 1;
 
   document.querySelector('#app').innerHTML = await renderShell({
-    rotaAtiva: 'config',
+    rotaAtiva: 'auditoria',
     conteudo: `
-    <main id="main" class="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
-      <nav class="mb-5 reveal reveal-1" aria-label="Voltar">
-        <a href="/configuracoes" data-link class="btn-link" style="font-size:0.85rem">← Configurações</a>
-      </nav>
-
-      <header class="tela-cabec reveal reveal-2" data-etiqueta="FORENSE">
-        <div class="tela-cabec-texto">
-          <p class="h-eyebrow">Auditoria · Lixeira</p>
-          <h1 class="tela-cabec-titulo">Tudo deixa rastro.</h1>
-          <p class="tela-cabec-sub">
-            Cada ação registrada com data, hora, autor, motivo e o
-            delta exato. Restaurar exige justificativa — que também
-            vai pro log.
-          </p>
-        </div>
+    <main id="main" class="adt adt--largo">
+      <header class="adt-header">
+        <p class="adt-eyebrow">Forense</p>
+        <h1 class="adt-title">Auditoria</h1>
+        <p class="adt-sub">
+          Tudo deixa rastro. Cada ação registrada com data, autor, motivo
+          e o delta exato — do antes ao depois.
+        </p>
       </header>
 
-      <div class="aud-tabs reveal reveal-3" role="tablist">
-        ${podeVerLog ? `
-          <button class="aud-tab" role="tab" data-aba="log"
-                  aria-selected="${abaAtual === 'log'}">
-            <span class="aud-tab-num" aria-hidden="true">01</span>
-            <span class="aud-tab-rotulo">
-              <span class="aud-tab-eyebrow">Cronologia</span>
-              Linha do tempo
-            </span>
-          </button>` : ''}
-        ${podeVerLixeira ? `
-          <button class="aud-tab" role="tab" data-aba="lixeira"
-                  aria-selected="${abaAtual === 'lixeira'}">
-            <span class="aud-tab-num" aria-hidden="true">02</span>
-            <span class="aud-tab-rotulo">
-              <span class="aud-tab-eyebrow">Recuperáveis</span>
-              Lixeira
-            </span>
-          </button>` : ''}
-      </div>
+      <div class="adt-layout">
+        <div class="adt-main">
+          <section class="adt-filtros">
+            <div class="adt-filtros-grid">
+              <label class="adt-campo">
+                <span class="adt-campo-label">De</span>
+                <input type="date" id="adt-ini" class="adt-control">
+              </label>
+              <label class="adt-campo">
+                <span class="adt-campo-label">Até</span>
+                <input type="date" id="adt-fim" class="adt-control">
+              </label>
+              <label class="adt-campo">
+                <span class="adt-campo-label">Entidade</span>
+                <select id="adt-entidade" class="adt-control">
+                  <option value="">Todas</option>
+                  ${ENTIDADES.map(e => `<option value="${e.codigo}">${esc(e.rotulo)}</option>`).join('')}
+                </select>
+              </label>
+              <label class="adt-campo">
+                <span class="adt-campo-label">Ação</span>
+                <select id="adt-acao" class="adt-control">
+                  <option value="">Todas</option>
+                  ${ACOES.map(a => `<option value="${a.codigo}">${esc(a.rotulo)}</option>`).join('')}
+                </select>
+              </label>
+              <label class="adt-campo" style="grid-column:1/-1">
+                <span class="adt-campo-label">Buscar (motivo ou e-mail)</span>
+                <input type="text" id="adt-busca" class="adt-control"
+                       placeholder="ex.: cancelamento, joao@…">
+              </label>
+            </div>
+            <div class="adt-filtros-acoes">
+              <button type="button" id="adt-limpar" class="adt-btn adt-btn--link">Limpar</button>
+              <button type="button" id="adt-aplicar" class="adt-btn adt-btn--primary">Aplicar filtros</button>
+            </div>
+          </section>
 
-      <section id="aud-filtros" class="aud-filtros reveal reveal-4"></section>
-      <section id="aud-conteudo" class="aud-conteudo reveal reveal-5"></section>
-      <nav id="aud-pag" class="aud-pag reveal reveal-6" aria-label="Paginação"></nav>
+          <section id="adt-conteudo" aria-live="polite"></section>
+          <nav id="adt-pag" class="adt-pag" aria-label="Paginação"></nav>
+        </div>
+
+        <aside class="adt-resumo">
+          <p class="adt-resumo-eyebrow">Resumo</p>
+          <div class="adt-resumo-total">
+            <span class="adt-resumo-num" id="adt-resumo-num">—</span>
+            <span class="adt-resumo-lab">registros no recorte</span>
+          </div>
+          <div class="adt-resumo-sec">
+            <p class="adt-resumo-sec-titulo">Legenda das ações</p>
+            <p class="adt-resumo-sec-dica">A cor da bolinha na linha do tempo. Clique para filtrar.</p>
+            <ul class="adt-resumo-legenda">
+              ${ACOES.map(a => `
+                <li>
+                  <button type="button" class="adt-resumo-acao" data-acao="${a.codigo}" data-tom="${a.tom}">
+                    <span class="adt-resumo-acao-dot" aria-hidden="true"></span>
+                    <span class="adt-resumo-acao-nome">${esc(a.rotulo)}</span>
+                    <span class="adt-resumo-acao-num">—</span>
+                    <span class="adt-resumo-acao-desc" role="tooltip">${esc(a.desc)}</span>
+                  </button>
+                </li>`).join('')}
+            </ul>
+          </div>
+        </aside>
+      </div>
     </main>`,
   });
 
   ligarShell();
-  ligarTabs();
-  renderFiltros();
+  ligarFiltros();
   await carregar();
+  carregarContagens();
 }
 
-function ligarTabs() {
-  document.querySelectorAll('.aud-tab').forEach(b => {
-    b.addEventListener('click', async () => {
-      const novo = b.dataset.aba;
-      if (novo === abaAtual) return;
-      abaAtual = novo;
+function ligarFiltros() {
+  document.querySelector('#adt-aplicar')?.addEventListener('click', async () => {
+    filtros = lerFiltros();
+    pagina = 1;
+    await carregar();
+    carregarContagens();
+  });
+  document.querySelector('#adt-limpar')?.addEventListener('click', async () => {
+    filtros = {};
+    pagina = 1;
+    ['adt-ini', 'adt-fim', 'adt-busca', 'adt-entidade', 'adt-acao'].forEach(id => {
+      const e = document.querySelector('#' + id); if (e) e.value = '';
+    });
+    await carregar();
+    carregarContagens();
+  });
+  // Legenda clicável: liga/desliga o filtro daquela ação.
+  document.querySelectorAll('.adt-resumo-acao').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const a = btn.dataset.acao || '';
+      filtros = { ...filtros };
+      if (filtros.acao === a) delete filtros.acao;
+      else filtros.acao = a;
       pagina = 1;
-      filtros = {};
-      document.querySelectorAll('.aud-tab').forEach(x => {
-        x.setAttribute('aria-selected', String(x.dataset.aba === novo));
-      });
-      renderFiltros();
       await carregar();
     });
   });
 }
 
-function fieldHtml(id, label, html) {
-  return `
-    <div class="field">
-      <label class="field-label" for="${id}">${label}</label>
-      ${html}
-      <span class="field-underline"></span>
-    </div>`;
-}
-
-function renderFiltros() {
-  const slot = document.querySelector('#aud-filtros');
-  if (!slot) return;
-
-  let camposHtml = '';
-  if (abaAtual === 'log') {
-    camposHtml = `
-      ${fieldHtml('f-data-ini', 'De',
-         `<input type="date" id="f-data-ini" class="field-input" value="${filtros.data_ini || ''}">`)}
-      ${fieldHtml('f-data-fim', 'Até',
-         `<input type="date" id="f-data-fim" class="field-input" value="${filtros.data_fim || ''}">`)}
-      ${fieldHtml('f-entidade', 'Entidade', `
-        <select id="f-entidade" class="field-input">
-          <option value="">Todas</option>
-          ${ENTIDADES.map(e => `<option value="${e.codigo}" ${filtros.entidade === e.codigo ? 'selected' : ''}>${e.rotulo}</option>`).join('')}
-        </select>`)}
-      ${fieldHtml('f-acao', 'Ação', `
-        <select id="f-acao" class="field-input">
-          <option value="">Todas</option>
-          ${ACOES.map(a => `<option value="${a.codigo}" ${filtros.acao === a.codigo ? 'selected' : ''}>${a.rotulo}</option>`).join('')}
-        </select>`)}
-      ${fieldHtml('f-busca', 'Buscar (motivo / e-mail)',
-         `<input type="text" id="f-busca" class="field-input" value="${esc(filtros.busca || '')}" placeholder="ex: cancelamento, joaonora@…">`)}`;
-  } else {
-    camposHtml = `
-      ${fieldHtml('f-tipo', 'Tipo', `
-        <select id="f-tipo" class="field-input">
-          <option value="">Todos</option>
-          <option value="lancamento"        ${filtros.tipo === 'lancamento' ? 'selected' : ''}>Lançamento</option>
-          <option value="notificacao"       ${filtros.tipo === 'notificacao' ? 'selected' : ''}>Notificação</option>
-          <option value="push_subscription" ${filtros.tipo === 'push_subscription' ? 'selected' : ''}>Push (device)</option>
-        </select>`)}
-      ${fieldHtml('f-data-ini', 'De',
-         `<input type="date" id="f-data-ini" class="field-input" value="${filtros.data_ini || ''}">`)}
-      ${fieldHtml('f-data-fim', 'Até',
-         `<input type="date" id="f-data-fim" class="field-input" value="${filtros.data_fim || ''}">`)}
-      ${fieldHtml('f-busca', 'Buscar', `
-         <input type="text" id="f-busca" class="field-input" value="${esc(filtros.busca || '')}" placeholder="rótulo ou detalhe">`)}`;
-  }
-
-  slot.innerHTML = `
-    <div class="aud-filtros-grid">
-      ${camposHtml}
-      <div class="aud-filtros-acoes">
-        <button id="f-aplicar" class="btn-primary" style="padding:0.6rem 1.1rem;font-size:0.85rem">Aplicar</button>
-        <button id="f-limpar"  class="btn-link"    style="font-size:0.85rem">Limpar</button>
-      </div>
-    </div>`;
-
-  // Substitui inputs date pelo pop-data custom (calendario papel/musgo)
-  instalarPopDatasEm(slot);
-
-  document.querySelector('#f-aplicar')?.addEventListener('click', async () => {
-    filtros = lerFiltros();
-    pagina = 1;
-    await carregar();
-  });
-  document.querySelector('#f-limpar')?.addEventListener('click', async () => {
-    filtros = {};
-    pagina = 1;
-    renderFiltros();
-    await carregar();
-  });
-}
-
 function lerFiltros() {
   const f = {};
-  const di = document.querySelector('#f-data-ini')?.value;
-  const df = document.querySelector('#f-data-fim')?.value;
-  const e  = document.querySelector('#f-entidade')?.value;
-  const a  = document.querySelector('#f-acao')?.value;
-  const t  = document.querySelector('#f-tipo')?.value;
-  const b  = document.querySelector('#f-busca')?.value?.trim();
+  const di = document.querySelector('#adt-ini')?.value;
+  const df = document.querySelector('#adt-fim')?.value;
+  const e  = document.querySelector('#adt-entidade')?.value;
+  const a  = document.querySelector('#adt-acao')?.value;
+  const b  = document.querySelector('#adt-busca')?.value?.trim();
   if (di) f.data_ini = di;
   if (df) f.data_fim = df;
   if (e)  f.entidade = e;
   if (a)  f.acao = a;
-  if (t)  f.tipo = t;
   if (b)  f.busca = b;
   return f;
 }
 
+// Sincroniza o select de ação e a legenda com o filtro ativo.
+function refletirAcao() {
+  const sel = document.querySelector('#adt-acao');
+  if (sel) sel.value = filtros.acao || '';
+  document.querySelectorAll('.adt-resumo-acao').forEach(b =>
+    b.setAttribute('aria-pressed', String((b.dataset.acao || '') === (filtros.acao || ''))));
+}
+
 async function carregar() {
-  const slot = document.querySelector('#aud-conteudo');
-  const pag  = document.querySelector('#aud-pag');
+  const slot = document.querySelector('#adt-conteudo');
+  const pag  = document.querySelector('#adt-pag');
   if (!slot || !pag) return;
 
-  slot.innerHTML = `
-    <div class="aud-skel">
-      ${[1,2,3,4,5,6].map(() => `<div class="skel" style="height:5rem;border-radius:0 8px 8px 0;margin-bottom:0.6rem"></div>`).join('')}
-    </div>`;
+  slot.innerHTML = `<div class="adt-skel">${[1,2,3,4,5].map(() => `<div class="adt-skel-item"></div>`).join('')}</div>`;
   pag.innerHTML = '';
+  refletirAcao();
 
   const offset = (pagina - 1) * POR_PAGINA;
-  const rpc = abaAtual === 'log' ? 'listar_auditoria' : 'listar_lixeira';
-  const { data, error } = await supabase.rpc(rpc, {
-    p_filtros: filtros,
-    p_limit:   POR_PAGINA,
-    p_offset:  offset,
+  const { data, error } = await supabase.rpc('listar_auditoria', {
+    p_filtros: filtros, p_limit: POR_PAGINA, p_offset: offset,
   });
 
-  // Tolerancia: se a funcao ainda nao foi criada no banco (migrations nao
-  // aplicadas), tratar como 'vazio' — UX gentil pra periodo de bootstrap.
-  // PGRST202 = function not found; 42883 = postgres undefined function.
-  const ehFnAusente = error && (
+  const fnAusente = error && (
     error.code === 'PGRST202' || error.code === '42883' ||
-    /could not find the function|does not exist/i.test(error.message || '')
-  );
+    /could not find the function|does not exist/i.test(error.message || ''));
 
-  if (error && !ehFnAusente) {
-    slot.innerHTML = `<p class="alert">Não consegui carregar: ${esc(error.message)}</p>`;
+  if (error && !fnAusente) {
+    slot.innerHTML = `<p class="adt-erro">Não foi possível carregar. ${esc(error.message)}</p>`;
     return;
   }
 
   total = data?.[0]?.total ?? 0;
+  const numEl = document.querySelector('#adt-resumo-num');
+  if (numEl) numEl.textContent = total.toLocaleString('pt-BR');
 
-  if (ehFnAusente || !data || data.length === 0) {
-    slot.innerHTML = renderVazio(ehFnAusente);
+  if (fnAusente || !data || data.length === 0) {
+    slot.innerHTML = vazioHtml();
     return;
   }
 
-  if (abaAtual === 'log') {
-    slot.innerHTML = `<ol class="aud-timeline" role="list">${data.map((r, i) => itemLog(r, i)).join('')}</ol>`;
-    ligarLog(slot, data);
-  } else {
-    slot.innerHTML = `<ul class="aud-lixeira" role="list">${data.map((r, i) => itemLixeira(r, i)).join('')}</ul>`;
-    ligarLixeira(slot);
-  }
-
+  slot.innerHTML = `<ol class="adt-timeline" role="list">${data.map((r, i) => itemRow(r, i)).join('')}</ol>`;
+  slot.querySelectorAll('[data-delta]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const r = data.find(x => String(x.id) === btn.dataset.delta);
+      if (r) abrirDelta(r);
+    });
+  });
   renderPaginacao();
 }
 
-function renderVazio(funcaoAusente = false) {
-  if (funcaoAusente) {
-    // Caso especial: backend ainda nao tem as RPCs — provavelmente
-    // migrations da auditoria nao rodaram. Mostramos vazio mas
-    // diferenciamos sutil pro admin saber.
-    return `
-      <div class="aud-vazio">
-        <p class="aud-vazio-eyebrow">${abaAtual === 'log' ? 'Aguardando registros' : 'Nada na lixeira'}</p>
-        <p class="aud-vazio-titulo">${abaAtual === 'log'
-          ? 'Ainda não há nada para mostrar.'
-          : 'Nenhum item foi descartado.'}</p>
-        <p class="aud-vazio-desc">${abaAtual === 'log'
-          ? 'Assim que alguém registrar uma ação, ela aparecerá aqui.'
-          : 'Itens excluídos vão pra cá com motivo, autor e botão de restaurar.'}</p>
-      </div>`;
-  }
+function vazioHtml() {
   return `
-    <div class="aud-vazio">
-      <p class="aud-vazio-eyebrow">${abaAtual === 'log' ? 'Silêncio no recorte' : 'Lixeira vazia'}</p>
-      <p class="aud-vazio-titulo">${abaAtual === 'log'
-        ? 'Sem eventos para esses filtros.'
-        : 'Nada foi excluído ainda.'}</p>
-      <p class="aud-vazio-desc">${abaAtual === 'log'
-        ? 'Mude os filtros ou aguarde — todo evento daqui pra frente é capturado.'
-        : 'Se ficar muito vazio, é bom sinal.'}</p>
+    <div class="adt-vazio">
+      <div class="adt-vazio-icone" aria-hidden="true">${ICON_LUPA}</div>
+      <p class="adt-vazio-title">${temFiltro() ? 'Sem eventos para esses filtros.' : 'Nada registrado ainda.'}</p>
+      <p class="adt-vazio-msg">
+        ${temFiltro()
+          ? 'Ajuste o período, a entidade ou a ação — todo evento daqui pra frente é capturado.'
+          : 'Assim que alguém registrar uma ação no sistema, ela aparece aqui na linha do tempo.'}
+      </p>
     </div>`;
 }
 
-function itemLog(r, idx) {
-  const dt = formatarTs(r.ts);
-  const motivoBlock = r.motivo
-    ? `<p class="aud-row-motivo">“${esc(r.motivo)}”</p>` : '';
+function temFiltro() {
+  return !!(filtros.data_ini || filtros.data_fim || filtros.entidade || filtros.acao || filtros.busca);
+}
+
+// Conta quantos registros há de cada AÇÃO no recorte (ignorando o
+// filtro de ação — a legenda mostra sempre o quadro completo). São 10
+// consultas leves em paralelo; os números preenchem quando chegam.
+async function carregarContagens() {
+  const base = { ...filtros };
+  delete base.acao;
+  const res = await Promise.all(ACOES.map(a =>
+    supabase.rpc('listar_auditoria', { p_filtros: { ...base, acao: a.codigo }, p_limit: 1, p_offset: 0 })
+      .then(({ data, error }) => ({ codigo: a.codigo, n: error ? null : (data?.[0]?.total ?? 0) }))
+      .catch(() => ({ codigo: a.codigo, n: null }))
+  ));
+  for (const { codigo, n } of res) {
+    const el = document.querySelector(`.adt-resumo-acao[data-acao="${codigo}"] .adt-resumo-acao-num`);
+    if (el) el.textContent = n == null ? '' : n.toLocaleString('pt-BR');
+  }
+}
+
+function itemRow(r, i) {
+  const a = MAP_ACAO[r.acao];
   const autor = r.usuario_email_snapshot
     ? `<strong>${esc(r.usuario_email_snapshot)}</strong>`
-    : `<em>sistema</em>`;
-  const acaoCls = `aud-acao--${r.acao.toLowerCase().replace(/_/g, '-')}`;
-  // delay escalonado (animação fade-up via CSS)
-  const delay = `style="animation-delay:${Math.min(idx * 35, 420)}ms"`;
+    : '<em>sistema</em>';
+  const delay = `style="animation-delay:${Math.min(i * 32, 360)}ms"`;
   return `
-    <li class="aud-row ${acaoCls}" data-id="${r.id}" data-acao="${esc(r.acao)}" ${delay}>
-      <span class="aud-row-bullet" aria-hidden="true"></span>
-      <div class="aud-row-corpo">
-        <div class="aud-row-meta">
-          <span class="aud-row-acao">${rotuloAcao(r.acao)}</span>
-          <span class="aud-row-entidade">${esc(nomeEntidade(r.entidade))}</span>
-          ${r.entidade_id ? `<code class="aud-row-id">${esc(String(r.entidade_id).slice(0, 8))}</code>` : ''}
-          <time class="aud-row-tempo" title="${esc(r.ts)}">${dt}</time>
+    <li class="adt-row" data-tom="${a?.tom || ''}" ${delay}>
+      <span class="adt-row-dot" aria-hidden="true"></span>
+      <div class="adt-row-corpo">
+        <div class="adt-row-head">
+          <span class="adt-row-acao">${esc(a?.rotulo || r.acao)}</span>
+          <span class="adt-row-ent">${esc(MAP_ENT[r.entidade] || r.entidade)}</span>
+          ${r.entidade_id ? `<span class="adt-row-id">${esc(String(r.entidade_id).slice(0, 8))}</span>` : ''}
+          <time class="adt-row-tempo" title="${esc(r.ts)}">${esc(formatarTs(r.ts))}</time>
         </div>
-        <div class="aud-row-autor">por ${autor}</div>
-        ${motivoBlock}
-        <button class="aud-row-detalhes" data-acao-row="abrir-detalhes">
-          ver delta
-          <svg width="11" height="9" viewBox="0 0 14 11" fill="none" aria-hidden="true">
-            <path d="M1 5.5 H12 M8 1 L12 5.5 L8 10" stroke="currentColor"
-                  stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <p class="adt-row-autor">por ${autor}</p>
+        ${r.motivo ? `<p class="adt-row-motivo">${esc(r.motivo)}</p>` : ''}
+        <button type="button" class="adt-row-delta" data-delta="${esc(String(r.id))}">
+          Ver delta ${ICON_SETA}
         </button>
       </div>
     </li>`;
 }
 
-// Verbo curto na linha do log (timeline). Diferente de ACOES.rotulo
-// que e o nome do filtro — aqui queremos linguagem narrativa.
-function rotuloAcao(a) {
-  return ({
-    INSERT: 'criou', UPDATE: 'editou', DELETE: 'apagou',
-    SOFT_DELETE: 'excluiu', RESTAURACAO: 'restaurou',
-    LOGIN: 'entrou', LOGOUT: 'saiu',
-    RPC: 'rpc', PUSH_ENVIADO: 'push enviado',
-    CONFIG_ALTERADA: 'config',
-  })[a] || a.toLowerCase();
-}
+// ─── Delta amigável ──────────────────────────────────────────────────
+function camposDiff(r) {
+  const antes  = r.dados_antes  && typeof r.dados_antes  === 'object' ? r.dados_antes  : null;
+  const depois = r.dados_depois && typeof r.dados_depois === 'object' ? r.dados_depois : null;
+  const visivel = (k) => !CAMPOS_OCULTOS.has(k);
 
-// Nome amigavel da entidade — fallback no codigo bruto se nao mapeado
-const _MAP_ENTIDADE = Object.fromEntries(
-  // construido sob demanda na 1a chamada (ENTIDADES esta logo acima no modulo)
-  []
-);
-function nomeEntidade(codigo) {
-  if (!Object.keys(_MAP_ENTIDADE).length) {
-    for (const e of ENTIDADES) _MAP_ENTIDADE[e.codigo] = e.rotulo;
+  if (antes && depois) {
+    const chaves = [...new Set([...Object.keys(antes), ...Object.keys(depois)])].filter(visivel);
+    return chaves
+      .filter(k => JSON.stringify(antes[k]) !== JSON.stringify(depois[k]))
+      .map(k => ({ campo: k, de: antes[k], para: depois[k], tipo: 'mudou' }));
   }
-  return _MAP_ENTIDADE[codigo] || codigo;
+  if (depois) {
+    return Object.keys(depois).filter(visivel)
+      .filter(k => depois[k] !== null && depois[k] !== '')
+      .map(k => ({ campo: k, para: depois[k], tipo: 'criou' }));
+  }
+  if (antes) {
+    return Object.keys(antes).filter(visivel)
+      .filter(k => antes[k] !== null && antes[k] !== '')
+      .map(k => ({ campo: k, de: antes[k], tipo: 'removeu' }));
+  }
+  return [];
 }
 
-function itemLixeira(r, idx) {
-  const dt = formatarTs(r.excluido_em);
-  const delay = `style="animation-delay:${Math.min(idx * 50, 500)}ms"`;
+function rotuloCampo(k) {
+  return CAMPO_ROTULO[k] || k.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+}
+
+function formatarValorCampo(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
+  if (typeof v === 'number') return new Intl.NumberFormat('pt-BR').format(v);
+  if (typeof v === 'object') {
+    const s = JSON.stringify(v);
+    return s.length > 90 ? s.slice(0, 90) + '…' : s;
+  }
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    try {
+      return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      }).format(new Date(s));
+    } catch (_) {}
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    try {
+      return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+        .format(new Date(s + 'T00:00'));
+    } catch (_) {}
+  }
+  return s;
+}
+
+function campoDeltaHtml(d) {
+  if (d.tipo === 'mudou') {
+    return `
+      <li class="adt-delta-campo">
+        <span class="adt-delta-rotulo">${esc(rotuloCampo(d.campo))}</span>
+        <span class="adt-delta-troca">
+          <span class="adt-delta-de">${esc(formatarValorCampo(d.de))}</span>
+          <span class="adt-delta-arrow" aria-hidden="true">→</span>
+          <span class="adt-delta-para">${esc(formatarValorCampo(d.para))}</span>
+        </span>
+      </li>`;
+  }
+  const val = d.tipo === 'criou' ? d.para : d.de;
   return `
-    <li class="aud-trash" data-id="${esc(r.id)}" data-tipo="${esc(r.tipo)}" ${delay}>
-      <div class="aud-trash-corpo">
-        <div class="aud-trash-cabec">
-          <span class="aud-trash-chip" data-tipo="${esc(r.tipo)}">${rotuloTipo(r.tipo)}</span>
-          <strong class="aud-trash-rotulo">${esc(r.rotulo || '—')}</strong>
-        </div>
-        <p class="aud-trash-detalhe">${esc(r.detalhe || '')}</p>
-        <div class="aud-trash-meta">
-          <time>${dt}</time>
-          ${r.excluido_por_email ? `<span>por <strong>${esc(r.excluido_por_email)}</strong></span>` : ''}
-        </div>
-        ${r.motivo ? `<p class="aud-trash-motivo">“${esc(r.motivo)}”</p>` : ''}
-      </div>
-      <div class="aud-trash-acoes">
-        ${r.restauravel && podeRestaurar
-          ? `<button class="btn-link aud-trash-restaurar" data-acao-row="restaurar">Restaurar →</button>`
-          : `<span class="aud-trash-locked" title="Sem restauração disponível">arquivado</span>`}
-      </div>
+    <li class="adt-delta-campo">
+      <span class="adt-delta-rotulo">${esc(rotuloCampo(d.campo))}</span>
+      <span class="adt-delta-valor">${esc(formatarValorCampo(val))}</span>
     </li>`;
 }
 
-function rotuloTipo(t) {
-  return ({ lancamento: 'Lançamento',
-            notificacao: 'Notificação',
-            push_subscription: 'Push' })[t] || t;
-}
+function abrirDelta(r) {
+  const a = MAP_ACAO[r.acao];
+  const diff = camposDiff(r);
+  const temAntes = r.dados_antes && typeof r.dados_antes === 'object';
+  const temDepois = r.dados_depois && typeof r.dados_depois === 'object';
 
-function ligarLog(slot, data) {
-  slot.querySelectorAll('[data-acao-row="abrir-detalhes"]').forEach(b => {
-    b.addEventListener('click', (e) => {
-      const li = e.target.closest('[data-id]');
-      const id = parseInt(li?.dataset.id || '0', 10);
-      const r  = data.find(x => x.id === id);
-      if (r) abrirDetalhesLog(r);
-    });
-  });
-}
+  let deltaBloco;
+  if (!diff.length) {
+    deltaBloco = `<p class="adt-delta-vazio">Este evento não traz alterações de campos para detalhar.</p>`;
+  } else {
+    const titulo = (temAntes && temDepois)
+      ? `${diff.length} ${diff.length === 1 ? 'campo alterado' : 'campos alterados'}`
+      : temDepois ? 'Valores do registro criado'
+      : 'Valores do registro removido';
+    deltaBloco = `
+      <p class="adt-delta-titulo">${titulo}</p>
+      <ul class="adt-delta-lista">${diff.map(campoDeltaHtml).join('')}</ul>`;
+  }
 
-function abrirDetalhesLog(r) {
-  abrirModal({
+  const ref = abrirModal({
     eyebrow: 'Forense · Delta',
-    titulo: `${rotuloAcao(r.acao)} · ${nomeEntidade(r.entidade)}`,
-    lateral: true,
+    titulo: `${a?.rotulo || r.acao} · ${MAP_ENT[r.entidade] || r.entidade}`,
     conteudo: `
-      <div class="aud-modal">
-        <dl class="aud-modal-meta">
-          <dt>Quando</dt><dd>${esc(r.ts)}</dd>
-          <dt>Autor</dt><dd>${esc(r.usuario_email_snapshot || 'sistema')}</dd>
-          <dt>Registro</dt><dd><code>${esc(String(r.entidade_id || '—'))}</code></dd>
-          ${r.motivo ? `<dt>Motivo</dt><dd class="aud-modal-motivo">“${esc(r.motivo)}”</dd>` : ''}
-          ${r.ip ? `<dt>IP</dt><dd><code>${esc(r.ip)}</code></dd>` : ''}
-        </dl>
-        <h4 class="aud-modal-h">antes</h4>
-        <pre class="aud-modal-pre">${esc(r.dados_antes ? JSON.stringify(r.dados_antes, null, 2) : '—')}</pre>
-        <h4 class="aud-modal-h">depois</h4>
-        <pre class="aud-modal-pre">${esc(r.dados_depois ? JSON.stringify(r.dados_depois, null, 2) : '—')}</pre>
-      </div>`,
+      <dl class="adt-modal-meta">
+        <dt>Quando</dt><dd>${esc(formatarTs(r.ts))}</dd>
+        <dt>Autor</dt><dd>${esc(r.usuario_email_snapshot || 'sistema')}</dd>
+        <dt>Registro</dt><dd><code>${esc(String(r.entidade_id || '—'))}</code></dd>
+        ${r.motivo ? `<dt>Motivo</dt><dd class="adt-modal-motivo">“${esc(r.motivo)}”</dd>` : ''}
+        ${r.ip ? `<dt>IP</dt><dd><code>${esc(r.ip)}</code></dd>` : ''}
+      </dl>
+      ${deltaBloco}
+      <details class="adt-delta-cru">
+        <summary>Ver dados brutos (JSON)</summary>
+        <p class="adt-modal-h">Antes</p>
+        <pre class="adt-modal-pre">${esc(temAntes ? JSON.stringify(r.dados_antes, null, 2) : '—')}</pre>
+        <p class="adt-modal-h">Depois</p>
+        <pre class="adt-modal-pre">${esc(temDepois ? JSON.stringify(r.dados_depois, null, 2) : '—')}</pre>
+      </details>
+    `,
   });
+  // Modal um pouco mais largo que o padrão — pro delta respirar.
+  ref?.elemento?.querySelector('.modal-card')?.classList.add('adt-delta-card');
 }
 
-function ligarLixeira(slot) {
-  slot.querySelectorAll('[data-acao-row="restaurar"]').forEach(b => {
-    b.addEventListener('click', async (e) => {
-      const li = e.target.closest('[data-id]');
-      const id = li?.dataset.id;
-      const tipo = li?.dataset.tipo;
-      if (!id || tipo !== 'lancamento') return;
-      abrirRestauracao(id);
-    });
-  });
-}
-
-function abrirRestauracao(lancamentoId) {
-  abrirModal({
-    eyebrow: 'Lixeira',
-    titulo: 'Restaurar lançamento',
-    conteudo: `
-      <div class="aud-restaurar">
-        <p>Volta o lançamento pro estado <strong>pendente</strong> pra
-        re-categorização. A restauração também fica registrada no log.</p>
-        <div class="field" style="margin-top:1.2rem">
-          <label class="field-label" for="r-motivo">Motivo (mínimo 10 caracteres)</label>
-          <textarea id="r-motivo" class="field-input" rows="3"
-                    placeholder="Ex: lançamento foi excluído por engano, é a NF do pedido X que ainda precisa ser categorizada."></textarea>
-          <span class="field-underline"></span>
-        </div>
-        <div style="display:flex;gap:0.7rem;justify-content:flex-end;margin-top:1.5rem">
-          <button id="r-cancelar" class="btn-link">Cancelar</button>
-          <button id="r-confirmar" class="btn-primary" style="padding:0.6rem 1.1rem;font-size:0.85rem">Restaurar</button>
-        </div>
-      </div>`,
-  });
-
-  document.querySelector('#r-cancelar')?.addEventListener('click', () => fecharModal());
-  document.querySelector('#r-confirmar')?.addEventListener('click', async () => {
-    const motivo = document.querySelector('#r-motivo')?.value?.trim() || '';
-    if (motivo.length < 10) {
-      mostrarToast('Motivo precisa ter pelo menos 10 caracteres.', 'erro', 3000);
-      return;
-    }
-    const btn = document.querySelector('#r-confirmar');
-    btn.disabled = true; btn.textContent = 'Restaurando…';
-    const { error } = await supabase.rpc('restaurar_lancamento', {
-      p_lancamento_id: lancamentoId,
-      p_motivo: motivo,
-    });
-    if (error) {
-      mostrarToast('Falhou: ' + error.message, 'erro', 4000);
-      btn.disabled = false; btn.textContent = 'Restaurar';
-      return;
-    }
-    mostrarToast('Lançamento restaurado.', 'ok', 2200);
-    fecharModal();
-    await carregar();
-  });
+// ─── Paginação numerada ──────────────────────────────────────────────
+function listaPaginas(atual, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const set = new Set([1, total, atual, atual - 1, atual + 1]);
+  const arr = [...set].filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out = [];
+  let prev = 0;
+  for (const p of arr) {
+    if (p - prev > 1) out.push('…');
+    out.push(p);
+    prev = p;
+  }
+  return out;
 }
 
 function renderPaginacao() {
-  const pag = document.querySelector('#aud-pag');
+  const pag = document.querySelector('#adt-pag');
   if (!pag) return;
-  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
-  if (totalPaginas <= 1) { pag.innerHTML = ''; return; }
+  const totalPgs = Math.max(1, Math.ceil(total / POR_PAGINA));
+  if (totalPgs <= 1) { pag.innerHTML = ''; return; }
+
+  const nums = listaPaginas(pagina, totalPgs).map(p =>
+    p === '…'
+      ? '<span class="adt-pag-ell" aria-hidden="true">…</span>'
+      : `<button type="button" class="adt-pag-num${p === pagina ? ' is-atual' : ''}" data-pg="${p}"
+           ${p === pagina ? 'aria-current="page"' : ''}>${p}</button>`
+  ).join('');
 
   pag.innerHTML = `
-    <span class="aud-pag-info">
-      Página <strong>${pagina}</strong> de <strong>${totalPaginas}</strong>
-      <span class="aud-pag-total">· ${total} ${total === 1 ? 'registro' : 'registros'}</span>
+    <span class="adt-pag-info">
+      <strong>${total}</strong> ${total === 1 ? 'registro' : 'registros'}
+      · página <strong>${pagina}</strong> de <strong>${totalPgs}</strong>
     </span>
-    <span class="aud-pag-btns">
-      <button class="btn-link" id="p-prev" ${pagina <= 1 ? 'disabled' : ''}>← Anterior</button>
-      <button class="btn-link" id="p-next" ${pagina >= totalPaginas ? 'disabled' : ''}>Próxima →</button>
-    </span>`;
-  document.querySelector('#p-prev')?.addEventListener('click', async () => {
-    pagina = Math.max(1, pagina - 1); await carregar();
-    document.querySelector('#main')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-  document.querySelector('#p-next')?.addEventListener('click', async () => {
-    pagina = pagina + 1; await carregar();
-    document.querySelector('#main')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    <div class="adt-pag-nums">
+      <button type="button" class="adt-pag-seta" data-pg="prev" ${pagina <= 1 ? 'disabled' : ''} aria-label="Anterior">‹</button>
+      ${nums}
+      <button type="button" class="adt-pag-seta" data-pg="next" ${pagina >= totalPgs ? 'disabled' : ''} aria-label="Próxima">›</button>
+    </div>`;
+
+  pag.querySelectorAll('[data-pg]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const v = btn.dataset.pg;
+      const totalPgs2 = Math.max(1, Math.ceil(total / POR_PAGINA));
+      if (v === 'prev')      pagina = Math.max(1, pagina - 1);
+      else if (v === 'next') pagina = Math.min(totalPgs2, pagina + 1);
+      else                   pagina = Math.min(totalPgs2, Math.max(1, parseInt(v, 10)));
+      await carregar();
+      document.querySelector('#main')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   });
 }
 
 function formatarTs(ts) {
   if (!ts) return '';
   try {
-    const d = new Date(ts);
     return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    }).format(d);
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    }).format(new Date(ts));
   } catch (_) { return String(ts); }
 }
 
 function esc(s) {
-  if (s === null || s === undefined) return '';
-  return String(s).replace(/[&<>"']/g, (c) => ({
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
 }

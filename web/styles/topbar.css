@@ -14,10 +14,11 @@
     gap: 1rem;
     font-family: 'Manrope', -apple-system, system-ui, sans-serif;
 }
+/* No mobile a topbar sai inteira — busca global, sino e CTA. A
+   navegação vai no pull-down; busca e ações ficam dentro de cada
+   tela (pendências, caixa do dia, etc. já têm as suas). */
 @media (max-width: 767px) {
-    .tb {
-        padding: 0.55rem 0.75rem 0.55rem 3.5rem; /* espaco pro hamburguer */
-    }
+    .tb { display: none; }
 }
 
 /* Search */
@@ -96,7 +97,11 @@
     position: relative;
     text-decoration: none;
     flex-shrink: 0;
+    background: none;
+    border: 0;
+    font-family: inherit;
 }
+.tb-icon[aria-expanded="true"] { background: var(--ui-surface-2); color: var(--ui-ink); }
 .tb-icon > svg {
     width: 16px;
     height: 16px;
@@ -164,4 +169,164 @@
 @media (max-width: 480px) {
     .tb-btn--primary { padding: 0.45rem 0.6rem; }
     .tb-btn--primary > :not(svg) { display: none; }
+}
+
+/* ============================================================
+   Popup do sino — painel ancorado no #tb-bell, "saindo do sino"
+   ============================================================ */
+.bellpop {
+    position: fixed;
+    z-index: 70;
+    width: 340px;
+    max-width: calc(100vw - 20px);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    box-shadow: var(--ui-shadow-lg);
+    font-family: 'Manrope', -apple-system, system-ui, sans-serif;
+    color: var(--ui-ink);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform-origin: top right;
+    opacity: 0;
+    transform: scale(0.94) translateY(-6px);
+    transition: opacity 160ms var(--ui-ease), transform 160ms var(--ui-ease);
+    pointer-events: none;
+}
+.bellpop.is-open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+}
+.bellpop.is-closing {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+    pointer-events: none;
+}
+
+.bellpop-head {
+    padding: 0.8rem 1rem 0.7rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.bellpop-titulo {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--ui-ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+}
+
+.bellpop-lista {
+    max-height: min(60vh, 23rem);
+    overflow-y: auto;
+    padding: 0.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.bellpop-item {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    padding: 0.6rem 0.65rem;
+    border-radius: var(--ui-r-sm);
+    font-family: inherit;
+    transition: background 140ms var(--ui-ease);
+}
+.bellpop-item:hover { background: var(--ui-surface-2); }
+.bellpop-item[data-lida="true"] { opacity: 0.6; }
+.bellpop-item-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 0.34rem;
+    flex-shrink: 0;
+    background: var(--ui-ink-4);
+}
+.bellpop-item-dot[data-tom="danger"] { background: var(--ui-danger); }
+.bellpop-item-dot[data-tom="warn"]   { background: var(--ui-warn); }
+.bellpop-item-dot[data-tom="info"]   { background: var(--ui-info); }
+.bellpop-item[data-lida="true"] .bellpop-item-dot { background: var(--ui-ink-4); }
+.bellpop-item-corpo {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+.bellpop-item-topo {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+.bellpop-item-titulo {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.bellpop-item-tempo {
+    font-size: 0.7rem;
+    color: var(--ui-ink-3);
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+.bellpop-item-msg {
+    font-size: 0.8rem;
+    color: var(--ui-ink-3);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.bellpop-vazio {
+    padding: 1.9rem 1rem;
+    text-align: center;
+    color: var(--ui-ink-3);
+    font-size: 0.84rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+.bellpop-vazio-icone {
+    color: var(--ui-ink-4);
+    display: inline-flex;
+}
+.bellpop-vazio-icone svg { width: 26px; height: 26px; }
+
+.bellpop-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.7rem 1rem;
+    border-top: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ui-accent);
+    text-decoration: none;
+    transition: background 140ms var(--ui-ease);
+}
+.bellpop-rodape:hover { background: var(--ui-surface-3); }
+.bellpop-rodape svg { width: 13px; height: 13px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .bellpop { transform: none; transition: opacity 120ms var(--ui-ease); }
+    .bellpop.is-open, .bellpop.is-closing { transform: none; }
 }

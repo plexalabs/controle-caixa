@@ -14,8 +14,36 @@
     padding: 2.25rem 2rem 4rem;
     color: var(--ui-ink);
 }
+/* ============================================================
+   Mobile (≤767px) — tela enxuta: cabeçalho compacto, filtros em
+   faixa rolável de uma linha, sem painel lateral de pendências.
+   ============================================================ */
 @media (max-width: 767px) {
-    .cx2 { padding: 1.5rem 1.1rem 3rem; }
+    .cx2 { padding: 1.2rem 1rem 2.5rem; }
+
+    .cx2-header { margin-bottom: 1.2rem; gap: 0.8rem; }
+    .cx2-title { font-size: 1.4rem; }
+    .cx2-sub { font-size: 0.85rem; }
+
+    /* Filtros: chips numa faixa rolável de uma linha; toggle abaixo */
+    .cx2-filtros {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+        margin-bottom: 1.1rem;
+    }
+    .cx2-chips {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+    }
+    .cx2-chips::-webkit-scrollbar { display: none; }
+    .cx2-chip { flex-shrink: 0; }
+
+    /* O painel de resumo de pendências não entra no caixas mobile */
+    .cx2-painel { display: none; }
 }
 
 .cx2-header {

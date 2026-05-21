@@ -29,6 +29,9 @@ export async function renderDashboard() {
   const nome   = (meta.nome || sessao?.user?.email?.split('@')[0] || 'Operador').trim();
   const hoje   = new Date();
   const hojeISO = isoData(hoje);
+  // Mobile: dashboard enxuto — só o essencial do dia. Os gráficos
+  // analíticos (distribuição / movimento do mês) ficam fora.
+  const ehMobile = window.innerWidth < 768;
 
   document.querySelector('#app').innerHTML = await renderShell({
     rotaAtiva: 'dashboard',
@@ -107,7 +110,9 @@ export async function renderDashboard() {
         </div>
       </div>
 
-      <!-- Linha 3: Distribuicao do mes (largura cheia) -->
+      ${ehMobile ? '' : `
+      <!-- Distribuição + Movimento do mês — gráficos analíticos, só no
+           desktop. No mobile o dashboard fica enxuto com o essencial. -->
       <article id="bloco-distribuicao" class="dash2-card" aria-labelledby="h-dist">
         <header class="dash2-card-head">
           <div>
@@ -120,7 +125,6 @@ export async function renderDashboard() {
         </div>
       </article>
 
-      <!-- Linha 3: Movimento do mes (largura cheia - chart precisa de espaco) -->
       <article id="bloco-movimento" class="dash2-card" aria-labelledby="h-mov">
         <header class="dash2-card-head">
           <div>
@@ -132,6 +136,7 @@ export async function renderDashboard() {
           ${blocoSkel()}
         </div>
       </article>
+      `}
     </main>
     `,
   });
@@ -141,8 +146,10 @@ export async function renderDashboard() {
   await carregarNotificacoes();
   await carregarCriticas();
   await carregarCaixasAbertos(hojeISO);
-  await carregarDistribuicaoCategoria();
-  await carregarMovimentoMes();
+  if (!ehMobile) {
+    await carregarDistribuicaoCategoria();
+    await carregarMovimentoMes();
+  }
   ligarRealtime();
 }
 
@@ -400,8 +407,8 @@ function renderCaixaDeHoje(caixaHoje, hojeISO) {
     if (link) link.classList.add('hidden');
     cont.innerHTML = `
       <div class="dash2-caixa-vazio">
-        <p class="dash2-caixa-vazio-title">Comece o dia abrindo o caixa.</p>
-        <p class="dash2-caixa-vazio-msg">Sem caixa aberto, lançamentos ficam em buffer e o resumo do dia não atualiza.</p>
+        <p class="dash2-caixa-vazio-title">Comece abrindo o caixa.</p>
+        <p class="dash2-caixa-vazio-msg">Sem ele aberto, os lançamentos do dia ficam em espera.</p>
         <a href="/caixa/hoje" data-link class="dash2-btn dash2-btn--primary dash2-btn--sm dash2-caixa-vazio-cta">
           ${svgPlus()} Abrir caixa de hoje
         </a>

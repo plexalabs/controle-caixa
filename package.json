@@ -19,6 +19,7 @@
   "dependencies": {
     "@sentry/browser": "^8.55.2",
     "@supabase/supabase-js": "^2.105.1",
+    "exceljs": "^4.4.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7"
   }

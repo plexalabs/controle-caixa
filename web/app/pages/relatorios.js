@@ -1,19 +1,21 @@
-// relatorios.js — Os números do período (CP7.4).
+// relatorios.js — Os números do período (refator v2 "Clean Profissional").
 //
 // Bloco de filtros (período + categorias + estados), preview paginado
-// (50 por página, sortable), e exportação CSV (RPC) + PDF (jspdf no cliente).
+// (50/página, sortable, paginação numerada) e exportação:
+//   • Excel (.xlsx formatado, via exceljs — carregado sob demanda)
+//   • PDF   (jsPDF + autotable — carregado sob demanda)
 //
-// Estado dos filtros sincronizado com URL via URLSearchParams — recarregar
-// preserva, e o link é bookmarkable.
+// Ambos os arquivos são montados a partir do MESMO recorte exibido na
+// tela (dadosOrdenados()), com a identidade visual do sistema.
 //
-// Acesso: admin OU operador (operador também precisa exportar pra contação).
+// Estado dos filtros sincronizado com a URL — recarregar preserva.
+// Acesso: permissão relatorio.diario.
 
 import { supabase, pegarSessao } from '../supabase.js';
 import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { mostrarToast } from '../notifications.js';
 import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
-import { instalarPopDatasEm } from '../../components/pop-data.js';
 
 const CATEGORIAS = [
   { v: 'cartao',      rotulo: 'Cartão' },
@@ -24,38 +26,61 @@ const CATEGORIAS = [
   { v: 'obs',         rotulo: 'Observação' },
 ];
 const ESTADOS = [
-  { v: 'pendente',       rotulo: 'Pendente' },
-  { v: 'completo',       rotulo: 'Completo' },
-  { v: 'finalizado',     rotulo: 'Finalizado' },
-  { v: 'cancelado_pos',  rotulo: 'Cancelado pós' },
-  { v: 'cancelado',      rotulo: 'Cancelado' },
-  { v: 'resolvido',      rotulo: 'Resolvido' },
+  { v: 'pendente',      rotulo: 'Pendente' },
+  { v: 'completo',      rotulo: 'Completo' },
+  { v: 'finalizado',    rotulo: 'Finalizado' },
+  { v: 'cancelado_pos', rotulo: 'Cancelado pós' },
+  { v: 'cancelado',     rotulo: 'Cancelado' },
+  { v: 'resolvido',     rotulo: 'Resolvido' },
 ];
+
+// Cores canônicas das categorias (docs/01 §6) — usadas pra tingir as
+// células de categoria no PDF e no Excel. Hex sem '#'.
+const CAT_COR = {
+  cartao:              { bg: 'DBEAFE', txt: '1E3A8A' },
+  pix:                 { bg: 'CCFBF1', txt: '134E4A' },
+  dinheiro:            { bg: 'DCFCE7', txt: '14532D' },
+  cancelado:           { bg: 'FECACA', txt: '7F1D1D' },
+  cartao_link:         { bg: 'EDE9FE', txt: '4C1D95' },
+  obs:                 { bg: 'FEF3C7', txt: '78350F' },
+  disponivel_retirada: { bg: 'F5E1CB', txt: '5C3D1F' },
+};
+// Paleta v2 pro PDF (RGB).
+const PDF = {
+  ink:    [40, 62, 6],
+  accent: [21, 128, 61],
+  ink2:   [63, 63, 70],
+  ink3:   [113, 113, 122],
+  border: [229, 226, 217],
+  surf2:  [244, 244, 239],
+  warn:   [180, 83, 9],
+  danger: [185, 28, 28],
+};
+
 const TAMANHO_PAGINA = 50;
 const LIMITE_AVISO_AMPLO = 5000;
 
-let estado = {
-  inicio: '',
-  fim: '',
-  categorias: [],
-  estados: [],
-};
+const SVG = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`;
+const ICON_XLS  = `<svg ${SVG}><rect x="2.3" y="2.3" width="11.4" height="11.4" rx="1.6"/><path d="M2.3 6.6h11.4M2.3 10h11.4M6.6 2.3v11.4"/></svg>`;
+const ICON_PDF  = `<svg ${SVG}><path d="M9 1.7H4.6a1 1 0 0 0-1 1v10.6a1 1 0 0 0 1 1h6.8a1 1 0 0 0 1-1V5.2Z"/><path d="M9 1.7v3.5h3.4"/><path d="M6 8.6h4M6 11h2.6"/></svg>`;
+const ICON_GRAF = `<svg ${SVG}><path d="M2 13.6h12"/><path d="M4.4 13.6V8M8 13.6V3.4M11.6 13.6V9.4"/></svg>`;
+
+let estado = { inicio: '', fim: '', categorias: [], estados: [] };
 let dadosBruto = [];
 let pagina = 1;
 let ord = { coluna: 'data', dir: 'asc' };
 
 export async function renderRelatorios() {
-  // RBAC Sessao 3: troca papeis.includes('admin'|'operador') por permissao.
-  // ATENCAO: operador NAO tem 'relatorio.diario' na seed RBAC (so admin,
-  // gerente, contador). Comportamento muda: operadores futuros perderao
-  // acesso. Operador atual eh super_admin via bypass.
   await carregarPermissoes();
   if (!temPermissaoSync('relatorio.diario')) {
     document.querySelector('#app').innerHTML = await renderShell({
       rotaAtiva: 'relatorios',
       conteudo: `
-        <main class="max-w-3xl mx-auto px-5 sm:px-8 py-12">
-          <div class="alert mt-6">Acesso restrito.</div>
+        <main class="rlt">
+          <div class="rlt-restrito">
+            <p class="rlt-restrito-title">Acesso restrito</p>
+            <p class="rlt-restrito-msg">Você não tem permissão para ver os relatórios do período.</p>
+          </div>
         </main>`,
     });
     ligarShell();
@@ -67,33 +92,30 @@ export async function renderRelatorios() {
   document.querySelector('#app').innerHTML = await renderShell({
     rotaAtiva: 'relatorios',
     conteudo: `
-    <main id="main" class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
-      <header class="tela-cabec reveal reveal-1" data-etiqueta="RELATÓRIOS">
-        <div class="tela-cabec-texto">
-          <p class="h-eyebrow">Auditoria · Contação</p>
-          <h1 class="tela-cabec-titulo">Os números do período.</h1>
-          <p class="tela-cabec-sub">
-            Filtre por data, categoria e estado. Veja os totais, baixe
-            CSV pra Excel ou PDF pra arquivar — usando exatamente o
-            recorte que você está vendo.
-          </p>
-        </div>
+    <main id="main" class="rlt">
+      <header class="rlt-header">
+        <p class="rlt-eyebrow">Auditoria · Contação</p>
+        <h1 class="rlt-title">Os números do período</h1>
+        <p class="rlt-sub">
+          Filtre por data, categoria e estado. Veja os totais e baixe em
+          Excel ou PDF — usando exatamente o recorte que está na tela.
+        </p>
       </header>
 
-      <section id="rel-filtros-wrap" class="reveal reveal-2">${blocoFiltros()}</section>
+      <section id="rlt-filtros-wrap">${blocoFiltros()}</section>
 
-      <section id="rel-resultado" class="reveal reveal-3" hidden>
-        <div id="rel-aviso-amplo" class="rel-aviso-amplo" hidden></div>
-        <div id="rel-resumo"></div>
-        <div id="rel-tabela-wrap"></div>
-        <div id="rel-export"></div>
+      <section id="rlt-resultado" class="rlt-resultado" hidden>
+        <div id="rlt-aviso" class="rlt-aviso" hidden></div>
+        <div id="rlt-resumo"></div>
+        <div id="rlt-tabela-wrap"></div>
+        <div id="rlt-export"></div>
       </section>
 
-      <section id="rel-vazio" class="reveal reveal-3" hidden>
-        <div class="vazio">
-          <div class="vazio-num">∅</div>
-          <p class="vazio-titulo">Sem lançamentos no período.</p>
-          <p class="vazio-desc">Ajuste as datas ou os filtros.</p>
+      <section id="rlt-vazio" hidden>
+        <div class="rlt-vazio">
+          <div class="rlt-vazio-icone" aria-hidden="true">${ICON_GRAF}</div>
+          <p class="rlt-vazio-title">Sem lançamentos no período.</p>
+          <p class="rlt-vazio-msg">Ajuste as datas ou afrouxe os filtros de categoria e estado.</p>
         </div>
       </section>
     </main>
@@ -102,10 +124,7 @@ export async function renderRelatorios() {
 
   ligarShell();
   ligarFiltros();
-  // Aplica automaticamente se URL veio com filtros
-  if (estado.inicio && estado.fim) {
-    await aplicarFiltros();
-  }
+  if (estado.inicio && estado.fim) await aplicarFiltros();
 }
 
 // ─── Bloco de filtros ──────────────────────────────────────────────
@@ -115,77 +134,68 @@ function blocoFiltros() {
   const fim = estado.fim    || iso(ultDiaMes(hoje));
 
   return `
-    <div class="rel-filtros">
-      <!-- Linha 1: Período (datas + atalhos) -->
-      <div class="rel-linha">
-        <p class="rel-linha-titulo">Período</p>
-        <div class="rel-periodo">
-          <div class="field" style="margin-bottom:0">
-            <label class="field-label" for="rel-inicio">De</label>
-            <input id="rel-inicio" type="date" class="field-input" value="${esc(ini)}">
-            <span class="field-underline"></span>
+    <div class="rlt-filtros">
+      <div class="rlt-linha">
+        <p class="rlt-linha-titulo">Período</p>
+        <div class="rlt-periodo">
+          <label class="rlt-campo">
+            <span class="rlt-campo-label">De</span>
+            <input id="rlt-inicio" type="date" class="rlt-data" value="${esc(ini)}">
+          </label>
+          <label class="rlt-campo">
+            <span class="rlt-campo-label">Até</span>
+            <input id="rlt-fim" type="date" class="rlt-data" value="${esc(fim)}">
+          </label>
+          <div class="rlt-quick">
+            <button type="button" class="rlt-quick-btn" data-quick="mes-atual">Mês atual</button>
+            <button type="button" class="rlt-quick-btn" data-quick="mes-passado">Mês passado</button>
+            <button type="button" class="rlt-quick-btn" data-quick="trimestre">Trimestre</button>
+            <button type="button" class="rlt-quick-btn" data-quick="ano">Ano</button>
           </div>
-          <div class="field" style="margin-bottom:0">
-            <label class="field-label" for="rel-fim">Até</label>
-            <input id="rel-fim" type="date" class="field-input" value="${esc(fim)}">
-            <span class="field-underline"></span>
-          </div>
-        </div>
-        <div class="rel-filtros-quick">
-          <button type="button" class="rel-quick-btn" data-quick="mes-atual">Mês atual</button>
-          <button type="button" class="rel-quick-btn" data-quick="mes-passado">Mês passado</button>
-          <button type="button" class="rel-quick-btn" data-quick="trimestre">Trimestre atual</button>
-          <button type="button" class="rel-quick-btn" data-quick="ano">Ano atual</button>
         </div>
       </div>
 
-      <!-- Linha 2: Categorias (full width, pílulas em wrap) -->
-      <div class="rel-linha">
-        <p class="rel-linha-titulo">Categorias</p>
-        <div class="rel-checks" id="rel-categorias">
+      <div class="rlt-linha">
+        <p class="rlt-linha-titulo">Categorias</p>
+        <div class="rlt-pills" id="rlt-categorias">
           ${CATEGORIAS.map(c => pillCheck('cat', c.v, c.rotulo, estado.categorias.includes(c.v))).join('')}
         </div>
       </div>
 
-      <!-- Linha 3: Estados -->
-      <div class="rel-linha">
-        <p class="rel-linha-titulo">Estados</p>
-        <div class="rel-checks" id="rel-estados">
+      <div class="rlt-linha">
+        <p class="rlt-linha-titulo">Estados</p>
+        <div class="rlt-pills" id="rlt-estados">
           ${ESTADOS.map(s => pillCheck('est', s.v, s.rotulo, estado.estados.includes(s.v))).join('')}
         </div>
       </div>
 
-      <!-- Rodapé: ações -->
-      <div class="rel-filtros-acoes">
-        <button type="button" id="rel-limpar" class="btn-link">Limpar</button>
-        <button type="button" id="rel-aplicar" class="btn-primary">Aplicar filtros</button>
+      <div class="rlt-filtros-acoes">
+        <button type="button" id="rlt-limpar" class="rlt-btn rlt-btn--link">Limpar</button>
+        <button type="button" id="rlt-aplicar" class="rlt-btn rlt-btn--primary">Aplicar filtros</button>
       </div>
     </div>`;
 }
 
 function pillCheck(grupo, v, rotulo, marcado) {
   return `
-    <label class="rel-check-pill ${marcado ? 'is-ativo' : ''}" data-pill-grupo="${grupo}">
+    <label class="rlt-pill ${marcado ? 'is-ativo' : ''}">
       <input type="checkbox" name="${grupo}" value="${esc(v)}" ${marcado ? 'checked' : ''}>
-      <span class="rel-check-pill-marca" aria-hidden="true"></span>
+      <span class="rlt-pill-marca" aria-hidden="true"></span>
       <span>${esc(rotulo)}</span>
     </label>`;
 }
 
 function ligarFiltros() {
-  document.querySelector('#rel-aplicar').addEventListener('click', aplicarFiltros);
-  document.querySelector('#rel-limpar').addEventListener('click', limparFiltros);
+  document.querySelector('#rlt-aplicar').addEventListener('click', aplicarFiltros);
+  document.querySelector('#rlt-limpar').addEventListener('click', limparFiltros);
   document.querySelectorAll('[data-quick]').forEach(b => {
     b.addEventListener('click', () => aplicarQuick(b.dataset.quick));
   });
-  // Marca pílulas visualmente quando muda
-  document.querySelectorAll('.rel-check-pill input').forEach(inp => {
+  document.querySelectorAll('.rlt-pill input').forEach(inp => {
     inp.addEventListener('change', (e) => {
-      e.target.closest('.rel-check-pill')?.classList.toggle('is-ativo', e.target.checked);
+      e.target.closest('.rlt-pill')?.classList.toggle('is-ativo', e.target.checked);
     });
   });
-  // Pop-data nos inputs date
-  instalarPopDatasEm(document.querySelector('#rel-filtros-wrap'));
 }
 
 function aplicarQuick(q) {
@@ -204,25 +214,25 @@ function aplicarQuick(q) {
     ini = new Date(hoje.getFullYear(), 0, 1);
     fim = new Date(hoje.getFullYear(), 11, 31);
   }
-  document.querySelector('#rel-inicio').value = iso(ini);
-  document.querySelector('#rel-fim').value    = iso(fim);
-  // Realça quick ativo
-  document.querySelectorAll('[data-quick]').forEach(b => b.classList.toggle('is-ativo', b.dataset.quick === q));
+  document.querySelector('#rlt-inicio').value = iso(ini);
+  document.querySelector('#rlt-fim').value    = iso(fim);
+  document.querySelectorAll('[data-quick]').forEach(b =>
+    b.classList.toggle('is-ativo', b.dataset.quick === q));
 }
 
 function limparFiltros() {
-  document.querySelector('#rel-filtros-wrap').innerHTML = blocoFiltros();
+  document.querySelector('#rlt-filtros-wrap').innerHTML = blocoFiltros();
   ligarFiltros();
   estado = { inicio: '', fim: '', categorias: [], estados: [] };
   dadosBruto = [];
-  document.querySelector('#rel-resultado').hidden = true;
-  document.querySelector('#rel-vazio').hidden = true;
+  document.querySelector('#rlt-resultado').hidden = true;
+  document.querySelector('#rlt-vazio').hidden = true;
   history.replaceState({}, '', '/relatorios');
 }
 
 async function aplicarFiltros() {
-  const ini = document.querySelector('#rel-inicio').value;
-  const fim = document.querySelector('#rel-fim').value;
+  const ini  = document.querySelector('#rlt-inicio').value;
+  const fim  = document.querySelector('#rlt-fim').value;
   const cats = [...document.querySelectorAll('input[name="cat"]:checked')].map(i => i.value);
   const ests = [...document.querySelectorAll('input[name="est"]:checked')].map(i => i.value);
 
@@ -239,7 +249,7 @@ async function aplicarFiltros() {
   gravarEstadoNaURL();
   pagina = 1;
 
-  const btn = document.querySelector('#rel-aplicar');
+  const btn = document.querySelector('#rlt-aplicar');
   btn.setAttribute('aria-busy', 'true');
   btn.disabled = true;
 
@@ -264,9 +274,9 @@ async function aplicarFiltros() {
 
 // ─── Resultado ──────────────────────────────────────────────────────
 function renderResultado() {
-  const wrap = document.querySelector('#rel-resultado');
-  const vazio = document.querySelector('#rel-vazio');
-  const aviso = document.querySelector('#rel-aviso-amplo');
+  const wrap  = document.querySelector('#rlt-resultado');
+  const vazio = document.querySelector('#rlt-vazio');
+  const aviso = document.querySelector('#rlt-aviso');
 
   if (dadosBruto.length === 0) {
     wrap.hidden = true;
@@ -280,8 +290,7 @@ function renderResultado() {
     aviso.hidden = false;
     aviso.innerHTML =
       `<strong>Período muito amplo</strong> — ${dadosBruto.length.toLocaleString('pt-BR')} lançamentos. ` +
-      `Considere reduzir o intervalo ou aplicar filtros adicionais. ` +
-      `A exportação ainda funciona, mas pode demorar alguns segundos.`;
+      `Considere reduzir o intervalo. A exportação ainda funciona, mas pode levar alguns segundos.`;
   } else {
     aviso.hidden = true;
   }
@@ -294,35 +303,33 @@ function renderResultado() {
 function renderResumo() {
   const total = dadosBruto.length;
   const valBruto = dadosBruto.reduce((s, l) => s + Number(l.valor_nf || 0), 0);
-  const valFinalizado = dadosBruto
-    .filter(l => l.estado === 'finalizado')
+  const valFinalizado = dadosBruto.filter(l => l.estado === 'finalizado')
     .reduce((s, l) => s + Number(l.valor_nf || 0), 0);
-  const valCancelado = dadosBruto
-    .filter(l => l.estado === 'cancelado' || l.estado === 'cancelado_pos')
+  const valCancelado = dadosBruto.filter(l => l.estado === 'cancelado' || l.estado === 'cancelado_pos')
     .reduce((s, l) => s + Number(l.valor_nf || 0), 0);
   const valLiquido = valBruto - valCancelado;
 
-  document.querySelector('#rel-resumo').innerHTML = `
-    <div class="rel-resumo">
-      <div class="rel-resumo-card">
-        <div class="rel-resumo-rotulo">Lançamentos</div>
-        <div class="rel-resumo-valor">${total.toLocaleString('pt-BR')}</div>
+  document.querySelector('#rlt-resumo').innerHTML = `
+    <div class="rlt-stats">
+      <div class="rlt-stat">
+        <span class="rlt-stat-rotulo">Lançamentos</span>
+        <span class="rlt-stat-valor">${total.toLocaleString('pt-BR')}</span>
       </div>
-      <div class="rel-resumo-card">
-        <div class="rel-resumo-rotulo">Valor bruto</div>
-        <div class="rel-resumo-valor">${formatarMoeda(valBruto)}</div>
+      <div class="rlt-stat">
+        <span class="rlt-stat-rotulo">Valor bruto</span>
+        <span class="rlt-stat-valor">${formatarMoeda(valBruto)}</span>
       </div>
-      <div class="rel-resumo-card">
-        <div class="rel-resumo-rotulo">Líquido (sem cancelados)</div>
-        <div class="rel-resumo-valor rel-resumo-valor--musgo">${formatarMoeda(valLiquido)}</div>
+      <div class="rlt-stat" data-tom="accent">
+        <span class="rlt-stat-rotulo">Líquido</span>
+        <span class="rlt-stat-valor rlt-stat-valor--accent">${formatarMoeda(valLiquido)}</span>
       </div>
-      <div class="rel-resumo-card">
-        <div class="rel-resumo-rotulo">Finalizado</div>
-        <div class="rel-resumo-valor rel-resumo-valor--ambar">${formatarMoeda(valFinalizado)}</div>
+      <div class="rlt-stat" data-tom="warn">
+        <span class="rlt-stat-rotulo">Finalizado</span>
+        <span class="rlt-stat-valor rlt-stat-valor--warn">${formatarMoeda(valFinalizado)}</span>
       </div>
-      <div class="rel-resumo-card">
-        <div class="rel-resumo-rotulo">Cancelado</div>
-        <div class="rel-resumo-valor rel-resumo-valor--alerta">${formatarMoeda(valCancelado)}</div>
+      <div class="rlt-stat" data-tom="danger">
+        <span class="rlt-stat-rotulo">Cancelado</span>
+        <span class="rlt-stat-valor rlt-stat-valor--danger">${formatarMoeda(valCancelado)}</span>
       </div>
     </div>`;
 }
@@ -336,57 +343,89 @@ function renderTabela() {
   const ini = (pagina - 1) * TAMANHO_PAGINA;
   const fatia = arr.slice(ini, ini + TAMANHO_PAGINA);
 
-  document.querySelector('#rel-tabela-wrap').innerHTML = `
-    <div class="rel-tabela-wrap">
-      <div style="overflow-x:auto">
-        <table class="rel-tabela">
+  document.querySelector('#rlt-tabela-wrap').innerHTML = `
+    <div class="rlt-tabela-card">
+      <div class="rlt-tabela-scroll">
+        <table class="rlt-tabela">
           <thead>
             <tr>
               ${cabec('data', 'Data')}
               ${cabec('numero_nf', 'NF')}
               ${cabec('cliente_nome', 'Cliente')}
-              ${cabec('valor_nf', 'Valor', 'col-num')}
+              ${cabec('valor_nf', 'Valor', 'is-num')}
               ${cabec('categoria', 'Categoria')}
               ${cabec('estado', 'Estado')}
               <th>Detalhes</th>
-              <th class="col-num">Obs</th>
+              <th class="is-num">Obs</th>
               <th></th>
             </tr>
           </thead>
-          <tbody>
-            ${fatia.map(linhaTr).join('')}
-          </tbody>
+          <tbody>${fatia.map(linhaTr).join('')}</tbody>
         </table>
       </div>
-      <div class="rel-pagina">
-        <span>${total.toLocaleString('pt-BR')} ${total === 1 ? 'linha' : 'linhas'} · página ${pagina} de ${totalPgs}</span>
-        <div class="rel-pagina-acoes">
-          <button class="rel-pagina-btn" data-pg="prev" ${pagina === 1 ? 'disabled' : ''}>← Anterior</button>
-          <button class="rel-pagina-btn" data-pg="next" ${pagina === totalPgs ? 'disabled' : ''}>Próxima →</button>
-        </div>
+      <div class="rlt-pag">
+        <span class="rlt-pag-info">
+          <strong>${total.toLocaleString('pt-BR')}</strong> ${total === 1 ? 'linha' : 'linhas'}
+          · página <strong>${pagina}</strong> de <strong>${totalPgs}</strong>
+        </span>
+        <div class="rlt-pag-nums">${paginacaoHtml(pagina, totalPgs)}</div>
       </div>
     </div>`;
 
-  document.querySelectorAll('[data-sortable="true"]').forEach(th => {
+  document.querySelectorAll('.rlt-tabela th[data-sortable]').forEach(th => {
     th.addEventListener('click', () => {
       const col = th.dataset.col;
-      if (ord.coluna === col) {
-        ord.dir = ord.dir === 'asc' ? 'desc' : 'asc';
-      } else {
-        ord.coluna = col;
-        ord.dir = 'asc';
-      }
+      if (ord.coluna === col) ord.dir = ord.dir === 'asc' ? 'desc' : 'asc';
+      else { ord.coluna = col; ord.dir = 'asc'; }
       renderTabela();
     });
   });
-  document.querySelectorAll('[data-pg]').forEach(b => {
+  document.querySelectorAll('#rlt-tabela-wrap [data-pg]').forEach(b => {
     b.addEventListener('click', () => {
-      const totalPgs2 = Math.max(1, Math.ceil(dadosOrdenados().length / TAMANHO_PAGINA));
-      if (b.dataset.pg === 'prev' && pagina > 1) pagina--;
-      if (b.dataset.pg === 'next' && pagina < totalPgs2) pagina++;
-      renderTabela();
+      const v = b.dataset.pg;
+      if (v === 'prev')      mudarPagina(pagina - 1);
+      else if (v === 'next') mudarPagina(pagina + 1);
+      else                   mudarPagina(parseInt(v, 10));
     });
   });
+}
+
+function mudarPagina(n) {
+  const totalPgs = Math.max(1, Math.ceil(dadosOrdenados().length / TAMANHO_PAGINA));
+  const alvo = Math.min(totalPgs, Math.max(1, n || 1));
+  if (alvo === pagina) return;
+  pagina = alvo;
+  renderTabela();
+  document.querySelector('#rlt-tabela-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Paginação numerada estilo Google: 1ª, última, atual ± 1, "…" nos vãos.
+function listaPaginas(atual, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const set = new Set([1, total, atual, atual - 1, atual + 1]);
+  const arr = [...set].filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out = [];
+  let prev = 0;
+  for (const p of arr) {
+    if (p - prev > 1) out.push('…');
+    out.push(p);
+    prev = p;
+  }
+  return out;
+}
+
+function paginacaoHtml(atual, total) {
+  if (total <= 1) return '';
+  const nums = listaPaginas(atual, total).map(p =>
+    p === '…'
+      ? '<span class="rlt-pag-ell" aria-hidden="true">…</span>'
+      : `<button type="button" class="rlt-pag-num${p === atual ? ' is-atual' : ''}" data-pg="${p}"
+           ${p === atual ? 'aria-current="page"' : ''}>${p}</button>`
+  ).join('');
+  return `
+    <button type="button" class="rlt-pag-seta" data-pg="prev" ${atual <= 1 ? 'disabled' : ''} aria-label="Anterior">‹</button>
+    ${nums}
+    <button type="button" class="rlt-pag-seta" data-pg="next" ${atual >= total ? 'disabled' : ''} aria-label="Próxima">›</button>`;
 }
 
 function cabec(col, rotulo, extra = '') {
@@ -395,20 +434,18 @@ function cabec(col, rotulo, extra = '') {
 }
 
 function linhaTr(l) {
-  const dt = new Date(l.data + 'T00:00');
-  const dataF = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }).format(dt);
   const valF = formatarMoeda(Number(l.valor_nf || 0));
   return `
     <tr>
-      <td class="col-data">${esc(dataF)}</td>
-      <td>${esc(l.numero_nf || '—')}</td>
-      <td>${esc(l.cliente_nome || '—')}</td>
-      <td class="col-num">${esc(valF)}</td>
-      <td>${esc(rotuloCategoria(l.categoria))}</td>
-      <td>${esc(rotuloEstado(l.estado))}</td>
-      <td>${esc(l.resumo_dados || '')}</td>
-      <td class="col-num">${l.observacoes_qtd > 0 ? l.observacoes_qtd : ''}</td>
-      <td class="col-link"><a href="/lancamento/${esc(l.lancamento_id)}" data-link>Abrir</a></td>
+      <td class="rlt-td-data">${esc(formatarDataPt(l.data))}</td>
+      <td class="rlt-td-nf">${esc(l.numero_nf || '—')}</td>
+      <td class="rlt-td-cliente">${esc(l.cliente_nome || '—')}</td>
+      <td class="is-num rlt-td-valor">${esc(valF)}</td>
+      <td><span class="rlt-cat" data-cat="${esc(l.categoria || '')}">${esc(rotuloCategoria(l.categoria))}</span></td>
+      <td class="rlt-estado">${esc(rotuloEstado(l.estado))}</td>
+      <td class="rlt-td-detalhe">${esc(l.resumo_dados || '')}</td>
+      <td class="is-num">${l.observacoes_qtd > 0 ? l.observacoes_qtd : ''}</td>
+      <td class="rlt-td-link"><a href="/lancamento/${esc(l.lancamento_id)}" data-link>Abrir</a></td>
     </tr>`;
 }
 
@@ -418,7 +455,6 @@ function dadosOrdenados() {
   arr.sort((a, b) => {
     let va = a[c]; let vb = b[c];
     if (c === 'valor_nf') { va = Number(va || 0); vb = Number(vb || 0); }
-    if (c === 'data') { va = a.data; vb = b.data; }
     if (va == null) va = '';
     if (vb == null) vb = '';
     if (va < vb) return ord.dir === 'asc' ? -1 : 1;
@@ -428,66 +464,192 @@ function dadosOrdenados() {
   return arr;
 }
 
+// ─── Totais (compartilhado por resumo, PDF e Excel) ──────────────────
+function calcularTotais(arr) {
+  const bruto = arr.reduce((s, l) => s + Number(l.valor_nf || 0), 0);
+  const finalizado = arr.filter(l => l.estado === 'finalizado')
+    .reduce((s, l) => s + Number(l.valor_nf || 0), 0);
+  const cancelado = arr.filter(l => l.estado === 'cancelado' || l.estado === 'cancelado_pos')
+    .reduce((s, l) => s + Number(l.valor_nf || 0), 0);
+  return { total: arr.length, bruto, finalizado, cancelado, liquido: bruto - cancelado };
+}
+
 function renderExport() {
-  document.querySelector('#rel-export').innerHTML = `
-    <div class="rel-export">
-      <div class="rel-export-texto">
-        Os arquivos seguem exatamente os filtros aplicados acima.
-        CSV abre no Excel com acentos preservados; PDF é arquivável.
-      </div>
-      <div class="rel-export-acoes">
-        <button id="rel-csv" class="btn-primary">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M7 1 V10 M3 6 L7 10 L11 6 M2 12 H12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Baixar CSV (Excel)
-        </button>
-        <button id="rel-pdf" class="btn-primary"
-          style="background:var(--c-tinta);box-shadow:0 1px 0 0 rgba(255,255,255,0.05) inset, 0 6px 14px -8px rgba(0,0,0,0.3)">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M3 1 H8 L11 4 V13 H3 Z M8 1 V4 H11 M5 7 H9 M5 9.5 H9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          </svg>
-          Baixar PDF
-        </button>
+  document.querySelector('#rlt-export').innerHTML = `
+    <div class="rlt-export">
+      <p class="rlt-export-texto">
+        Os arquivos seguem <strong>exatamente o recorte e a ordenação</strong> da
+        tabela acima. O Excel sai formatado, com totais; o PDF é arquivável.
+      </p>
+      <div class="rlt-export-acoes">
+        <button type="button" id="rlt-xls" class="rlt-btn rlt-btn--primary">${ICON_XLS} Baixar Excel</button>
+        <button type="button" id="rlt-pdf" class="rlt-btn rlt-btn--escuro">${ICON_PDF} Baixar PDF</button>
       </div>
     </div>`;
 
-  document.querySelector('#rel-csv').addEventListener('click', baixarCSV);
-  document.querySelector('#rel-pdf').addEventListener('click', baixarPDF);
+  document.querySelector('#rlt-xls').addEventListener('click', baixarExcel);
+  document.querySelector('#rlt-pdf').addEventListener('click', baixarPDF);
 }
 
-// ─── CSV ────────────────────────────────────────────────────────────
-async function baixarCSV() {
-  const btn = document.querySelector('#rel-csv');
+async function infoGeracao() {
+  const sessao = await pegarSessao();
+  const meta = sessao?.user?.user_metadata ?? {};
+  const autor = [meta.nome, meta.sobrenome].filter(Boolean).join(' ').trim()
+             || sessao?.user?.email || '—';
+  const quando = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  }).format(new Date());
+  return { autor, quando };
+}
+
+function textoFiltros() {
+  const partes = [];
+  if (estado.categorias.length) partes.push('Categorias: ' + estado.categorias.map(rotuloCategoria).join(', '));
+  if (estado.estados.length)    partes.push('Estados: ' + estado.estados.map(rotuloEstado).join(', '));
+  return partes.length ? partes.join('   ·   ') : 'Sem filtros adicionais de categoria ou estado';
+}
+
+// ─── Excel (.xlsx via exceljs) ──────────────────────────────────────
+async function baixarExcel() {
+  const btn = document.querySelector('#rlt-xls');
   btn.setAttribute('aria-busy', 'true');
   btn.disabled = true;
+  try {
+    const ExcelMod = await import('exceljs');
+    const ExcelJS = ExcelMod.default || ExcelMod;
+    const arr = dadosOrdenados();
+    const { autor, quando } = await infoGeracao();
+    const tot = calcularTotais(arr);
 
-  const { data, error } = await supabase.rpc('exportar_relatorio_csv', {
-    p_data_inicio: estado.inicio,
-    p_data_fim:    estado.fim,
-    p_categorias:  estado.categorias.length ? estado.categorias : null,
-    p_estados:     estado.estados.length ? estado.estados : null,
-  });
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Caixa Boti';
+    wb.created = new Date();
+    const ws = wb.addWorksheet('Relatório', {
+      views: [{ state: 'frozen', ySplit: 7 }],
+      pageSetup: { fitToPage: true, fitToWidth: 1, orientation: 'landscape' },
+    });
 
-  btn.removeAttribute('aria-busy');
-  btn.disabled = false;
+    const MUSGO   = 'FF283E06';
+    const SURF2   = 'FFF4F4EF';
+    const ZEBRA   = 'FFFAFAF7';
+    const BORDA   = 'FFE5E2D9';
+    const INK     = 'FF283E06';
+    const INK3    = 'FF71717A';
+    const bordaFina = {
+      top:    { style: 'thin', color: { argb: BORDA } },
+      bottom: { style: 'thin', color: { argb: BORDA } },
+      left:   { style: 'thin', color: { argb: BORDA } },
+      right:  { style: 'thin', color: { argb: BORDA } },
+    };
 
-  if (error) {
-    mostrarToast('Erro ao gerar CSV: ' + error.message, 'erro', 5000);
-    return;
+    ws.columns = [
+      { width: 12 }, { width: 14 }, { width: 30 }, { width: 16 },
+      { width: 17 }, { width: 15 }, { width: 40 }, { width: 8 },
+    ];
+
+    // Cabeçalho da marca (linhas 1–5, mescladas A:H)
+    const faixa = (lin, txt, estilo) => {
+      ws.mergeCells(`A${lin}:H${lin}`);
+      const c = ws.getCell(`A${lin}`);
+      c.value = txt;
+      Object.assign(c, estilo);
+    };
+    faixa(1, 'CAIXA BOTI', { font: { name: 'Calibri', bold: true, size: 16, color: { argb: MUSGO } } });
+    faixa(2, 'Relatório do período', { font: { name: 'Calibri', bold: true, size: 12, color: { argb: INK } } });
+    faixa(3, `${formatarDataPt(estado.inicio)}  até  ${formatarDataPt(estado.fim)}`,
+          { font: { name: 'Calibri', size: 10, color: { argb: INK3 } } });
+    faixa(4, textoFiltros(), { font: { name: 'Calibri', size: 9, color: { argb: INK3 } } });
+    faixa(5, `Gerado em ${quando} por ${autor}`, { font: { name: 'Calibri', italic: true, size: 9, color: { argb: INK3 } } });
+    ws.getRow(1).height = 22;
+
+    // Cabeçalho da tabela (linha 7)
+    const COLS = ['Data', 'NF', 'Cliente', 'Valor (R$)', 'Categoria', 'Estado', 'Detalhes', 'Obs'];
+    const hdr = ws.getRow(7);
+    COLS.forEach((t, i) => {
+      const c = hdr.getCell(i + 1);
+      c.value = t;
+      c.font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: MUSGO } };
+      c.alignment = { vertical: 'middle', horizontal: i === 3 || i === 7 ? 'right' : 'left' };
+      c.border = bordaFina;
+    });
+    hdr.height = 20;
+
+    // Linhas de dados
+    arr.forEach((l, idx) => {
+      const lin = 8 + idx;
+      const row = ws.getRow(lin);
+      row.getCell(1).value = formatarDataPt(l.data);
+      row.getCell(2).value = l.numero_nf || '—';
+      row.getCell(3).value = l.cliente_nome || '—';
+      row.getCell(4).value = Number(l.valor_nf || 0);
+      row.getCell(4).numFmt = '"R$" #,##0.00';
+      row.getCell(5).value = rotuloCategoria(l.categoria);
+      row.getCell(6).value = rotuloEstado(l.estado);
+      row.getCell(7).value = l.resumo_dados || '';
+      row.getCell(8).value = l.observacoes_qtd > 0 ? l.observacoes_qtd : '';
+
+      for (let ci = 1; ci <= 8; ci++) {
+        const c = row.getCell(ci);
+        c.border = bordaFina;
+        c.font = { name: 'Calibri', size: 10, color: { argb: INK } };
+        c.alignment = { vertical: 'middle', horizontal: ci === 4 || ci === 8 ? 'right' : 'left',
+                        wrapText: ci === 7 };
+        if (idx % 2 === 1) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ZEBRA } };
+      }
+      // Célula de categoria tingida na cor canônica
+      const cor = CAT_COR[l.categoria];
+      if (cor) {
+        const cc = row.getCell(5);
+        cc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + cor.bg } };
+        cc.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF' + cor.txt } };
+      }
+    });
+
+    // Bloco de totais
+    const linT = 8 + arr.length + 1;
+    const tituloT = ws.getCell(`A${linT}`);
+    tituloT.value = 'TOTAIS DO PERÍODO';
+    tituloT.font = { name: 'Calibri', bold: true, size: 10, color: { argb: MUSGO } };
+    const totais = [
+      ['Lançamentos', tot.total],
+      ['Valor bruto', tot.bruto],
+      ['Líquido (sem cancelados)', tot.liquido],
+      ['Finalizado', tot.finalizado],
+      ['Cancelado', tot.cancelado],
+    ];
+    totais.forEach(([rot, val], i) => {
+      const lin = linT + 1 + i;
+      const cr = ws.getCell(`A${lin}`);
+      const cv = ws.getCell(`B${lin}`);
+      cr.value = rot;
+      cr.font = { name: 'Calibri', size: 10, color: { argb: INK3 } };
+      cv.value = val;
+      if (i !== 0) cv.numFmt = '"R$" #,##0.00';
+      cv.font = { name: 'Calibri', bold: true, size: 10, color: { argb: INK } };
+      cr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SURF2 } };
+      cv.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SURF2 } };
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    baixar(new Blob([buf], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }), nomeArquivo('xlsx'));
+    mostrarToast('Excel baixado.', 'ok', 2200);
+  } catch (e) {
+    log.erro('falha ao gerar Excel do relatório', e, { periodo: estado });
+    mostrarToast('Erro ao gerar Excel: ' + (e.message || e), 'erro', 5000);
+  } finally {
+    btn.removeAttribute('aria-busy');
+    btn.disabled = false;
   }
-  // BOM já vem do banco; força text/csv para download.
-  const blob = new Blob([data], { type: 'text/csv;charset=utf-8' });
-  baixar(blob, nomeArquivo('csv'));
-  mostrarToast('CSV baixado.', 'ok', 2200);
 }
 
-// ─── PDF ────────────────────────────────────────────────────────────
+// ─── PDF (jsPDF + autotable) ────────────────────────────────────────
 async function baixarPDF() {
-  const btn = document.querySelector('#rel-pdf');
+  const btn = document.querySelector('#rlt-pdf');
   btn.setAttribute('aria-busy', 'true');
   btn.disabled = true;
-
   try {
     const [{ jsPDF }, autoTableMod] = await Promise.all([
       import('jspdf'),
@@ -495,62 +657,69 @@ async function baixarPDF() {
     ]);
     const autoTable = autoTableMod.default || autoTableMod.autoTable || autoTableMod;
 
-    const sessao = await pegarSessao();
-    const meta = sessao?.user?.user_metadata ?? {};
-    const adminNome = [meta.nome, meta.sobrenome].filter(Boolean).join(' ').trim()
-                   || sessao?.user?.email
-                   || '—';
+    const arr = dadosOrdenados();
+    const tot = calcularTotais(arr);
+    const { autor, quando } = await infoGeracao();
 
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const larg = doc.internal.pageSize.getWidth();
+    const alt  = doc.internal.pageSize.getHeight();
+    const M = 40;
 
-    // Cabeçalho — "logo" em texto Helvetica + linha musgo
+    // Faixa de marca no topo
+    doc.setFillColor(...PDF.ink);
+    doc.rect(0, 0, larg, 5, 'F');
+
+    // Wordmark + título
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 76, 58);  // musgo
-    doc.setFontSize(13);
-    doc.text('CAIXA BOTI', 40, 50);
-    doc.setLineWidth(0.6);
-    doc.setDrawColor(15, 76, 58);
-    doc.line(40, 56, 110, 56);
-
-    // Título do relatório (Times serifa pra estilo editorial)
-    doc.setFont('times', 'italic');
-    doc.setTextColor(26, 26, 26);
-    doc.setFontSize(18);
-    doc.text(`Relatório do período`, 40, 90);
+    doc.setFontSize(12);
+    doc.setTextColor(...PDF.ink);
+    doc.text('CAIXA BOTI', M, 44);
+    doc.setFontSize(17);
+    doc.text('Relatório do período', M, 70);
 
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(63, 63, 63);
     doc.setFontSize(10);
-    doc.text(`${formatarDataPt(estado.inicio)}  →  ${formatarDataPt(estado.fim)}`, 40, 108);
+    doc.setTextColor(...PDF.ink2);
+    doc.text(`${formatarDataPt(estado.inicio)}  até  ${formatarDataPt(estado.fim)}`, M, 87);
 
-    // Filtros aplicados
-    const linhasFiltros = [];
-    if (estado.categorias.length) {
-      linhasFiltros.push('Categorias: ' + estado.categorias.map(rotuloCategoria).join(', '));
-    }
-    if (estado.estados.length) {
-      linhasFiltros.push('Estados: ' + estado.estados.map(rotuloEstado).join(', '));
-    }
-    if (linhasFiltros.length === 0) linhasFiltros.push('Sem filtros adicionais');
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF.ink3);
+    doc.text(textoFiltros(), M, 101);
+    doc.text(`Gerado em ${quando} por ${autor}`, larg - M, 44, { align: 'right' });
 
-    doc.setFontSize(8.5);
-    doc.setTextColor(107, 107, 107);
-    linhasFiltros.forEach((t, i) => {
-      doc.text(t, 40, 124 + i * 11);
+    // Faixa de totais
+    const bandY = 114;
+    const bandH = 50;
+    const bandW = larg - M * 2;
+    doc.setFillColor(...PDF.surf2);
+    doc.roundedRect(M, bandY, bandW, bandH, 5, 5, 'F');
+    const segs = [
+      ['LANÇAMENTOS', tot.total.toLocaleString('pt-BR'), PDF.ink],
+      ['VALOR BRUTO', formatarMoeda(tot.bruto), PDF.ink],
+      ['LÍQUIDO', formatarMoeda(tot.liquido), PDF.accent],
+      ['FINALIZADO', formatarMoeda(tot.finalizado), PDF.warn],
+      ['CANCELADO', formatarMoeda(tot.cancelado), PDF.danger],
+    ];
+    const segW = bandW / segs.length;
+    segs.forEach(([rot, val, cor], i) => {
+      const x = M + i * segW;
+      if (i > 0) {
+        doc.setDrawColor(...PDF.border);
+        doc.setLineWidth(0.6);
+        doc.line(x, bandY + 10, x, bandY + bandH - 10);
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(...PDF.ink3);
+      doc.text(rot, x + 12, bandY + 19);
+      doc.setFontSize(11);
+      doc.setTextColor(...cor);
+      doc.text(String(val), x + 12, bandY + 37);
     });
 
-    // Geração
-    const dataGeracao = new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    }).format(new Date());
-    doc.text(`Gerado em ${dataGeracao} por ${adminNome}`, larg - 40, 50, { align: 'right' });
-
     // Tabela
-    const arr = dadosOrdenados();
-    const yInicial = 124 + linhasFiltros.length * 11 + 12;
-
+    const yInicial = bandY + bandH + 16;
     autoTable(doc, {
       startY: yInicial,
       head: [['Data', 'NF', 'Cliente', 'Valor', 'Categoria', 'Estado', 'Detalhes', 'Obs']],
@@ -564,65 +733,55 @@ async function baixarPDF() {
         l.resumo_dados || '',
         l.observacoes_qtd > 0 ? String(l.observacoes_qtd) : '',
       ]),
-      theme: 'plain',
+      theme: 'grid',
       styles: {
         font: 'helvetica',
         fontSize: 8,
-        cellPadding: { top: 4, bottom: 4, left: 6, right: 6 },
-        textColor: [40, 40, 40],
-        lineColor: [226, 215, 192],  // papel-3
-        lineWidth: 0.4,
+        cellPadding: { top: 4.5, bottom: 4.5, left: 6, right: 6 },
+        textColor: PDF.ink2,
+        lineColor: PDF.border,
+        lineWidth: 0.5,
       },
       headStyles: {
-        fillColor: [237, 229, 214],  // papel-2
-        textColor: [15, 76, 58],     // musgo
+        fillColor: PDF.surf2,
+        textColor: PDF.ink,
         fontSize: 7.5,
         fontStyle: 'bold',
       },
-      alternateRowStyles: { fillColor: [248, 244, 235] },
+      alternateRowStyles: { fillColor: [250, 250, 247] },
       columnStyles: {
-        0: { cellWidth: 52 },
-        1: { cellWidth: 56 },
-        3: { cellWidth: 58, halign: 'right' },
-        7: { cellWidth: 30, halign: 'right' },
+        0: { cellWidth: 50 },
+        1: { cellWidth: 54 },
+        3: { cellWidth: 60, halign: 'right', fontStyle: 'bold', textColor: PDF.ink },
+        7: { cellWidth: 28, halign: 'right' },
       },
-      margin: { top: yInicial, left: 40, right: 40, bottom: 60 },
+      margin: { left: M, right: M, bottom: 56 },
+      // Tinge a célula de categoria com a cor canônica.
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 4) {
+          const l = arr[data.row.index];
+          const cor = l && CAT_COR[l.categoria];
+          if (cor) {
+            data.cell.styles.fillColor = hexRgb(cor.bg);
+            data.cell.styles.textColor = hexRgb(cor.txt);
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      },
     });
 
-    // Sumário no fim do PDF
-    const valBruto = arr.reduce((s, l) => s + Number(l.valor_nf || 0), 0);
-    const valFinalizado = arr.filter(l => l.estado === 'finalizado').reduce((s, l) => s + Number(l.valor_nf || 0), 0);
-    const valCancelado = arr.filter(l => l.estado === 'cancelado' || l.estado === 'cancelado_pos').reduce((s, l) => s + Number(l.valor_nf || 0), 0);
-    const valLiquido = valBruto - valCancelado;
-
-    const yFim = doc.lastAutoTable?.finalY ?? yInicial;
-    let ySumario = yFim + 18;
-    const altPagina = doc.internal.pageSize.getHeight();
-    if (ySumario > altPagina - 80) {
-      doc.addPage();
-      ySumario = 60;
-    }
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(15, 76, 58);
-    doc.text('TOTAIS', 40, ySumario);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(40, 40, 40);
-    doc.text(`Lançamentos: ${arr.length.toLocaleString('pt-BR')}`, 40, ySumario + 14);
-    doc.text(`Valor bruto:    ${formatarMoeda(valBruto)}`, 40, ySumario + 28);
-    doc.text(`Líquido:        ${formatarMoeda(valLiquido)}`, 40, ySumario + 42);
-    doc.text(`Finalizado:    ${formatarMoeda(valFinalizado)}`, 40, ySumario + 56);
-    doc.text(`Cancelado:    ${formatarMoeda(valCancelado)}`, 40, ySumario + 70);
-
-    // Paginação no rodapé de cada página
+    // Rodapé em todas as páginas
     const totalPgs = doc.internal.getNumberOfPages();
     for (let p = 1; p <= totalPgs; p++) {
       doc.setPage(p);
+      doc.setDrawColor(...PDF.border);
+      doc.setLineWidth(0.6);
+      doc.line(M, alt - 40, larg - M, alt - 40);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(107, 107, 107);
-      doc.text(`Página ${p} de ${totalPgs}`, larg - 40, altPagina - 30, { align: 'right' });
-      doc.text('Caixa Boti', 40, altPagina - 30);
+      doc.setFontSize(7.5);
+      doc.setTextColor(...PDF.ink3);
+      doc.text('Caixa Boti · auditoria de caixa', M, alt - 27);
+      doc.text(`Página ${p} de ${totalPgs}`, larg - M, alt - 27, { align: 'right' });
     }
 
     doc.save(nomeArquivo('pdf'));
@@ -658,10 +817,10 @@ function gravarEstadoNaURL() {
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 function rotuloCategoria(c) {
-  return CATEGORIAS.find(x => x.v === c)?.rotulo || (c === 'em_analise' ? 'Em análise' : c);
+  return CATEGORIAS.find(x => x.v === c)?.rotulo || (c === 'em_analise' ? 'Em análise' : (c || '—'));
 }
 function rotuloEstado(s) {
-  return ESTADOS.find(x => x.v === s)?.rotulo || s;
+  return ESTADOS.find(x => x.v === s)?.rotulo || s || '—';
 }
 function formatarMoeda(n) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
@@ -670,6 +829,9 @@ function formatarDataPt(iso) {
   if (!iso) return '';
   const d = new Date(iso + 'T00:00');
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d);
+}
+function hexRgb(h) {
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 function primDiaMes(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function ultDiaMes(d)  { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
@@ -691,10 +853,7 @@ function baixar(blob, nome) {
   a.download = nome;
   document.body.appendChild(a);
   a.click();
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-    a.remove();
-  }, 0);
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
 }
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({

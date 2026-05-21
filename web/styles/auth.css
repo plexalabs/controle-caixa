@@ -1,184 +1,296 @@
-/* auth.css — Shell minimal centralizado para as 5 telas de auth.
-   Inspiração: Microsoft sign-in (uma decisão por tela, foco no card).
-   Identidade preservada: paleta papel/musgo/âmbar, Fraunces no título,
-   filete âmbar à esquerda do card (flat-left/round-right do projeto).
-
-   IMPORTANTE: o resto do sistema (dashboard, caixa, configurações)
-   continua editorial — este CSS só afeta as 5 rotas de auth. */
+/* auth.css — Telas de autenticação no design v2 "Clean Profissional".
+   Card único centralizado sobre o fundo creme do sistema, tokens --ui-*,
+   Manrope. Cobre as 5 rotas de auth (login, cadastro, confirmar,
+   recuperar, redefinir) — todas reusam estas classes .auth-*. */
 
 .auth-shell {
     min-height: 100vh;
-    /* Fundo papel cru chapado, idêntico ao dashboard/sidebar/cards.
-       Sem grão SVG (criava efeito "chiado de TV CRT" indesejado).
-       O destaque do card vem da claridade (#FFFCF7 vs papel) + sombra. */
-    background: var(--c-papel);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem 1rem;
-    gap: 0;
+    gap: 1.3rem;
+    padding: 2rem 1.1rem;
+    font-family: 'Manrope', -apple-system, system-ui, sans-serif;
+    color: var(--ui-ink);
+    /* Brilho verde suave no topo — atmosfera sem ruído. */
+    background:
+        radial-gradient(58rem 30rem at 50% -9rem, var(--ui-accent-soft), transparent 72%),
+        var(--ui-bg);
 }
 
-/* ─── Marca (símbolo + wordmark) — agora dentro do card ─── */
+/* ─── Card ───────────────────────────────────────────────────────────── */
+.auth-card {
+    width: 100%;
+    max-width: 24rem;
+    box-sizing: border-box;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    box-shadow:
+        0 1px 0 0 rgba(20, 20, 20, 0.02),
+        0 24px 56px -28px rgba(20, 30, 12, 0.28);
+    padding: 2.25rem 2.1rem 1.9rem;
+    animation: auth-rise 560ms var(--ui-ease) backwards;
+}
+.auth-card--lg { max-width: 30rem; }
+@media (max-width: 480px) {
+    .auth-card { padding: 1.75rem 1.35rem 1.5rem; border-radius: var(--ui-r-md); }
+}
+@keyframes auth-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Marca ──────────────────────────────────────────────────────────── */
 .auth-marca {
-    text-align: center;
-    margin: 0 0 1.4rem 0;
-    padding-bottom: 1.4rem;
-    border-bottom: 1px solid var(--c-papel-3);
-    animation: fade-up 600ms var(--ease-out) backwards;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 1.3rem;
+    margin-bottom: 1.4rem;
+    border-bottom: 1px solid var(--ui-border);
 }
 .auth-marca-simbolo {
-    width: 44px;
-    height: 44px;
-    /* Tom mais claro do musgo — leve, não pesa no topo do card */
-    background: var(--c-musgo-2);
+    width: 38px; height: 38px;
+    display: block;
+    background: var(--ui-accent);
     -webkit-mask: url(/assets/logo.svg) no-repeat center / contain;
             mask: url(/assets/logo.svg) no-repeat center / contain;
-    margin: 0 auto 0.55rem;
-    display: block;
-    opacity: 0.92;
-    transition: background 200ms var(--ease-out), opacity 200ms var(--ease-out);
 }
 .auth-marca-wordmark {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-weight: 400;
-    font-variation-settings: "opsz" 144, "SOFT" 50;
-    font-size: 1.5rem;
-    color: var(--c-tinta-2);
-    letter-spacing: -0.01em;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.018em;
+    color: var(--ui-ink);
     line-height: 1;
-    margin: 0;
 }
 
-/* ─── Card único ─── */
-/* Auth foge da regra flat-left/round-right do resto do sistema:
-   aqui é foco em foco único (um campo, uma decisão), e o filete reto
-   à esquerda destoa do tom minimal. Bordas totalmente arredondadas.
-   Card branco-quente sutil — mais claro que o fundo papel pra continuar
-   se destacando, sem virar branco genérico (#FFFCF7 mantém aquecimento). */
-.auth-card {
-    background: #FFFCF7;
-    border: 1px solid var(--c-papel-3);
-    border-radius: 18px;
-    box-shadow: 0 1px 0 0 rgba(26, 26, 26, 0.03),
-                0 20px 48px -24px rgba(15, 76, 58, 0.22);
-    width: 100%;
-    max-width: 420px;
-    padding: 2rem;
-    box-sizing: border-box;
-    animation: fade-up 700ms var(--ease-out) 80ms backwards;
+/* ─── Cabeçalho do card (eyebrow + título + sub) ─────────────────────── */
+.auth-cabec { margin-bottom: 1.5rem; }
+.auth-eyebrow {
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ui-accent);
+    margin: 0 0 0.4rem;
 }
-@media (max-width: 480px) {
-    .auth-card { padding: 1.5rem 1.25rem; }
-}
-
-/* Variante mais larga para a tela de cadastro (nome+sobrenome lado a lado) */
-.auth-card--lg {
-    max-width: 480px;
-}
-
-/* ─── Tipografia interna ─── */
 .auth-titulo {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-weight: 400;
-    font-variation-settings: "opsz" 144;
-    font-size: 1.55rem;
-    color: var(--c-tinta);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
     line-height: 1.15;
-    margin: 0 0 0.4rem 0;
+    margin: 0 0 0.4rem;
 }
 .auth-subtitulo {
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.9rem;
-    color: var(--c-tinta-3);
-    margin: 0 0 1.6rem 0;
+    font-size: 0.87rem;
+    color: var(--ui-ink-3);
     line-height: 1.55;
+    margin: 0;
 }
-.auth-subtitulo strong {
-    color: var(--c-tinta);
-    font-weight: 600;
+.auth-subtitulo strong { color: var(--ui-ink); font-weight: 600; }
+
+/* ─── Campos ─────────────────────────────────────────────────────────── */
+.auth-card .field { margin-bottom: 1rem; }
+.auth-card .field-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ui-ink-3);
+    margin-bottom: 0.4rem;
 }
+.auth-card .field-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.62rem 0.8rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    color: var(--ui-ink);
+    transition: border-color 150ms var(--ui-ease), box-shadow 150ms var(--ui-ease);
+}
+.auth-card .field-input:hover { border-color: var(--ui-border-strong); }
+.auth-card .field-input:focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.13);
+}
+.auth-card .field-input::placeholder { color: var(--ui-ink-4); }
+.auth-card .field-underline { display: none; }
 
-/* ─── Form: spacing consistente ─── */
-.auth-card form .field { margin-bottom: 1.05rem; }
-.auth-card form .field:last-of-type { margin-bottom: 0.4rem; }
-
-/* Grid 2 colunas (nome + sobrenome) — empilha em mobile */
+/* Grid nome + sobrenome */
 .auth-grid-2 {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0 1rem;
+    gap: 0 0.9rem;
 }
-@media (min-width: 480px) {
+@media (min-width: 440px) {
     .auth-grid-2 { grid-template-columns: 1fr 1fr; }
 }
 
-/* ─── Linha auxiliar ("esqueci a senha" alinhado à direita) ─── */
+/* ─── Campo de senha com botão olho ──────────────────────────────────── */
+.auth-senha { position: relative; }
+.auth-senha .field-input { padding-right: 2.7rem; }
+.auth-senha-olho {
+    position: absolute;
+    right: 0.3rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.1rem; height: 2.1rem;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: none;
+    color: var(--ui-ink-3);
+    border-radius: var(--ui-r-sm);
+    cursor: pointer;
+    transition: color 140ms var(--ui-ease), background 140ms var(--ui-ease);
+}
+.auth-senha-olho:hover { color: var(--ui-ink); background: var(--ui-surface-2); }
+.auth-senha-olho svg { width: 16px; height: 16px; }
+
+/* ─── Força da senha ─────────────────────────────────────────────────── */
+.senha-forca {
+    display: flex;
+    gap: 0.3rem;
+    margin-top: 0.55rem;
+}
+.senha-forca-barra {
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--ui-surface-3);
+    transition: background 220ms var(--ui-ease);
+}
+.senha-forca[data-nivel="1"] .senha-forca-barra:nth-child(1) { background: var(--ui-danger); }
+.senha-forca[data-nivel="2"] .senha-forca-barra:nth-child(-n+2) { background: var(--ui-warn); }
+.senha-forca[data-nivel="3"] .senha-forca-barra { background: var(--ui-accent); }
+.senha-forca-rotulo {
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    margin: 0.4rem 0 0;
+    line-height: 1.4;
+}
+.senha-forca-rotulo[data-nivel="1"] { color: var(--ui-danger); font-weight: 600; }
+.senha-forca-rotulo[data-nivel="2"] { color: var(--ui-warn);   font-weight: 600; }
+.senha-forca-rotulo[data-nivel="3"] { color: var(--ui-accent); font-weight: 700; }
+
+/* ─── Confirmação de senha (match) ───────────────────────────────────── */
+.match {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    margin: 0.4rem 0 0;
+}
+.match.hidden { display: none; }
+.match--ok   { color: var(--ui-accent); }
+.match--erro { color: var(--ui-danger); }
+
+/* ─── Linha auxiliar (Esqueci a senha) ───────────────────────────────── */
 .auth-aux {
     display: flex;
     justify-content: flex-end;
-    margin-top: -0.55rem;
-    margin-bottom: 0.85rem;
+    margin: -0.25rem 0 1rem;
 }
 .auth-aux a {
-    font-family: 'Manrope', sans-serif;
     font-size: 0.8rem;
-    color: var(--c-musgo);
+    font-weight: 600;
+    color: var(--ui-accent);
     text-decoration: none;
-    font-weight: 500;
-    transition: color 180ms var(--ease-out);
+    transition: color 150ms var(--ui-ease);
 }
-.auth-aux a:hover {
-    color: var(--c-musgo-3);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-}
+.auth-aux a:hover { color: var(--ui-accent-2); text-decoration: underline; text-underline-offset: 3px; }
 
-/* ─── Botão principal full-width dentro do card ─── */
+/* ─── Botão primário ─────────────────────────────────────────────────── */
 .auth-card .btn-primary {
     width: 100%;
-    margin-top: 1rem;
     justify-content: center;
+    margin-top: 0.4rem;
+    background: var(--ui-accent);
+    color: #fff;
+    border: 0;
+    border-radius: var(--ui-r-sm);
+    padding: 0.72rem 1rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: none;
+    transition: background 150ms var(--ui-ease), transform 80ms var(--ui-ease);
+}
+.auth-card .btn-primary:hover { background: var(--ui-accent-2); }
+.auth-card .btn-primary:active { transform: translateY(1px); }
+.auth-card .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-card .btn-primary[aria-busy="true"] { color: transparent; }
+.auth-card .btn-primary[aria-busy="true"]::after {
+    border-color: rgba(255, 255, 255, 0.5);
+    border-top-color: #fff;
 }
 
-/* ─── Rodapé do card (link secundário centralizado) ─── */
+/* ─── Rodapé do card ─────────────────────────────────────────────────── */
 .auth-rodape {
     text-align: center;
-    margin: 1.4rem 0 0 0;
-    padding-top: 1.1rem;
-    border-top: 1px solid var(--c-papel-3);
-    font-family: 'Manrope', sans-serif;
+    margin: 1.4rem 0 0;
+    padding-top: 1.15rem;
+    border-top: 1px solid var(--ui-border);
     font-size: 0.85rem;
-    color: var(--c-tinta-3);
+    color: var(--ui-ink-3);
 }
 .auth-rodape a {
-    color: var(--c-musgo);
-    font-weight: 600;
+    color: var(--ui-accent);
+    font-weight: 700;
     text-decoration: none;
-    transition: color 180ms var(--ease-out);
+    transition: color 150ms var(--ui-ease);
 }
-.auth-rodape a:hover {
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    color: var(--c-musgo-3);
-}
+.auth-rodape a:hover { color: var(--ui-accent-2); text-decoration: underline; text-underline-offset: 3px; }
 
-/* ─── Footer da página (copyright, fora do card) ─── */
+/* ─── Rodapé da página ───────────────────────────────────────────────── */
 .auth-footer {
-    margin-top: 1.8rem;
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.7rem;
-    color: var(--c-tinta-3);
+    font-size: 0.66rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.16em;
+    color: var(--ui-ink-4);
     text-align: center;
-    animation: fade-up 700ms var(--ease-out) 200ms backwards;
 }
 
-/* ─── OTP: ajuste do grid para caber confortável no card ─── */
+/* ─── Alertas dentro do card ─────────────────────────────────────────── */
+.auth-card .alert {
+    background: var(--ui-danger-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
+    border-left: 3px solid var(--ui-danger);
+    color: var(--ui-danger);
+    border-radius: var(--ui-r-sm);
+    padding: 0.7rem 0.85rem;
+    font-size: 0.83rem;
+    line-height: 1.45;
+    margin: 0.2rem 0 0.6rem;
+}
+.auth-card .alert.hidden { display: none; }
+.auth-card .alert a {
+    color: var(--ui-danger);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.auth-card .alert--info {
+    background: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 22%, var(--ui-border));
+    border-left-color: var(--ui-accent);
+    color: var(--ui-accent-2);
+}
+.auth-card .alert--info a { color: var(--ui-accent-2); }
+
+/* ─── OTP (confirmar / redefinir) ────────────────────────────────────── */
 .auth-card .otp-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
@@ -187,69 +299,50 @@
 }
 .auth-card .otp-input {
     width: 100%;
-    aspect-ratio: 1 / 1.15;
-    text-align: center;
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 1.2rem;
-    font-variant-numeric: tabular-nums;
-    border: 1.5px solid var(--c-papel-3);
-    border-radius: 8px;
-    background: var(--c-papel);
-    color: var(--c-tinta);
-    transition: border-color 180ms var(--ease-out),
-                background 180ms var(--ease-out);
-    padding: 0;
     min-width: 0;
+    aspect-ratio: 1 / 1.1;
+    text-align: center;
+    font-family: 'Manrope', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    border: 1.5px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    padding: 0;
+    transition: border-color 150ms var(--ui-ease), background 150ms var(--ui-ease);
 }
 .auth-card .otp-input:focus {
-    outline: none;
-    border-color: var(--c-musgo);
-    background: var(--c-papel);
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.13);
 }
 .auth-card .otp-input.otp-input--preenchido {
-    background: rgba(15, 76, 58, 0.06);
-    border-color: var(--c-musgo);
-    color: var(--c-musgo-3);
+    background: var(--ui-accent-soft);
+    border-color: var(--ui-accent);
+    color: var(--ui-accent-2);
 }
 .auth-card .otp-input.otp-input--erro {
-    border-color: var(--c-alerta);
-    background: var(--c-alerta-bg);
-    animation: shake 360ms var(--ease-out);
+    border-color: var(--ui-danger);
+    background: var(--ui-danger-soft);
+    animation: auth-shake 360ms var(--ui-ease);
 }
 @media (max-width: 420px) {
     .auth-card .otp-grid { gap: 0.3rem; }
     .auth-card .otp-input { font-size: 1rem; }
 }
-
-/* Override: alerts dentro do auth-card ficam arredondados pra harmonizar
-   com a estética minimal. No resto do sistema o .alert mantém flat-left. */
-.auth-card .alert {
-    border-radius: 10px;
-    border-left-width: 0;
-    border-top: 1px solid var(--c-alerta);
-    padding: 0.7rem 0.9rem;
-}
-.auth-card .alert--info {
-    border-top-color: var(--c-musgo);
-}
-
-/* Bloco enviado (recuperar) — dentro do card */
-.auth-bloco-enviado {
-    text-align: center;
-    padding: 0.4rem 0 0;
-}
-.auth-bloco-enviado .alert {
-    margin-bottom: 1.2rem;
-    text-align: left;
-}
-
-@keyframes shake {
+@keyframes auth-shake {
     0%, 100% { transform: translateX(0); }
     25%      { transform: translateX(-4px); }
     75%      { transform: translateX(4px); }
 }
 
+/* Bloco enviado (recuperar) */
+.auth-bloco-enviado { text-align: center; padding: 0.2rem 0 0; }
+.auth-bloco-enviado .alert { margin-bottom: 1.1rem; text-align: left; }
+
 @media (prefers-reduced-motion: reduce) {
-    .auth-marca, .auth-card, .auth-footer { animation: none; }
+    .auth-card { animation: none; }
+    .auth-card .otp-input.otp-input--erro { animation: none; }
 }

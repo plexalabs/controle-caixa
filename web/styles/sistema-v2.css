@@ -1,0 +1,457 @@
+/* sistema-v2.css — Tela /configuracoes/sistema refator v2.
+   Parâmetros internos divididos em ABAS, um grupo por aba. Cada
+   parâmetro é um cartão: boolean alterna no próprio cartão; número /
+   horário abrem um editor em modal. Namespace .sst-*. */
+
+.sst {
+    max-width: 50rem;
+    margin: 0 auto;
+    padding: 1.75rem 1.75rem 3.5rem;
+    color: var(--ui-ink);
+}
+@media (max-width: 767px) { .sst { padding: 1.1rem 1rem 2.5rem; } }
+
+.sst-voltar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    text-decoration: none;
+    margin-bottom: 1rem;
+    transition: color 140ms var(--ui-ease);
+}
+.sst-voltar:hover { color: var(--ui-ink); }
+.sst-voltar svg { width: 13px; height: 13px; }
+
+/* ─── Cabeçalho (com ícone do grupo) ────────────────────────────────── */
+.sst-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 1.1rem;
+}
+.sst-header-icone {
+    width: 2.8rem; height: 2.8rem;
+    border-radius: var(--ui-r-md);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+}
+.sst-header-icone svg { width: 20px; height: 20px; }
+.sst-header[data-tom="accent"] .sst-header-icone { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.sst-header[data-tom="info"]   .sst-header-icone { background: var(--ui-info-soft);   color: var(--ui-info); }
+.sst-header[data-tom="warn"]   .sst-header-icone { background: var(--ui-warn-soft);   color: var(--ui-warn); }
+.sst-header[data-tom="ink"]    .sst-header-icone { background: var(--ui-surface-3);   color: var(--ui-ink); }
+.sst-header[data-tom="danger"] .sst-header-icone { background: var(--ui-danger-soft); color: var(--ui-danger); }
+.sst-header-txt { min-width: 0; }
+.sst-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ui-accent);
+    margin: 0 0 0.35rem;
+}
+.sst-title {
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    margin: 0 0 0.4rem;
+    line-height: 1.15;
+}
+.sst-sub {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    max-width: 40rem;
+    line-height: 1.5;
+}
+
+/* ─── Aviso ─────────────────────────────────────────────────────────── */
+.sst-aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: var(--ui-warn-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-warn) 22%, var(--ui-border));
+    border-left: 3px solid var(--ui-warn);
+    border-radius: var(--ui-r-sm);
+    padding: 0.7rem 0.9rem;
+    margin-bottom: 1.4rem;
+    font-size: 0.82rem;
+    color: var(--ui-ink-2);
+    line-height: 1.5;
+}
+.sst-aviso svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--ui-warn); margin-top: 0.05rem; }
+.sst-aviso strong { color: var(--ui-warn); font-weight: 700; }
+
+/* ─── Grupos empilhados ─────────────────────────────────────────────── */
+.sst-grupo { margin-bottom: 1.9rem; scroll-margin-top: 5rem; }
+.sst-grupo:last-child { margin-bottom: 0; }
+.sst-grupo-cabec {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+.sst-grupo-icone {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: var(--ui-r-md);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+}
+.sst-grupo-icone svg { width: 17px; height: 17px; }
+.sst-grupo-titulo {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.018em;
+    margin: 0.05rem 0 0.2rem;
+}
+.sst-grupo-desc {
+    font-size: 0.82rem;
+    color: var(--ui-ink-3);
+    line-height: 1.45;
+    margin: 0;
+}
+.sst-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+/* Tom do grupo — tinge o ícone do cabeçalho e os ícones dos cartões */
+.sst-grupo[data-tom="accent"] .sst-grupo-icone,
+.sst-item[data-tom="accent"]  .sst-item-icone { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.sst-grupo[data-tom="info"]   .sst-grupo-icone,
+.sst-item[data-tom="info"]    .sst-item-icone { background: var(--ui-info-soft);   color: var(--ui-info); }
+.sst-grupo[data-tom="warn"]   .sst-grupo-icone,
+.sst-item[data-tom="warn"]    .sst-item-icone { background: var(--ui-warn-soft);   color: var(--ui-warn); }
+.sst-grupo[data-tom="ink"]    .sst-grupo-icone,
+.sst-item[data-tom="ink"]     .sst-item-icone { background: var(--ui-surface-3);   color: var(--ui-ink); }
+
+/* ─── Cartão de parâmetro ───────────────────────────────────────────── */
+.sst-item {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.95rem 1.05rem;
+    animation: sst-fade-up 420ms var(--ui-ease) backwards;
+}
+.sst-item-icone {
+    width: 2.4rem; height: 2.4rem;
+    border-radius: var(--ui-r-sm);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+}
+.sst-item-icone svg { width: 16px; height: 16px; }
+@keyframes sst-fade-up {
+    from { opacity: 0; transform: translateY(7px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.sst-item--clicavel { cursor: pointer; transition: border-color 150ms var(--ui-ease), box-shadow 150ms var(--ui-ease); }
+.sst-item--clicavel:hover { border-color: var(--ui-border-strong); box-shadow: var(--ui-shadow-sm); }
+.sst-item--clicavel:focus-visible { outline: 0; border-color: var(--ui-ink); box-shadow: 0 0 0 3px rgba(40,62,6,0.12); }
+
+.sst-item-corpo { flex: 1; min-width: 0; }
+.sst-item-titulo {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.012em;
+    margin: 0;
+}
+.sst-item-desc {
+    font-size: 0.81rem;
+    color: var(--ui-ink-3);
+    line-height: 1.45;
+    margin: 0.25rem 0 0;
+}
+.sst-item-audit {
+    font-size: 0.71rem;
+    color: var(--ui-ink-4);
+    margin: 0.4rem 0 0;
+}
+
+/* Valor + lápis (number / time / date / text) */
+.sst-item-valor {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.sst-valor-num {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--ui-ink);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+.sst-valor-unid { font-size: 0.78rem; color: var(--ui-ink-3); }
+.sst-valor-lapis {
+    width: 1.9rem; height: 1.9rem;
+    border-radius: var(--ui-r-sm);
+    display: grid;
+    place-items: center;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+    flex-shrink: 0;
+    transition: background 150ms var(--ui-ease), color 150ms var(--ui-ease);
+}
+.sst-item--clicavel:hover .sst-valor-lapis { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.sst-valor-lapis svg { width: 13px; height: 13px; }
+
+/* ─── Switch (boolean) ──────────────────────────────────────────────── */
+.sst-bool {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-shrink: 0;
+}
+.sst-bool-rotulo {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    text-align: right;
+    max-width: 7rem;
+    line-height: 1.3;
+}
+.sst-switch {
+    position: relative;
+    width: 44px; height: 26px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.sst-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.sst-switch-trilho {
+    position: absolute;
+    inset: 0;
+    background: var(--ui-surface-3);
+    border-radius: 999px;
+    transition: background 180ms var(--ui-ease);
+}
+.sst-switch-dot {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 20px; height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 180ms var(--ui-ease);
+}
+.sst-switch input:checked ~ .sst-switch-trilho { background: var(--ui-accent); }
+.sst-switch input:checked ~ .sst-switch-trilho .sst-switch-dot { transform: translateX(18px); }
+.sst-switch input:focus-visible ~ .sst-switch-trilho { box-shadow: 0 0 0 3px rgba(40,62,6,0.18); }
+
+/* ─── Vazio / skeleton / restrito ───────────────────────────────────── */
+.sst-skel { display: flex; flex-direction: column; gap: 0.6rem; }
+.sst-skel-item {
+    height: 5rem;
+    border-radius: var(--ui-r-md);
+    background: linear-gradient(100deg,
+        var(--ui-surface-2) 30%, var(--ui-surface-3) 50%, var(--ui-surface-2) 70%);
+    background-size: 200% 100%;
+    animation: sst-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes sst-shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+}
+.sst-erro {
+    background: var(--ui-danger-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
+    border-left: 3px solid var(--ui-danger);
+    color: var(--ui-danger);
+    border-radius: var(--ui-r-sm);
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+}
+.sst-restrito {
+    max-width: 30rem;
+    margin: 3rem auto;
+    text-align: center;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    padding: 2.5rem 1.5rem;
+}
+.sst-restrito-title { font-size: 1.1rem; font-weight: 700; color: var(--ui-ink); margin: 0 0 0.4rem; }
+.sst-restrito-msg { font-size: 0.88rem; color: var(--ui-ink-3); margin: 0; }
+
+/* ════════════════════════════════════════════════════════════════════
+   Editores em modal (number / time / date / text)
+   ════════════════════════════════════════════════════════════════════ */
+.sst-modal-desc {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    line-height: 1.55;
+    margin: 0 0 1.3rem;
+}
+
+/* ── NUMBER ── */
+.sst-num-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+.sst-num-btn {
+    width: 3rem; height: 3rem;
+    border-radius: 50%;
+    border: 1px solid var(--ui-border);
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 150ms var(--ui-ease), border-color 150ms var(--ui-ease);
+}
+.sst-num-btn:hover:not(:disabled) { background: var(--ui-accent-soft); border-color: var(--ui-accent); color: var(--ui-accent); }
+.sst-num-btn:disabled { opacity: 0.35; cursor: default; }
+.sst-num-btn svg { width: 20px; height: 20px; }
+.sst-num-display { display: flex; flex-direction: column; align-items: center; min-width: 6rem; }
+.sst-num-input {
+    width: 100%;
+    border: 0;
+    background: none;
+    text-align: center;
+    font-family: inherit;
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+}
+.sst-num-input::-webkit-outer-spin-button,
+.sst-num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sst-num-input:focus { outline: 0; }
+.sst-num-unidade { font-size: 0.82rem; font-weight: 600; color: var(--ui-ink-3); }
+.sst-num-range {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.3rem;
+    font-size: 0.72rem;
+    color: var(--ui-ink-3);
+    font-variant-numeric: tabular-nums;
+}
+.sst-num-range input[type="range"] { flex: 1; accent-color: var(--ui-accent); cursor: pointer; }
+.sst-num-sugestoes {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 1.3rem;
+}
+.sst-num-sugestoes-rot {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ui-ink-3);
+    margin-right: 0.2rem;
+}
+.sst-num-sug {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.35rem 0.7rem;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ui-ink-2);
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease), border-color 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.sst-num-sug:hover { background: var(--ui-surface-2); border-color: var(--ui-border-strong); }
+.sst-num-sug.is-ativo {
+    background: var(--ui-accent);
+    border-color: var(--ui-accent);
+    color: #fff;
+}
+.sst-num-sug-unid { font-weight: 400; opacity: 0.8; }
+
+/* ── TIME ── */
+.sst-time-editor {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.6rem;
+}
+.sst-time-grupo { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+.sst-time-btn {
+    width: 2.6rem; height: 2.2rem;
+    border-radius: var(--ui-r-sm);
+    border: 1px solid var(--ui-border);
+    background: var(--ui-surface);
+    color: var(--ui-ink-3);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.sst-time-btn:hover { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.sst-time-grupo input {
+    width: 3.6rem;
+    text-align: center;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    background: var(--ui-surface);
+    font-family: inherit;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--ui-ink);
+    padding: 0.3rem 0;
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+}
+.sst-time-grupo input::-webkit-outer-spin-button,
+.sst-time-grupo input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sst-time-grupo input:focus { outline: 0; border-color: var(--ui-ink); box-shadow: 0 0 0 3px rgba(40,62,6,0.12); }
+.sst-time-rot {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ui-ink-3);
+}
+.sst-time-sep {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--ui-ink-4);
+    align-self: center;
+    margin-top: 1.6rem;
+}
+.sst-time-sufixo {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--ui-ink-3);
+    margin: 1rem 0 0;
+}
+
+/* ── TEXT ── */
+.sst-text-contador {
+    text-align: right;
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    margin: 0.35rem 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sst-item { animation: none; }
+    .sst-skel-item { animation: none; }
+}

@@ -1,0 +1,169 @@
+/* configuracoes-v2.css — Hub /configuracoes refator v2 "Clean
+   Profissional". Namespace .cfg-*. Cartões verticais, generosos, um
+   por módulo — ícone, categoria, título e descrição empilhados.
+   Tokens --ui-*. */
+
+.cfg {
+    max-width: 58rem;
+    margin: 0 auto;
+    padding: 1.75rem 1.75rem 3.5rem;
+    color: var(--ui-ink);
+}
+@media (max-width: 767px) {
+    .cfg { padding: 1.1rem 1rem 2.5rem; }
+}
+
+/* ─── Cabeçalho ─────────────────────────────────────────────────────── */
+.cfg-header { margin-bottom: 1.6rem; }
+.cfg-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ui-accent);
+    margin: 0 0 0.35rem;
+}
+.cfg-title {
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    margin: 0 0 0.4rem;
+    line-height: 1.15;
+}
+.cfg-sub {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    max-width: 40rem;
+    line-height: 1.5;
+}
+
+/* ─── Grade de módulos — cartões verticais ──────────────────────────── */
+.cfg-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+}
+@media (max-width: 640px) { .cfg-grid { grid-template-columns: 1fr; } }
+
+.cfg-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    padding: 1.4rem 1.35rem 1.45rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 170ms var(--ui-ease), box-shadow 170ms var(--ui-ease), transform 170ms var(--ui-ease);
+    animation: cfg-fade-up 440ms var(--ui-ease) backwards;
+}
+.cfg-card:hover {
+    border-color: var(--ui-border-strong);
+    box-shadow: var(--ui-shadow-md);
+    transform: translateY(-2px);
+}
+.cfg-card:focus-visible {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.12);
+}
+
+@keyframes cfg-fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Topo do cartão — ícone grande à esquerda, seta à direita */
+.cfg-card-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.05rem;
+}
+.cfg-card-icone {
+    width: 3.1rem; height: 3.1rem;
+    border-radius: var(--ui-r-md);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+}
+.cfg-card-icone svg { width: 22px; height: 22px; }
+.cfg-card[data-tom="accent"] .cfg-card-icone { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.cfg-card[data-tom="info"]   .cfg-card-icone { background: var(--ui-info-soft);   color: var(--ui-info); }
+.cfg-card[data-tom="warn"]   .cfg-card-icone { background: var(--ui-warn-soft);   color: var(--ui-warn); }
+.cfg-card[data-tom="danger"] .cfg-card-icone { background: var(--ui-danger-soft); color: var(--ui-danger); }
+.cfg-card[data-tom="ink"]    .cfg-card-icone { background: var(--ui-surface-3);   color: var(--ui-ink); }
+
+.cfg-card-seta {
+    color: var(--ui-ink-4);
+    display: inline-flex;
+    margin-top: 0.55rem;
+    transition: transform 170ms var(--ui-ease), color 170ms var(--ui-ease);
+}
+.cfg-card-seta svg { width: 21px; height: 13px; }
+.cfg-card:hover .cfg-card-seta { color: var(--ui-accent); transform: translateX(4px); }
+
+/* Texto — categoria, título, descrição */
+.cfg-card-eyebrow {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-ink-4);
+    margin: 0 0 0.32rem;
+}
+.cfg-card-titulo {
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.018em;
+    margin: 0 0 0.42rem;
+    line-height: 1.2;
+}
+.cfg-card-desc {
+    font-size: 0.86rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    line-height: 1.55;
+}
+
+/* ─── Rodapé — papel do usuário ─────────────────────────────────────── */
+.cfg-rodape {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+    padding: 0.8rem 1rem;
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    font-size: 0.83rem;
+    color: var(--ui-ink-3);
+    line-height: 1.45;
+}
+.cfg-rodape strong { color: var(--ui-ink); font-weight: 700; }
+.cfg-rodape-icone {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    color: var(--ui-ink-3);
+}
+.cfg-rodape-icone svg { width: 16px; height: 16px; }
+.cfg-rodape[data-admin="1"] .cfg-rodape-icone {
+    background: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 30%, var(--ui-border));
+    color: var(--ui-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cfg-card { animation: none; }
+    .cfg-card:hover { transform: none; }
+}

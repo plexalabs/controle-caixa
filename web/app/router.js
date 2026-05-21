@@ -13,14 +13,15 @@ import { renderCaixaFechar }   from './pages/caixa-fechar.js';
 import { renderConfiguracoes } from './pages/configuracoes.js';
 import { renderVendedoras }    from './pages/configuracoes-vendedoras.js';
 import { renderUsuarios }      from './pages/configuracoes-usuarios.js';
-import { renderPermissoes }    from './pages/configuracoes-permissoes.js';
 import { renderFeriados }      from './pages/configuracoes-feriados.js';
 import { renderSistema }       from './pages/configuracoes-sistema.js';
 import { renderAuditoria }     from './pages/configuracoes-auditoria.js';
+import { renderLixeira }       from './pages/configuracoes-lixeira.js';
 import { renderForaDoHorario } from './pages/fora-do-horario.js';
 import { dentroDaJanela }      from './janela.js';
 import { renderDemoVisual }    from './pages/demo-visual.js';
 import { renderDemoModal }     from './pages/demo-modal.js';
+import { renderDemoLogo }      from './pages/demo-logo.js';
 import { renderRelatorios }    from './pages/relatorios.js';
 import { renderPendencias }    from './pages/pendencias.js';
 import { renderNotificacoes }  from './pages/notificacoes.js';
@@ -48,10 +49,12 @@ const rotas = [
   { padrao: /^\/configuracoes$/,              handler: renderConfiguracoes },
   { padrao: /^\/configuracoes\/vendedoras$/,  handler: renderVendedoras },
   { padrao: /^\/configuracoes\/usuarios$/,    handler: renderUsuarios },
-  { padrao: /^\/configuracoes\/permissoes$/,  handler: renderPermissoes },
+  { padrao: /^\/configuracoes\/permissoes$/,  handler: renderUsuarios },
   { padrao: /^\/configuracoes\/feriados$/,    handler: renderFeriados },
-  { padrao: /^\/configuracoes\/sistema$/,     handler: renderSistema },
+  { padrao: /^\/configuracoes\/sistema$/,         handler: renderSistema },
+  { padrao: /^\/configuracoes\/sistema\/[\w-]+$/, handler: renderSistema },
   { padrao: /^\/configuracoes\/auditoria$/,   handler: renderAuditoria },
+  { padrao: /^\/configuracoes\/lixeira$/,     handler: renderLixeira },
   { padrao: /^\/relatorios$/,                 handler: renderRelatorios },
   { padrao: /^\/pendencias$/,                 handler: renderPendencias },
   { padrao: /^\/notificacoes$/,               handler: renderNotificacoes },
@@ -60,6 +63,7 @@ const rotas = [
   { padrao: /^\/fora-do-horario$/,            handler: renderForaDoHorario, aberta: true },
   { padrao: /^\/demo-visual$/,                handler: renderDemoVisual,    aberta: true },
   { padrao: /^\/demo-modal$/,                 handler: renderDemoModal,     aberta: true },
+  { padrao: /^\/demo-logo$/,                  handler: renderDemoLogo,      aberta: true },
   // Catch-all editorial — sempre o último. Se chegou aqui é 404.
   { padrao: /.*/,                              handler: renderErro404, aberta: true },
 ];
@@ -82,7 +86,7 @@ export async function despachar() {
   // GATE da janela operacional: fora do horario, redireciona TUDO pra
   // /fora-do-horario (exceto a propria pagina + /erros/404 pra evitar loop).
   // /demo-visual tambem fica fora — e sandbox de teste.
-  if (url !== '/fora-do-horario' && url !== '/erros/404' && url !== '/demo-visual' && url !== '/demo-modal') {
+  if (url !== '/fora-do-horario' && url !== '/erros/404' && url !== '/demo-visual' && url !== '/demo-modal' && url !== '/demo-logo') {
     if (!(await dentroDaJanela())) {
       return navegar('/fora-do-horario');
     }

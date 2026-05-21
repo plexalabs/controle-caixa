@@ -54,11 +54,11 @@ export function renderTopbar() {
       </form>
 
       <div class="tb-actions">
-        <a href="/notificacoes" data-link class="tb-icon" id="tb-bell"
-           aria-label="Notificações">
+        <button type="button" class="tb-icon" id="tb-bell"
+                aria-label="Notificações" aria-haspopup="dialog" aria-expanded="false">
           ${svgBell()}
           <span class="tb-icon-dot" id="tb-bell-dot" hidden></span>
-        </a>
+        </button>
         <a href="/caixa/hoje" data-link class="tb-btn tb-btn--primary"
            id="tb-cta" data-tone="primary">
           ${svgPlus()} <span class="tb-cta-label">Abrir caixa</span>

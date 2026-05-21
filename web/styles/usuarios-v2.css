@@ -1,0 +1,735 @@
+/* usuarios-v2.css — Tela /configuracoes/usuarios refator v2.
+   Mescla "Usuários" e "Permissões" numa página só, com duas abas.
+   Namespace .usp-*. Tokens --ui-*. */
+
+.usp {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 1.75rem 1.75rem 3.5rem;
+    color: var(--ui-ink);
+}
+@media (max-width: 767px) {
+    .usp { padding: 1.1rem 1rem 2.5rem; }
+}
+
+.usp-voltar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    text-decoration: none;
+    margin-bottom: 1rem;
+    transition: color 140ms var(--ui-ease);
+}
+.usp-voltar:hover { color: var(--ui-ink); }
+.usp-voltar svg { width: 13px; height: 13px; }
+
+/* ─── Cabeçalho ─────────────────────────────────────────────────────── */
+.usp-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+.usp-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ui-accent);
+    margin: 0 0 0.35rem;
+}
+.usp-title {
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    margin: 0 0 0.4rem;
+    line-height: 1.15;
+}
+.usp-sub {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    max-width: 40rem;
+    line-height: 1.5;
+}
+.usp-novo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--ui-accent);
+    border: 1px solid var(--ui-accent);
+    border-radius: var(--ui-r-sm);
+    padding: 0.6rem 1.05rem;
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease);
+}
+.usp-novo:hover { background: var(--ui-accent-2); border-color: var(--ui-accent-2); }
+.usp-novo[hidden] { display: none; }
+.usp-novo svg { width: 14px; height: 14px; }
+
+/* ─── Abas ──────────────────────────────────────────────────────────── */
+.usp-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--ui-border);
+    margin-bottom: 1.4rem;
+}
+.usp-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 0.95rem;
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    cursor: pointer;
+    transition: color 150ms var(--ui-ease), border-color 150ms var(--ui-ease);
+}
+.usp-tab:hover { color: var(--ui-ink-2); }
+.usp-tab[aria-selected="true"] {
+    color: var(--ui-ink);
+    border-bottom-color: var(--ui-accent);
+}
+.usp-tab svg { width: 15px; height: 15px; }
+.usp-tab-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+    padding: 0.06rem 0.42rem;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+}
+.usp-tab[aria-selected="true"] .usp-tab-num {
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent);
+}
+
+/* ─── Lista ─────────────────────────────────────────────────────────── */
+.usp-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.usp-fade { animation: usp-fade-up 420ms var(--ui-ease) backwards; }
+@keyframes usp-fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Cartão de usuário ── */
+.usp-user {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    overflow: hidden;
+}
+.usp-user.is-aberto { border-color: var(--ui-border-strong); }
+.usp-user-cabec {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    width: 100%;
+    background: none;
+    border: 0;
+    padding: 0.9rem 1.05rem;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease);
+}
+.usp-user-cabec:hover { background: var(--ui-surface-2); }
+.usp-user-avatar {
+    width: 2.6rem; height: 2.6rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    background: var(--ui-accent);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.usp-user[data-super="true"] .usp-user-avatar { background: var(--ui-ink); }
+.usp-user-corpo { flex: 1; min-width: 0; display: block; }
+.usp-user-topo {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+.usp-user-email {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.012em;
+    overflow-wrap: anywhere;
+}
+.usp-user-meta {
+    display: block;
+    font-size: 0.79rem;
+    color: var(--ui-ink-3);
+    margin: 0.18rem 0 0;
+}
+.usp-user-meta strong { color: var(--ui-ink-2); font-weight: 600; }
+.usp-user-meta .usp-sem { font-style: italic; color: var(--ui-ink-4); }
+.usp-user-det {
+    border-top: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    padding: 0.95rem 1.05rem;
+}
+
+/* ── Cartão de perfil ── */
+.usp-perfil {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    overflow: hidden;
+}
+.usp-perfil.is-aberto { border-color: var(--ui-border-strong); }
+.usp-perfil-cabec {
+    display: block;
+    width: 100%;
+    background: none;
+    border: 0;
+    padding: 1rem 1.1rem;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease);
+}
+.usp-perfil-cabec:hover { background: var(--ui-surface-2); }
+.usp-perfil-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+.usp-perfil-id {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.usp-perfil-nome {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.015em;
+}
+.usp-perfil-meta {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--ui-ink-3);
+    margin: 0.3rem 0 0;
+}
+.usp-perfil-meta strong {
+    color: var(--ui-ink);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.usp-perfil-sep { color: var(--ui-ink-4); margin: 0 0.15rem; }
+.usp-perfil-desc {
+    display: block;
+    font-size: 0.83rem;
+    color: var(--ui-ink-3);
+    line-height: 1.5;
+    margin: 0.5rem 0 0;
+}
+
+/* Chevron de expandir (perfil e usuário) */
+.usp-chevron {
+    flex-shrink: 0;
+    color: var(--ui-ink-4);
+    display: inline-flex;
+    transition: transform 220ms var(--ui-ease), color 160ms var(--ui-ease);
+}
+.usp-chevron svg { width: 16px; height: 16px; display: block; }
+.is-aberto .usp-chevron { transform: rotate(180deg); color: var(--ui-ink-2); }
+
+/* Painel de detalhes inline (perfil e usuário) */
+.usp-perfil-det {
+    border-top: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    padding: 0.95rem 1.1rem;
+}
+.usp-det-acoes {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--ui-border);
+}
+.usp-det-linha {
+    font-size: 0.83rem;
+    color: var(--ui-ink-2);
+    margin: 0.2rem 0 0;
+}
+.usp-det-linha strong { color: var(--ui-ink); font-weight: 700; }
+.usp-det-bloco { margin-bottom: 1rem; }
+.usp-det-titulo {
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ui-accent);
+    margin: 0 0 0.55rem;
+}
+.usp-det-modulo { margin-bottom: 0.7rem; }
+.usp-det-modulo-nome {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--ui-ink-2);
+    margin: 0 0 0.3rem;
+}
+.usp-det-perms { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.usp-det-perms li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--ui-ink-2);
+}
+.usp-det-users { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.usp-det-users li {
+    font-size: 0.78rem;
+    color: var(--ui-ink-2);
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.2rem 0.55rem;
+}
+.usp-det-users .usp-det-extras { color: var(--ui-accent); font-weight: 700; }
+.usp-det-vazio { font-size: 0.82rem; color: var(--ui-ink-3); font-style: italic; margin: 0; }
+.usp-det-rodape {
+    font-size: 0.74rem;
+    color: var(--ui-ink-4);
+    margin: 0.6rem 0 0;
+}
+
+/* ─── Badges ────────────────────────────────────────────────────────── */
+.usp-badge {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.16rem 0.5rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.usp-badge--super    { background: var(--ui-ink);         color: var(--ui-bg); }
+.usp-badge--eu       { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.usp-badge--sistema  { background: var(--ui-surface-3);   color: var(--ui-ink-2); }
+.usp-badge--custom   { background: var(--ui-info-soft);   color: var(--ui-info); }
+.usp-badge--destrutiva {
+    background: var(--ui-danger-soft);
+    color: var(--ui-danger);
+    font-size: 0.56rem;
+}
+
+/* ─── Botões de ação ────────────────────────────────────────────────── */
+.usp-btn {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.4rem 0.8rem;
+    font-family: inherit;
+    font-size: 0.79rem;
+    font-weight: 600;
+    color: var(--ui-ink-2);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 140ms var(--ui-ease), border-color 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.usp-btn:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border-strong);
+    color: var(--ui-ink);
+}
+.usp-btn--perigo:hover {
+    background: var(--ui-danger-soft);
+    border-color: color-mix(in srgb, var(--ui-danger) 35%, var(--ui-border));
+    color: var(--ui-danger);
+}
+.usp-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: var(--ui-surface);
+}
+.usp-btn:disabled:hover {
+    background: var(--ui-surface);
+    border-color: var(--ui-border);
+    color: var(--ui-ink-2);
+}
+
+/* ─── Vazio / skeleton / erro ───────────────────────────────────────── */
+.usp-vazio {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: var(--ui-surface);
+    border: 1px dashed var(--ui-border);
+    border-radius: var(--ui-r-lg);
+}
+.usp-vazio-icone {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 0.9rem;
+}
+.usp-vazio-icone svg { width: 22px; height: 22px; }
+.usp-vazio-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin: 0 0 0.4rem;
+}
+.usp-vazio-msg {
+    font-size: 0.88rem;
+    color: var(--ui-ink-3);
+    margin: 0 auto;
+    line-height: 1.55;
+    max-width: 26rem;
+}
+.usp-skel { display: flex; flex-direction: column; gap: 0.6rem; }
+.usp-skel-item {
+    height: 4.4rem;
+    border-radius: var(--ui-r-md);
+    background: linear-gradient(100deg,
+        var(--ui-surface-2) 30%, var(--ui-surface-3) 50%, var(--ui-surface-2) 70%);
+    background-size: 200% 100%;
+    animation: usp-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes usp-shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+}
+.usp-erro {
+    background: var(--ui-danger-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
+    border-left: 3px solid var(--ui-danger);
+    color: var(--ui-danger);
+    border-radius: var(--ui-r-sm);
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+}
+.usp-restrito {
+    max-width: 30rem;
+    margin: 3rem auto;
+    text-align: center;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-lg);
+    padding: 2.5rem 1.5rem;
+}
+.usp-restrito-title { font-size: 1.1rem; font-weight: 700; color: var(--ui-ink); margin: 0 0 0.4rem; }
+.usp-restrito-msg { font-size: 0.88rem; color: var(--ui-ink-3); margin: 0; }
+
+/* ════════════════════════════════════════════════════════════════════
+   Componentes dentro dos drawers / modais
+   ════════════════════════════════════════════════════════════════════ */
+
+.usp-sec { margin-bottom: 1.4rem; }
+.usp-sec:last-child { margin-bottom: 0; }
+.usp-sec-titulo {
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--ui-accent);
+    margin: 0 0 0.55rem;
+}
+
+/* Bloco somente-leitura (identidade) */
+.usp-readonly {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.85rem 1rem;
+}
+.usp-readonly-rotulo {
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ui-ink-3);
+    margin: 0 0 0.15rem;
+}
+.usp-readonly-rotulo:not(:first-child) { margin-top: 0.7rem; }
+.usp-readonly-valor {
+    font-size: 0.88rem;
+    color: var(--ui-ink);
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Código (mono) */
+.usp-codigo {
+    font-family: 'Manrope', monospace;
+    font-size: 0.78rem;
+    background: var(--ui-surface-3);
+    color: var(--ui-ink-2);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+
+/* Dica abaixo de um campo */
+.usp-hint {
+    font-size: 0.76rem;
+    color: var(--ui-ink-3);
+    line-height: 1.45;
+    margin: 0.4rem 0 0;
+}
+
+/* Permissões extras — item */
+.usp-extra {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.65rem 0.8rem;
+    margin-bottom: 0.5rem;
+}
+.usp-extra-cabec {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
+}
+.usp-extra-desc { font-size: 0.82rem; color: var(--ui-ink-2); margin: 0; line-height: 1.45; }
+.usp-extra-motivo {
+    font-size: 0.78rem;
+    color: var(--ui-ink-2);
+    margin: 0.35rem 0 0;
+    padding-left: 0.6rem;
+    border-left: 2px solid var(--ui-border);
+    font-style: italic;
+    line-height: 1.45;
+}
+.usp-extra-rodape { font-size: 0.72rem; color: var(--ui-ink-4); margin: 0.35rem 0 0; }
+.usp-extra-vazio {
+    font-size: 0.82rem;
+    color: var(--ui-ink-3);
+    font-style: italic;
+    margin: 0;
+    padding: 0.4rem 0;
+}
+.usp-extra-revogar {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--ui-danger);
+    cursor: pointer;
+}
+.usp-extra-revogar:hover { text-decoration: underline; }
+
+/* Checklist de permissões agrupado por módulo (<details>) */
+.usp-fold {
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+.usp-fold-sum {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--ui-surface-2);
+    cursor: pointer;
+    list-style: none;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+}
+.usp-fold-sum::-webkit-details-marker { display: none; }
+.usp-fold-cont {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ui-ink-3);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 999px;
+    padding: 0.08rem 0.5rem;
+    font-variant-numeric: tabular-nums;
+}
+.usp-perms {
+    list-style: none;
+    margin: 0;
+    padding: 0.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.usp-perm {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.45rem 0.5rem;
+    border-radius: var(--ui-r-sm);
+    cursor: pointer;
+    transition: background 120ms var(--ui-ease);
+}
+.usp-perm:hover { background: var(--ui-surface-2); }
+.usp-perm input { margin-top: 0.15rem; flex-shrink: 0; accent-color: var(--ui-accent); }
+.usp-perm-corpo { min-width: 0; flex: 1; }
+.usp-perm-desc {
+    font-size: 0.78rem;
+    color: var(--ui-ink-2);
+    line-height: 1.4;
+    margin: 0.15rem 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .usp-fade { animation: none; }
+    .usp-skel-item { animation: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Modais de criar/editar — amplos e centralizados (66rem × 82vh, como
+   o modal de lançamento). Split: preview/contexto à esquerda, form à
+   direita.
+   ════════════════════════════════════════════════════════════════════ */
+.usp-modal {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+.usp-modal-split {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+}
+.usp-modal-aside {
+    border-right: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    overflow-y: auto;
+    min-height: 0; min-width: 0;
+    padding: 1.7rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+.usp-modal-corpo {
+    overflow-y: auto;
+    min-height: 0; min-width: 0;
+    padding: 1.5rem 1.6rem;
+}
+.usp-modal-corpo .usp-sec:last-child { margin-bottom: 0; }
+@media (max-width: 720px) {
+    .usp-modal-split { grid-template-columns: 1fr; grid-template-rows: none; }
+    .usp-modal-aside { border-right: 0; border-bottom: 1px solid var(--ui-border); }
+}
+
+.usp-modal-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+}
+.usp-modal-av {
+    width: 4.6rem; height: 4.6rem;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    box-shadow: var(--ui-shadow-md);
+}
+.usp-modal-av[data-super="true"] { background: var(--ui-ink); }
+.usp-modal-av svg { width: 26px; height: 26px; }
+.usp-modal-prev-nome {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.usp-modal-prev-nome.is-vazio { color: var(--ui-ink-3); font-style: italic; font-weight: 500; }
+.usp-modal-prev-sub {
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    overflow-wrap: anywhere;
+    min-height: 1em;
+}
+.usp-modal-prev-badges {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 0.1rem;
+}
+.usp-modal-metrica {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.8rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    align-items: center;
+}
+.usp-modal-metrica-num {
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+}
+.usp-modal-metrica-lab { font-size: 0.72rem; font-weight: 600; color: var(--ui-ink-3); }
+.usp-modal-nota {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.9rem 1rem;
+}
+.usp-modal-nota-titulo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-accent);
+    margin: 0 0 0.5rem;
+}
+.usp-modal-nota-txt { font-size: 0.79rem; color: var(--ui-ink-3); line-height: 1.6; margin: 0; }

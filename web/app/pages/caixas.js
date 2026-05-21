@@ -22,6 +22,10 @@ let cacheCaixas = null;
 let cachePendencias = null;
 
 export async function renderCaixas() {
+  // Mobile: tela enxuta — só o filtro e a lista de caixas. O painel
+  // lateral de resumo de pendências fica fora (há a tela dedicada).
+  const ehMobile = window.innerWidth < 768;
+
   document.querySelector('#app').innerHTML = await renderShell({
     rotaAtiva: 'caixas',
     conteudo: `
@@ -58,6 +62,7 @@ export async function renderCaixas() {
           ${listaSkel()}
         </section>
 
+        ${ehMobile ? '' : `
         <aside class="cx2-painel" aria-label="Resumo de pendências">
           <article class="cx2-painel-card">
             <header class="cx2-painel-head">
@@ -68,7 +73,7 @@ export async function renderCaixas() {
               ${painelSkel()}
             </div>
           </article>
-        </aside>
+        </aside>`}
       </div>
     </main>
     `,
@@ -78,7 +83,7 @@ export async function renderCaixas() {
   ligarFiltros();
   await Promise.all([
     carregarCaixas(),
-    carregarPainelPendencias(),
+    ehMobile ? Promise.resolve() : carregarPainelPendencias(),
   ]);
 }
 

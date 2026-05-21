@@ -9,7 +9,7 @@
 
 import { supabase, pegarSessao } from '../app/supabase.js';
 import { navegar } from '../app/router.js';
-import { carregarPermissoes, temPermissaoSync, pegarPapeis } from '../app/papeis.js';
+import { pegarPapeis } from '../app/papeis.js';
 
 let popoverAtual = null;
 let escListener  = null;
@@ -37,13 +37,9 @@ export async function abrirUserMenu({ onSair } = {}) {
                     || email.split('@')[0]
                     || 'Operador';
   const inicial = ((meta.nome?.[0] || email?.[0]) || '?').toUpperCase();
+  const avatarUrl = meta.avatar_url || '';
 
-  // Permissoes + papel
-  await carregarPermissoes();
-  const podeAdmin       = temPermissaoSync('usuario.visualizar');
-  const podeAuditoria   = temPermissaoSync('auditoria.visualizar');
-  const podeConfig      = podeAdmin; // simplificacao
-
+  // Papel (para o selo super)
   const papeis = await pegarPapeis();
   const ehSuper = papeis?.includes('super_admin');
 
@@ -60,7 +56,9 @@ export async function abrirUserMenu({ onSair } = {}) {
     } catch (_) {}
   }
 
-  const trigger = document.querySelector('#sb-user');
+  // Gatilho: botão do usuário da sidebar principal OU da sidebar de
+  // configurações — o que estiver presente.
+  const trigger = document.querySelector('#sb-user') || document.querySelector('#sbc-user');
   if (!trigger) return;
   trigger.setAttribute('aria-expanded', 'true');
 
@@ -71,13 +69,13 @@ export async function abrirUserMenu({ onSair } = {}) {
 
   pop.innerHTML = `
     <header class="um-head">
-      <div class="um-avatar" aria-hidden="true">${esc(inicial)}</div>
+      <div class="um-avatar" aria-hidden="true">${avatarUrl ? `<img src="${esc(avatarUrl)}" alt="" />` : esc(inicial)}</div>
       <div class="um-meta">
-        <div class="um-nome">
-          ${esc(nomeCompleto)}
+        <div class="um-nome">${esc(nomeCompleto)}</div>
+        <div class="um-cargo">
+          <span class="um-cargo-texto">${esc(cargo)}</span>
           ${ehSuper ? `<span class="um-badge" title="Super administrador">${ICONS.star} super</span>` : ''}
         </div>
-        <div class="um-cargo">${esc(cargo)}</div>
       </div>
       <button type="button" class="um-email" data-acao="copiar-email" title="Copiar e-mail">
         <span class="um-email-texto">${esc(email)}</span>
@@ -86,22 +84,8 @@ export async function abrirUserMenu({ onSair } = {}) {
     </header>
 
     <div class="um-group" role="none">
-      ${itemMenu({ rotulo: 'Seu perfil',       icone: ICONS.perfil, href: '/perfil' })}
-      ${podeConfig
-        ? itemMenu({ rotulo: 'Configurações', icone: ICONS.gear,   href: '/configuracoes' })
-        : ''}
+      ${itemMenu({ rotulo: 'Seu perfil', icone: ICONS.perfil, href: '/perfil' })}
     </div>
-
-    ${(podeAdmin || podeAuditoria) ? `
-      <div class="um-group" role="none">
-        ${podeAdmin
-          ? itemMenu({ rotulo: 'Usuários e papéis', icone: ICONS.shield, href: '/configuracoes/usuarios' })
-          : ''}
-        ${podeAuditoria
-          ? itemMenu({ rotulo: 'Auditoria & Lixeira', icone: ICONS.audit, href: '/configuracoes/auditoria' })
-          : ''}
-      </div>
-    ` : ''}
 
     <div class="um-group" role="none">
       ${itemMenu({ rotulo: 'Ajuda', icone: ICONS.help, placeholder: 'em breve' })}
@@ -171,32 +155,22 @@ function fecharUserMenu() {
   escListener = null;
   cliqueForaListener = null;
 
-  document.querySelector('#sb-user')?.setAttribute('aria-expanded', 'false');
+  document.querySelector('#sb-user, #sbc-user')?.setAttribute('aria-expanded', 'false');
 }
 
+// Posiciona o popover SUBINDO a partir do topo do trigger (que fica no
+// rodapé da sidebar). Usa a propriedade `bottom`, então o popover cresce
+// pra cima sem precisar medir a própria altura — e nunca estoura a parte
+// de baixo da tela (que era o bug do posicionamento antigo).
 function posicionar(pop, trigger) {
   const r = trigger.getBoundingClientRect();
   const popW = 300;
   const margem = 8;
-  const ehMobile = window.innerWidth < 768;
 
-  // Por padrao: sai pra direita do trigger (na altura do trigger,
-  // alinhado pelo bottom). Mobile/sem espaco: sobe alinhado ao trigger.
-  let left = r.right + margem;
-  let top  = r.top;
-  let direcao = 'lateral';
-
-  if (ehMobile || (left + popW > window.innerWidth - margem)) {
-    // Sobe alinhado a esquerda do trigger
-    left = Math.max(margem, Math.min(r.left, window.innerWidth - popW - margem));
-    top  = r.top - margem;
-    direcao = 'acima';
-    pop.style.transform = 'translateY(-100%)';
-  }
-
-  pop.dataset.direcao = direcao;
-  pop.style.left = `${left}px`;
-  pop.style.top  = `${top}px`;
+  const left = Math.max(margem, Math.min(r.left, window.innerWidth - popW - margem));
+  pop.style.left   = `${left}px`;
+  pop.style.top    = 'auto';
+  pop.style.bottom = `${Math.max(margem, window.innerHeight - r.top + margem)}px`;
 }
 
 function itemMenu({ rotulo, icone, href, acao, tom, placeholder }) {

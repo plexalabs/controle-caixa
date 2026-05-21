@@ -1,31 +1,51 @@
-// notification-bell.js — Badge de notificações não-lidas (CP5-FIX).
-// Agora é só um contador realtime: lê de `notificacao` filtrando por
-// usuário (ou broadcast), atualiza o elemento-slot e re-faz a contagem
-// em INSERT/UPDATE/DELETE. O drawer antigo foi descontinuado — cliques
-// em "Notificações" da sidebar levam para /notificacoes (tela paginada
-// completa). Mantemos `montarSino` / `desmontarSino` na API pois a
-// sidebar chama estes nomes.
+// notification-bell.js — Sino de notificações do topo.
 //
-// CP-NOTIF-PUSH (Fase 2): em INSERT que chega via realtime, se o
-// browser tem permission concedida E a aba não está visível, dispara
-// uma notification do sistema operacional (Notifications API). Click
-// na notification foca a aba e leva pra /notificacoes (router resolve).
+// Responsabilidades:
+//  1. Contagem realtime de não-lidas → pinta o badge da sidebar
+//     (#sidebar-bell-badge) e o pontinho do sino na topbar (#tb-bell-dot).
+//  2. Popup do sino: clicar em #tb-bell abre um painel ancorado no sino,
+//     com as notificações recentes em lista rolável + atalho "ver todas".
+//  3. Fase 2 do push: em INSERT via realtime, se a aba está em background
+//     e há permissão, dispara uma Notification do sistema operacional.
+//
+// API preservada: montarSino() / desmontarSino() — a sidebar chama estes.
 
 import { supabase, pegarSessao } from '../app/supabase.js';
+import { navegar } from '../app/router.js';
+import { destinoNotificacao, enriquecerNotificacoes } from '../app/notificacao-router.js';
 
 let canalBell = null;
-let slotSel   = '#sidebar-bell-badge';
 let uidAtual  = null;
+let popAberto = false;
+let itensPop  = [];
+let escListener = null;
+let foraListener = null;
+
+const SVG = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`;
+const ICON_SINO = `<svg ${SVG}><path d="M3 6a5 5 0 0 1 10 0v3l1.5 2H1.5L3 9V6Z"/><path d="M6 13a2 2 0 0 0 4 0"/></svg>`;
 
 export async function montarSino(opcoes = {}) {
-  if (opcoes.slotBadge) slotSel = opcoes.slotBadge;
+  void opcoes;
+  fecharPop();
   const sessao = await pegarSessao();
   uidAtual = sessao?.user?.id || null;
   await atualizarContagem();
   ligarRealtime();
+
+  // Liga o sino da topbar — clicar abre/fecha o popup.
+  const bell = document.querySelector('#tb-bell');
+  if (bell && !bell.dataset.ligado) {
+    bell.dataset.ligado = '1';
+    bell.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePop();
+    });
+  }
 }
 
 export function desmontarSino() {
+  fecharPop();
   if (canalBell) {
     supabase.removeChannel(canalBell).catch(() => {});
     canalBell = null;
@@ -33,31 +53,29 @@ export function desmontarSino() {
   uidAtual = null;
 }
 
+// ─── Contagem ────────────────────────────────────────────────────────
 async function atualizarContagem() {
   const sessao = await pegarSessao();
   const uid = sessao?.user?.id;
   if (!uid) return;
-
   const { count, error } = await supabase
     .from('notificacao')
     .select('id', { count: 'exact', head: true })
     .or(`usuario_destino.eq.${uid},usuario_destino.is.null`)
     .is('lida_em', null)
     .is('descartada_em', null);
-
-  if (error) {
-    console.warn('[bell] contagem falhou:', error.message);
-    return;
-  }
-
+  if (error) { console.warn('[bell] contagem falhou:', error.message); return; }
   pintar(count ?? 0);
 }
 
 function pintar(n) {
-  const slot = document.querySelector(slotSel);
-  if (!slot) return;
-  slot.dataset.zero = n === 0 ? 'true' : 'false';
-  slot.textContent = n > 99 ? '99+' : String(n);
+  const badge = document.querySelector('#sidebar-bell-badge');
+  if (badge) {
+    badge.dataset.zero = n === 0 ? 'true' : 'false';
+    badge.textContent = n > 99 ? '99+' : String(n);
+  }
+  const dot = document.querySelector('#tb-bell-dot');
+  if (dot) dot.hidden = n === 0;
 }
 
 function ligarRealtime() {
@@ -67,43 +85,158 @@ function ligarRealtime() {
         { event: '*', schema: 'public', table: 'notificacao' },
         (payload) => {
           atualizarContagem();
-          // Em INSERT, considera disparar Notification do SO
-          if (payload.eventType === 'INSERT') {
-            tentarDispararNotificacaoSO(payload.new);
-          }
+          if (popAberto) carregarItensPop();
+          if (payload.eventType === 'INSERT') tentarDispararNotificacaoSO(payload.new);
         })
     .subscribe();
 }
 
-/**
- * Dispara `new Notification()` se:
- *  - Notifications API suportada
- *  - Permission === 'granted'
- *  - Aba está em background (document.visibilityState !== 'visible')
- *  - Notificação é pro usuário atual ou broadcast (usuario_destino IS NULL)
- *
- * Click na notificação OS foca a aba e abre /notificacoes (a tela
- * resolve o destino baseado na notificação clicada).
- */
+// ─── Popup do sino ───────────────────────────────────────────────────
+function togglePop() {
+  if (popAberto) fecharPop();
+  else abrirPop();
+}
+
+function abrirPop() {
+  const bell = document.querySelector('#tb-bell');
+  if (!bell || popAberto) return;
+
+  const pop = document.createElement('div');
+  pop.className = 'bellpop';
+  pop.id = 'bellpop';
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', 'Notificações');
+  pop.innerHTML = `
+    <header class="bellpop-head">
+      <span class="bellpop-titulo">Notificações</span>
+    </header>
+    <div class="bellpop-lista" id="bellpop-lista">
+      <div class="bellpop-vazio">Carregando…</div>
+    </div>
+    <a href="/notificacoes" data-link class="bellpop-rodape" id="bellpop-todas">
+      Ver todas as notificações
+      <svg ${SVG}><path d="M3 8h9M9 4l4 4-4 4"/></svg>
+    </a>`;
+
+  document.body.appendChild(pop);
+  posicionarPop(pop, bell);
+  popAberto = true;
+  bell.setAttribute('aria-expanded', 'true');
+  requestAnimationFrame(() => pop.classList.add('is-open'));
+
+  pop.querySelector('#bellpop-todas')?.addEventListener('click', () => fecharPop());
+
+  escListener = (e) => { if (e.key === 'Escape') fecharPop(); };
+  foraListener = (e) => {
+    if (!pop.contains(e.target) && !bell.contains(e.target)) fecharPop();
+  };
+  document.addEventListener('keydown', escListener);
+  setTimeout(() => document.addEventListener('mousedown', foraListener), 0);
+  window.addEventListener('resize', fecharPop, { once: true });
+
+  carregarItensPop();
+}
+
+function fecharPop() {
+  const pop = document.querySelector('#bellpop');
+  popAberto = false;
+  document.querySelector('#tb-bell')?.setAttribute('aria-expanded', 'false');
+  if (escListener) { document.removeEventListener('keydown', escListener); escListener = null; }
+  if (foraListener) { document.removeEventListener('mousedown', foraListener); foraListener = null; }
+  if (!pop) return;
+  pop.classList.remove('is-open');
+  pop.classList.add('is-closing');
+  setTimeout(() => pop.remove(), 160);
+}
+
+function posicionarPop(pop, bell) {
+  const r = bell.getBoundingClientRect();
+  const W = 340;
+  const margem = 10;
+  let left = r.right - W;                 // alinha a borda direita ao sino
+  left = Math.max(margem, Math.min(left, window.innerWidth - W - margem));
+  pop.style.left = `${left}px`;
+  pop.style.top  = `${r.bottom + 8}px`;
+}
+
+async function carregarItensPop() {
+  const lista = document.querySelector('#bellpop-lista');
+  if (!lista) return;
+  const sessao = await pegarSessao();
+  const uid = sessao?.user?.id;
+  if (!uid) { lista.innerHTML = `<div class="bellpop-vazio">Sessão inválida.</div>`; return; }
+
+  const { data, error } = await supabase
+    .from('notificacao')
+    .select('id, tipo, severidade, titulo, mensagem, lancamento_id, caixa_id, lida_em, criada_em')
+    .or(`usuario_destino.eq.${uid},usuario_destino.is.null`)
+    .is('descartada_em', null)
+    .order('criada_em', { ascending: false })
+    .limit(12);
+
+  if (error) { lista.innerHTML = `<div class="bellpop-vazio">Não foi possível carregar.</div>`; return; }
+  if (!data || !data.length) {
+    lista.innerHTML = `
+      <div class="bellpop-vazio">
+        <span class="bellpop-vazio-icone" aria-hidden="true">${ICON_SINO}</span>
+        Nenhuma notificação por aqui.
+      </div>`;
+    return;
+  }
+
+  itensPop = await enriquecerNotificacoes(data, supabase);
+  lista.innerHTML = itensPop.map(itemHtml).join('');
+  lista.querySelectorAll('[data-bell-id]').forEach(el => {
+    el.addEventListener('click', () => abrirItem(el.dataset.bellId));
+  });
+}
+
+function itemHtml(n) {
+  const lida = !!n.lida_em;
+  const tom = n.severidade === 'urgente' ? 'danger'
+            : n.severidade === 'aviso'   ? 'warn'
+            : 'info';
+  return `
+    <button type="button" class="bellpop-item" data-bell-id="${esc(n.id)}" data-lida="${lida}">
+      <span class="bellpop-item-dot" data-tom="${tom}" aria-hidden="true"></span>
+      <span class="bellpop-item-corpo">
+        <span class="bellpop-item-topo">
+          <span class="bellpop-item-titulo">${esc(n.titulo)}</span>
+          <time class="bellpop-item-tempo">${tempoRel(n.criada_em)}</time>
+        </span>
+        <span class="bellpop-item-msg">${esc(n.mensagem)}</span>
+      </span>
+    </button>`;
+}
+
+async function abrirItem(id) {
+  const n = itensPop.find(x => x.id === id);
+  if (!n) return;
+  if (!n.lida_em) {
+    supabase.from('notificacao')
+      .update({ lida_em: new Date().toISOString() })
+      .eq('id', id)
+      .then(() => atualizarContagem());
+  }
+  fecharPop();
+  const { url, motivo } = destinoNotificacao(n);
+  navegar(motivo === 'ok' && url ? url : '/notificacoes');
+}
+
+// ─── Notification API do SO (push fase 2) ────────────────────────────
 function tentarDispararNotificacaoSO(notif) {
   if (typeof Notification === 'undefined') return;
   if (Notification.permission !== 'granted') return;
   if (document.visibilityState === 'visible') return;
-  // Filtra por destino (mesma lógica das queries do feed)
   if (notif.usuario_destino && notif.usuario_destino !== uidAtual) return;
 
-  const titulo = notif.titulo || 'Caixa Boti';
-  const corpo = notif.mensagem || '';
-  const sev = notif.severidade || 'info';
-
   try {
-    const n = new Notification(titulo, {
-      body: corpo,
+    const n = new Notification(notif.titulo || 'Caixa Boti', {
+      body: notif.mensagem || '',
       icon: '/assets/logo.svg',
       badge: '/assets/logo.svg',
-      tag:  `notif-${notif.tipo || 'geral'}`,  // mesmo tipo se substitui (não acumula)
-      requireInteraction: sev === 'urgente',
-      silent: false,
+      tag:  `notif-${notif.tipo || 'geral'}`,
+      requireInteraction: (notif.severidade || 'info') === 'urgente',
       data: { url: '/notificacoes', notifId: notif.id },
     });
     n.onclick = () => {
@@ -117,4 +250,23 @@ function tentarDispararNotificacaoSO(notif) {
   } catch (e) {
     console.warn('[bell] notification SO falhou:', e.message);
   }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+function tempoRel(ts) {
+  if (!ts) return '';
+  const min = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  if (min < 1)  return 'agora';
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24)   return `${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 30)   return `${d} d`;
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date(ts));
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
 }

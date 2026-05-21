@@ -1,29 +1,36 @@
-// login.js — Tela /login (rebrand 2026-05-02).
-// Shell minimal centralizado (estilo Microsoft sign-in) com identidade
-// editorial preservada: paleta papel/musgo/âmbar, Fraunces no título,
-// filete âmbar à esquerda do card. Lógica de auth INTACTA — só HTML mudou.
+// login.js — Tela /login (refator visual v2 "Clean Profissional").
+// Card único centralizado, tokens --ui-*, Manrope. Lógica de auth
+// INTACTA — só o HTML e o visual mudaram. Campo de senha com botão
+// mostrar/ocultar.
 
 import { entrarComSenha } from '../auth.js';
 import { navegar }        from '../router.js';
 import { validarEmail }   from '../utils.js';
 
+const ICON_OLHO = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-4.6 7-4.6S15 8 15 8s-2.6 4.6-7 4.6S1 8 1 8Z"/><circle cx="8" cy="8" r="2.1"/></svg>`;
+const ICON_OLHO_OFF = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-4.6 7-4.6S15 8 15 8s-2.6 4.6-7 4.6S1 8 1 8Z"/><circle cx="8" cy="8" r="2.1"/><path d="M2.4 2.4l11.2 11.2"/></svg>`;
+
 export function renderLogin() {
-  const params      = new URLSearchParams(location.search);
-  // Preserva ?next= (CP-PRE-DEPLOY-1) e tolera o legado ?proximo=.
-  // Aceita só caminhos relativos começando em "/" — bloqueia open redirect.
+  const params  = new URLSearchParams(location.search);
+  // Preserva ?next= (e tolera o legado ?proximo=). Só caminhos relativos
+  // começando em "/" — bloqueia open redirect.
   const nextRaw = params.get('next') || params.get('proximo') || '';
   const proximo = nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : '/dashboard';
-  const emailInicio = params.get('email')   || '';
+  const emailInicio = params.get('email') || '';
 
   document.querySelector('#app').innerHTML = `
     <div id="main" class="auth-shell">
       <main class="auth-card" aria-labelledby="auth-titulo">
         <header class="auth-marca">
           <span class="auth-marca-simbolo" aria-hidden="true"></span>
-          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+          <span class="auth-marca-wordmark">Caixa Boti</span>
         </header>
-        <h2 id="auth-titulo" class="auth-titulo">Entrar</h2>
-        <p class="auth-subtitulo">Use seu email e senha para acessar o caderno de auditoria.</p>
+
+        <div class="auth-cabec">
+          <p class="auth-eyebrow">Acesso</p>
+          <h1 id="auth-titulo" class="auth-titulo">Entrar</h1>
+          <p class="auth-subtitulo">Use seu email e senha para acessar o caderno de auditoria.</p>
+        </div>
 
         <form id="form-login" novalidate>
           <div class="field">
@@ -32,14 +39,16 @@ export function renderLogin() {
                    required value="${emailInicio.replace(/"/g, '&quot;')}"
                    placeholder="voce@plexalabs.com"
                    class="field-input" aria-describedby="erro-form" />
-            <span class="field-underline" aria-hidden="true"></span>
           </div>
 
           <div class="field">
             <label class="field-label" for="senha">Senha</label>
-            <input id="senha" name="senha" type="password" autocomplete="current-password"
-                   required minlength="8" class="field-input" />
-            <span class="field-underline" aria-hidden="true"></span>
+            <div class="auth-senha">
+              <input id="senha" name="senha" type="password" autocomplete="current-password"
+                     required minlength="8" class="field-input" />
+              <button type="button" class="auth-senha-olho" data-alvo="senha"
+                      aria-label="Mostrar senha">${ICON_OLHO}</button>
+            </div>
           </div>
 
           <div class="auth-aux">
@@ -48,19 +57,11 @@ export function renderLogin() {
 
           <div id="erro-form" role="alert" aria-live="polite" class="hidden alert"></div>
 
-          <button id="btn-entrar" type="submit" class="btn-primary">
-            Entrar
-          </button>
+          <button id="btn-entrar" type="submit" class="btn-primary">Entrar</button>
         </form>
 
         <p class="auth-rodape">
           Não tem conta? <a href="/cadastro" data-link>Criar conta</a>
-        </p>
-
-        <p class="auth-rodape" style="margin-top:0.5rem;font-size:0.78rem;opacity:0.7">
-          <a href="/demo-visual" data-link style="color:#15803D;text-decoration:underline;text-underline-offset:3px">
-            Ver demo do novo visual →
-          </a>
         </p>
       </main>
 
@@ -68,16 +69,18 @@ export function renderLogin() {
     </div>
   `;
 
+  ligarOlhoSenha();
+
   // ─── Comportamento ──────────────────────────────────────────────────
-  const form  = document.querySelector('#form-login');
-  const btn   = document.querySelector('#btn-entrar');
-  const erro  = document.querySelector('#erro-form');
+  const form = document.querySelector('#form-login');
+  const btn  = document.querySelector('#btn-entrar');
+  const erro = document.querySelector('#erro-form');
 
   // Foca no email se vazio, na senha se já preenchido.
   setTimeout(() => {
     if (emailInicio) document.querySelector('#senha')?.focus();
     else             document.querySelector('#email')?.focus();
-  }, 480);
+  }, 420);
 
   function mostrarErro(html) {
     erro.classList.remove('hidden');
@@ -110,7 +113,7 @@ export function renderLogin() {
     btn.disabled = false;
 
     if (!r.ok) {
-      // Caso especial: email não confirmado → oferece atalho para a tela de OTP.
+      // Email não confirmado → oferece atalho para a tela de OTP.
       if (r.mensagem === 'EMAIL_NAO_CONFIRMADO') {
         return mostrarErro(`
           Confirme seu email antes de entrar.
@@ -120,8 +123,20 @@ export function renderLogin() {
       return mostrarErro(r.mensagem);
     }
 
-    // Sessão criada — vai para a rota seguinte (default /dashboard).
     navegar(proximo);
   });
 }
 
+// Liga os botões de mostrar/ocultar senha (todos os .auth-senha-olho).
+export function ligarOlhoSenha() {
+  document.querySelectorAll('.auth-senha-olho').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = document.querySelector('#' + btn.dataset.alvo);
+      if (!inp) return;
+      const mostrar = inp.type === 'password';
+      inp.type = mostrar ? 'text' : 'password';
+      btn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+      btn.innerHTML = mostrar ? ICON_OLHO_OFF : ICON_OLHO;
+    });
+  });
+}

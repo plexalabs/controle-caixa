@@ -96,7 +96,10 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    max-height: 82vh;
+    /* Altura FIXA — o modal live (.modal-card--amplo) usa exatamente
+       a mesma medida, então os dois abrem idênticos. As colunas rolam
+       internamente. */
+    height: 82vh;
 }
 
 /* Cabeçalho */
@@ -150,6 +153,9 @@
 .dmm-corpo {
     display: grid;
     grid-template-columns: 1fr 2fr;
+    /* Linha única que preenche a altura fixa do modal — colunas com
+       altura definida pra o scroll interno funcionar. */
+    grid-template-rows: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
 }
@@ -157,6 +163,8 @@
     border-right: 1px solid var(--ui-border);
     background: var(--ui-surface-2);
     overflow-y: auto;
+    min-height: 0;
+    min-width: 0;
     padding: 1.1rem 1.2rem;
     display: flex;
     flex-direction: column;
@@ -165,6 +173,8 @@
 .dmm-esq--dividida { gap: 0.85rem; }
 .dmm-dir {
     overflow-y: auto;
+    min-height: 0;
+    min-width: 0;
     padding: 1.1rem 1.5rem 1.4rem;
     display: flex;
     flex-direction: column;
@@ -584,6 +594,7 @@
 [data-leitura][hidden], [data-edicao][hidden] { display: none; }
 
 @media (max-width: 720px) {
-    .dmm-corpo { grid-template-columns: 1fr; }
+    .dmm { height: auto; max-height: 90vh; }
+    .dmm-corpo { grid-template-columns: 1fr; grid-template-rows: none; }
     .dmm-esq { border-right: 0; border-bottom: 1px solid var(--ui-border); }
 }

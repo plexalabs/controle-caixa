@@ -1,10 +1,13 @@
-// cadastro.js — Tela /cadastro (rebrand 2026-05-02).
-// Shell minimal centralizado com card mais largo (auth-card--lg) pra
-// acomodar nome+sobrenome lado a lado. Lógica de validação intacta.
+// cadastro.js — Tela /cadastro (refator visual v2 "Clean Profissional").
+// Card único centralizado (variante --lg para nome+sobrenome lado a
+// lado), tokens --ui-*, Manrope. Lógica de validação INTACTA.
 
 import { cadastrar }       from '../auth.js';
 import { navegar }         from '../router.js';
 import { validarEmail, validarSenha, debounce } from '../utils.js';
+import { ligarOlhoSenha }  from './login.js';
+
+const ICON_OLHO = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-4.6 7-4.6S15 8 15 8s-2.6 4.6-7 4.6S1 8 1 8Z"/><circle cx="8" cy="8" r="2.1"/></svg>`;
 
 export function renderCadastro() {
   document.querySelector('#app').innerHTML = `
@@ -12,12 +15,16 @@ export function renderCadastro() {
       <main class="auth-card auth-card--lg" aria-labelledby="auth-titulo">
         <header class="auth-marca">
           <span class="auth-marca-simbolo" aria-hidden="true"></span>
-          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+          <span class="auth-marca-wordmark">Caixa Boti</span>
         </header>
-        <h2 id="auth-titulo" class="auth-titulo">Criar conta</h2>
-        <p class="auth-subtitulo">
-          Cadastre-se para começar a auditar. Você receberá um código por email para confirmar.
-        </p>
+
+        <div class="auth-cabec">
+          <p class="auth-eyebrow">Nova conta</p>
+          <h1 id="auth-titulo" class="auth-titulo">Criar conta</h1>
+          <p class="auth-subtitulo">
+            Cadastre-se para começar a auditar. Você receberá um código por email para confirmar.
+          </p>
+        </div>
 
         <form id="form-cadastro" novalidate>
           <div class="auth-grid-2">
@@ -25,13 +32,11 @@ export function renderCadastro() {
               <label class="field-label" for="nome">Nome</label>
               <input id="nome" name="nome" type="text" autocomplete="given-name"
                      required minlength="2" class="field-input" />
-              <span class="field-underline" aria-hidden="true"></span>
             </div>
             <div class="field">
               <label class="field-label" for="sobrenome">Sobrenome</label>
               <input id="sobrenome" name="sobrenome" type="text" autocomplete="family-name"
                      required minlength="2" class="field-input" />
-              <span class="field-underline" aria-hidden="true"></span>
             </div>
           </div>
 
@@ -39,15 +44,17 @@ export function renderCadastro() {
             <label class="field-label" for="email">Email</label>
             <input id="email" name="email" type="email" autocomplete="email"
                    required class="field-input" placeholder="voce@plexalabs.com" />
-            <span class="field-underline" aria-hidden="true"></span>
             <p id="email-erro" class="match match--erro hidden" role="alert"></p>
           </div>
 
           <div class="field">
             <label class="field-label" for="senha">Senha</label>
-            <input id="senha" name="senha" type="password" autocomplete="new-password"
-                   required minlength="8" class="field-input" />
-            <span class="field-underline" aria-hidden="true"></span>
+            <div class="auth-senha">
+              <input id="senha" name="senha" type="password" autocomplete="new-password"
+                     required minlength="8" class="field-input" />
+              <button type="button" class="auth-senha-olho" data-alvo="senha"
+                      aria-label="Mostrar senha">${ICON_OLHO}</button>
+            </div>
             <div id="senha-forca" class="senha-forca" data-nivel="0" aria-hidden="true">
               <span class="senha-forca-barra"></span>
               <span class="senha-forca-barra"></span>
@@ -60,17 +67,18 @@ export function renderCadastro() {
 
           <div class="field">
             <label class="field-label" for="senha2">Confirmar senha</label>
-            <input id="senha2" name="senha2" type="password" autocomplete="new-password"
-                   required class="field-input" />
-            <span class="field-underline" aria-hidden="true"></span>
+            <div class="auth-senha">
+              <input id="senha2" name="senha2" type="password" autocomplete="new-password"
+                     required class="field-input" />
+              <button type="button" class="auth-senha-olho" data-alvo="senha2"
+                      aria-label="Mostrar senha">${ICON_OLHO}</button>
+            </div>
             <p id="senha-match" class="match hidden" aria-live="polite"></p>
           </div>
 
           <div id="erro-form" role="alert" aria-live="polite" class="hidden alert"></div>
 
-          <button id="btn-criar" type="submit" class="btn-primary" disabled>
-            Criar conta
-          </button>
+          <button id="btn-criar" type="submit" class="btn-primary" disabled>Criar conta</button>
         </form>
 
         <p class="auth-rodape">
@@ -82,24 +90,25 @@ export function renderCadastro() {
     </div>
   `;
 
+  ligarOlhoSenha();
+
   // ─── Estado de validação ────────────────────────────────────────────
-  const form    = document.querySelector('#form-cadastro');
-  const inputs  = {
+  const form   = document.querySelector('#form-cadastro');
+  const inputs = {
     nome:      form.nome,
     sobrenome: form.sobrenome,
     email:     form.email,
     senha:     form.senha,
     senha2:    form.senha2,
   };
-  const btn     = document.querySelector('#btn-criar');
-  const erro    = document.querySelector('#erro-form');
+  const btn  = document.querySelector('#btn-criar');
+  const erro = document.querySelector('#erro-form');
 
   const valido = {
     nome: false, sobrenome: false, email: false, senha: false, senha2: false,
   };
 
-  // Foco inicial no nome após animação.
-  setTimeout(() => inputs.nome.focus(), 480);
+  setTimeout(() => inputs.nome.focus(), 420);
 
   // ─── Helpers ─────────────────────────────────────────────────────────
   function atualizarSubmit() {
@@ -222,7 +231,7 @@ export function renderCadastro() {
     atualizarSubmit();
 
     if (!r.ok) {
-      // Caso especial: já cadastrado → oferece atalhos.
+      // Já cadastrado → oferece atalhos.
       if (/já existe uma conta/i.test(r.mensagem)) {
         mostrarErroForm(`
           Este email já tem cadastro.
@@ -245,8 +254,7 @@ export function renderCadastro() {
       return;
     }
 
-    // Sucesso → vai para tela de confirmação OTP.
+    // Sucesso → tela de confirmação OTP.
     navegar('/confirmar?email=' + encodeURIComponent(inputs.email.value.trim()));
   });
 }
-

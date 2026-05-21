@@ -1,0 +1,266 @@
+/* sidebar-config.css — Sidebar dedicada da área de Configurações.
+   Substitui a sidebar principal ao entrar em /perfil ou /configuracoes/*.
+   Nunca recolhe. Grupos expansíveis (dropdown). Namespace .sbc-*. */
+
+.sbc {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 40;
+    width: 16rem;
+    background: var(--ui-surface);
+    border-right: 1px solid var(--ui-border);
+    font-family: 'Manrope', -apple-system, system-ui, sans-serif;
+    color: var(--ui-ink);
+    display: flex;
+    flex-direction: column;
+}
+.app-conteudo--config { margin-left: 16rem; }
+
+/* ─── Marca ──────────────────────────────────────────────────────────── */
+.sbc-brand {
+    padding: 1.25rem 1.2rem 1rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.sbc-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+}
+.sbc-brand-mark {
+    width: 2rem; height: 2rem;
+    border-radius: var(--ui-r-sm);
+    background: var(--ui-ink);
+    color: var(--ui-bg);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+.sbc-brand-mark svg { width: 15px; height: 15px; }
+.sbc-brand-name {
+    display: block;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+}
+.sbc-brand-tag {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--ui-ink-3);
+    font-weight: 500;
+}
+
+/* ─── Navegação ─────────────────────────────────────────────────────── */
+.sbc-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.7rem 0.65rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+.sbc-nav-rotulo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--ui-ink-4);
+    padding: 0.7rem 0.7rem 0.35rem;
+}
+
+/* Item simples (link direto) */
+.sbc-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.62rem 0.7rem;
+    border-radius: var(--ui-r-sm);
+    text-decoration: none;
+    color: var(--ui-ink-2);
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: background 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.sbc-item:hover { background: var(--ui-surface-2); color: var(--ui-ink); }
+.sbc-item[aria-current="page"] {
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent);
+}
+.sbc-item-icone {
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+    display: inline-flex;
+}
+.sbc-item-icone svg { width: 18px; height: 18px; }
+
+/* ─── Grupo expansível (dropdown) ───────────────────────────────────── */
+.sbc-grupo { display: flex; flex-direction: column; }
+.sbc-grupo-cabec {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.62rem 0.7rem;
+    border: 0;
+    border-radius: var(--ui-r-sm);
+    background: none;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--ui-ink-2);
+    cursor: pointer;
+    transition: background 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.sbc-grupo-cabec:hover { background: var(--ui-surface-2); color: var(--ui-ink); }
+.sbc-grupo[data-ativo="1"] > .sbc-grupo-cabec { color: var(--ui-ink); }
+.sbc-grupo-rotulo { flex: 1; min-width: 0; text-align: left; }
+.sbc-grupo-chevron {
+    width: 14px; height: 14px;
+    flex-shrink: 0;
+    color: var(--ui-ink-4);
+    transition: transform 240ms var(--ui-ease);
+}
+.sbc-grupo-chevron svg { width: 14px; height: 14px; display: block; }
+.sbc-grupo[data-aberto="1"] .sbc-grupo-chevron { transform: rotate(180deg); }
+
+/* Sub-itens — animação de altura via grid 0fr→1fr */
+.sbc-grupo-sub {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 240ms var(--ui-ease);
+}
+.sbc-grupo[data-aberto="1"] .sbc-grupo-sub { grid-template-rows: 1fr; }
+.sbc-grupo-sub-inner { overflow: hidden; min-height: 0; }
+.sbc-sub-lista {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    padding: 0.15rem 0 0.35rem;
+    margin-left: 1.45rem;
+    border-left: 1px solid var(--ui-border);
+}
+.sbc-sub {
+    display: block;
+    padding: 0.42rem 0.7rem 0.42rem 0.95rem;
+    border-radius: var(--ui-r-sm);
+    text-decoration: none;
+    color: var(--ui-ink-3);
+    font-size: 0.83rem;
+    font-weight: 500;
+    transition: background 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.sbc-sub:hover { background: var(--ui-surface-2); color: var(--ui-ink); }
+.sbc-sub[aria-current="page"] {
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent);
+    font-weight: 700;
+}
+
+/* ─── Rodapé ────────────────────────────────────────────────────────── */
+.sbc-foot {
+    padding: 0.7rem;
+    border-top: 1px solid var(--ui-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.sbc-voltar {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: var(--ui-r-sm);
+    text-decoration: none;
+    color: var(--ui-ink-3);
+    font-size: 0.83rem;
+    font-weight: 600;
+    transition: background 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.sbc-voltar:hover { background: var(--ui-surface-2); color: var(--ui-ink); }
+.sbc-voltar svg { width: 15px; height: 15px; flex-shrink: 0; }
+.sbc-user {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    background: var(--ui-surface);
+    cursor: pointer;
+    text-align: left;
+    transition: background 140ms var(--ui-ease), border-color 140ms var(--ui-ease);
+}
+.sbc-user:hover { background: var(--ui-surface-2); border-color: var(--ui-border-strong); }
+.sbc-user-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-weight: 600;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.sbc-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sbc-user-meta { min-width: 0; flex: 1; }
+.sbc-user-name {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sbc-user-role {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--ui-ink-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sbc-user-dots { color: var(--ui-ink-4); flex-shrink: 0; }
+.sbc-user-dots svg { width: 16px; height: 16px; display: block; }
+
+/* ─── Mobile — off-canvas ───────────────────────────────────────────── */
+.sbc-mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 0.7rem; left: 0.7rem;
+    z-index: 45;
+    width: 2.5rem; height: 2.5rem;
+    border-radius: var(--ui-r-sm);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    color: var(--ui-ink);
+    cursor: pointer;
+    place-items: center;
+}
+.sbc-mobile-toggle svg { width: 20px; height: 20px; }
+.sbc-mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(18, 22, 14, 0.4);
+}
+
+@media (max-width: 767px) {
+    .sbc {
+        transform: translateX(-100%);
+        transition: transform 240ms var(--ui-ease);
+        box-shadow: var(--ui-shadow-lg);
+    }
+    .sbc[data-mobile="aberto"] { transform: translateX(0); }
+    .app-conteudo--config { margin-left: 0; }
+    .sbc-mobile-toggle { display: grid; }
+    .sbc-mobile-overlay { display: block; }
+    .sbc-mobile-overlay[hidden] { display: none; }
+}

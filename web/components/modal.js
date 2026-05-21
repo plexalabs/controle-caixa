@@ -1,10 +1,12 @@
-// modal.js — modal genérico ou drawer lateral.
-// abrirModal({ ..., lateral: true }) → painel desliza da direita.
-// abrirModal({ ..., lateral: false (padrão) }) → modal centralizado.
-// Em ambos: ESC fecha, click fora fecha, onConfirmarFechar() pode bloquear.
+// modal.js — modal central, drawer lateral, com empilhamento opcional.
+//   abrirModal({ lateral: true })  → painel desliza da direita.
+//   abrirModal({ amplo: true })    → modal central largo.
+//   abrirModal({ empilhar: true }) → abre POR CIMA do modal atual (sub-modal);
+//     ao fechar, volta pro de baixo. Sem empilhar (padrão), substitui
+//     qualquer modal que estiver aberto.
+// ESC e clique fora fecham o modal do TOPO. onConfirmarFechar() pode bloquear.
 
-let aberto = null;
-let confirmaSaida = () => true;
+let pilha = [];   // [{ overlay, confirmaSaida }] — base → topo
 
 export function abrirModal({
   titulo = '',
@@ -16,15 +18,22 @@ export function abrirModal({
   rodape = '',
   onConfirmarFechar = null,
   origemEvento = null,    // event do click pra animar 'nascendo' do elemento
+  empilhar = false,       // true = abre por cima sem fechar o anterior
 } = {}) {
-  fecharModal(true);  // fecha qualquer um existente sem confirmar
-  confirmaSaida = onConfirmarFechar || (() => true);
+  // Sem empilhar: fecha tudo que estiver aberto, sem confirmar.
+  if (!empilhar) {
+    while (pilha.length) removerTopo();
+  }
+
+  const confirmaSaida = onConfirmarFechar || (() => true);
 
   const overlay = document.createElement('div');
   overlay.className = 'overlay-fundo' + (lateral ? ' overlay-fundo--drawer' : '');
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   if (titulo) overlay.setAttribute('aria-labelledby', 'modal-titulo');
+  // Sub-modal sobe o z-index pra ficar acima do anterior (base CSS = 50).
+  if (pilha.length > 0) overlay.style.zIndex = String(50 + pilha.length * 10);
 
   const cardClass = lateral
     ? 'painel-lateral'
@@ -53,7 +62,7 @@ export function abrirModal({
 
   document.body.appendChild(overlay);
   document.body.style.overflow = 'hidden';
-  aberto = overlay;
+  pilha.push({ overlay, confirmaSaida });
 
   // Captura ponto de origem do clique pra animar 'nascendo' do
   // elemento clicado. Funciona so com modal centralizado (.modal-card),
@@ -90,7 +99,8 @@ export function abrirModal({
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) fecharModal(false);
   });
-  document.addEventListener('keydown', onEsc);
+  // Um único listener de ESC global — fecha sempre o topo da pilha.
+  if (pilha.length === 1) document.addEventListener('keydown', onEsc);
 
   return { elemento: overlay, fechar: () => fecharModal(true) };
 }
@@ -99,21 +109,28 @@ function onEsc(e) {
   if (e.key === 'Escape') fecharModal(false);
 }
 
+// Fecha o modal do TOPO da pilha (revela o de baixo, se houver).
 export function fecharModal(forcado = false) {
-  if (!aberto) return;
-  if (!forcado && !confirmaSaida()) return;
-  document.removeEventListener('keydown', onEsc);
+  const topo = pilha[pilha.length - 1];
+  if (!topo) return;
+  if (!forcado && !topo.confirmaSaida()) return;
+  removerTopo();
+}
+
+function removerTopo() {
+  const topo = pilha.pop();
+  if (!topo) return;
 
   // Anima saída antes de remover do DOM.
-  const el = aberto;
+  const el = topo.overlay;
   el.classList.remove('is-aberto');
   el.classList.add('is-fechando');
-  aberto = null;
-  document.body.style.overflow = '';
-  confirmaSaida = () => true;
+  setTimeout(() => el.remove(), 240);
 
-  const dur = 240;
-  setTimeout(() => el.remove(), dur);
+  if (pilha.length === 0) {
+    document.removeEventListener('keydown', onEsc);
+    document.body.style.overflow = '';
+  }
 }
 
 function esc(s) {
