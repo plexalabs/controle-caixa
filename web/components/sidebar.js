@@ -46,7 +46,7 @@ export async function renderSidebar(rotaAtiva) {
     <aside class="sb" data-mobile="fechado" role="navigation" aria-label="Menu principal">
       <div class="sb-brand">
         <a href="/dashboard" data-link class="sb-brand-link" aria-label="Caixa Boti — início">
-          <span class="sb-brand-mark" aria-hidden="true">B</span>
+          <span class="sb-brand-mark" aria-hidden="true">${svgMarca()}</span>
           <span class="sb-brand-meta">
             <span class="sb-brand-name">Caixa Boti</span>
             <span class="sb-brand-tag">Auditoria diária</span>
@@ -278,6 +278,10 @@ export function desmontarSidebar() {
 
 const SVG_ATTRS = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"`;
 
+// Marca do sistema — "A registradora": a caixa com a moeda entrando.
+function svgMarca() {
+  return `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="22" height="16" rx="3"/><path d="M5 17.4H27"/><path d="M12.7 22.2h6.6"/><circle cx="16" cy="7.4" r="3.3"/></svg>`;
+}
 function svgPainel() {
   return `<svg ${SVG_ATTRS}><rect x="2" y="2" width="5.5" height="6" rx="1"/><rect x="2" y="9.5" width="5.5" height="4.5" rx="1"/><rect x="8.5" y="2" width="5.5" height="4.5" rx="1"/><rect x="8.5" y="8" width="5.5" height="6" rx="1"/></svg>`;
 }

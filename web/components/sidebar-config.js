@@ -51,7 +51,7 @@ export async function renderSidebarConfig() {
     <aside class="sbc" data-mobile="fechado" role="navigation" aria-label="Configurações">
       <div class="sbc-brand">
         <a href="/configuracoes" data-link class="sbc-brand-link" aria-label="Configurações — visão geral">
-          <span class="sbc-brand-mark" aria-hidden="true">${svgGear()}</span>
+          <span class="sbc-brand-mark" aria-hidden="true">${svgMarca()}</span>
           <span>
             <span class="sbc-brand-name">Configurações</span>
             <span class="sbc-brand-tag">Painel administrativo</span>
@@ -201,8 +201,9 @@ function setMobile(novo) {
 }
 
 // ─── SVGs ───────────────────────────────────────────────────────────
-function svgGear() {
-  return `<svg ${SVG}><circle cx="8" cy="8" r="2.3"/><path d="M8 1.4v1.6M8 13v1.6M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M1.4 8h1.6M13 8h1.6M3.3 12.7l1.1-1.1M11.6 4.4l1.1-1.1"/></svg>`;
+// Marca do sistema — "A registradora": a caixa com a moeda entrando.
+function svgMarca() {
+  return `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="22" height="16" rx="3"/><path d="M5 17.4H27"/><path d="M12.7 22.2h6.6"/><circle cx="16" cy="7.4" r="3.3"/></svg>`;
 }
 function svgSliders() {
   return `<svg ${SVG}><path d="M3 4.5h10M3 8h10M3 11.5h10"/><circle cx="6" cy="4.5" r="1.7" fill="currentColor" stroke="none"/><circle cx="10.5" cy="8" r="1.7" fill="currentColor" stroke="none"/><circle cx="5.5" cy="11.5" r="1.7" fill="currentColor" stroke="none"/></svg>`;

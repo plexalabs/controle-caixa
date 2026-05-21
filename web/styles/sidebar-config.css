@@ -36,7 +36,7 @@
     place-items: center;
     flex-shrink: 0;
 }
-.sbc-brand-mark svg { width: 15px; height: 15px; }
+.sbc-brand-mark svg { width: 19px; height: 19px; }
 .sbc-brand-name {
     display: block;
     font-size: 0.92rem;
