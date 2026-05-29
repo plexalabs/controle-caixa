@@ -1,7 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
-  <!-- Ledo · símbolo principal · 2 cores · paleta branco + verde -->
-  <!-- Petala externa (verde-musgo profundo) -->
-  <path d="M128,40 L180,40 C180,40 210,70 210,130 C210,190 180,220 128,220 L76,220 C76,220 50,190 50,130 C50,70 80,40 128,40 Z" fill="#2D4A2E"/>
-  <!-- Petala interna (verde-palido neutro, sem amarelo) -->
-  <path d="M128,40 L160,40 C160,40 175,55 175,85 C175,115 160,130 128,130 C100,130 85,115 85,85 C85,55 100,40 128,40 Z" fill="#E8F0E5"/>
+  <!-- Ledo · simbolo principal · 2 cores · adaptativo light/dark.
+       Em prefers-color-scheme:dark, inverte: petala externa vira
+       verde-palido claro, interna vira verde-musgo escuro. Mantem
+       contraste em qualquer contexto (header escuro, claro, etc.).
+       Funciona quando carregado via <img> ou <object>; quando via
+       background-image OU mask-image as media queries dentro do SVG
+       NAO sao avaliadas (browser usa cor padrao). Pra esses casos
+       usa o renderLogo() inline (logo.js) que aceita variante. -->
+  <style>
+    .ext { fill: #2D4A2E; }
+    .int { fill: #E8F0E5; }
+    @media (prefers-color-scheme: dark) {
+      .ext { fill: #E8F0E5; }
+      .int { fill: #2D4A2E; }
+    }
+  </style>
+  <path class="ext" d="M128,40 L180,40 C180,40 210,70 210,130 C210,190 180,220 128,220 L76,220 C76,220 50,190 50,130 C50,70 80,40 128,40 Z"/>
+  <path class="int" d="M128,40 L160,40 C160,40 175,55 175,85 C175,115 160,130 128,130 C100,130 85,115 85,85 C85,55 100,40 128,40 Z"/>
 </svg>

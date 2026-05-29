@@ -73,12 +73,14 @@
     margin-bottom: 1.4rem;
     border-bottom: 1px solid var(--ui-border);
 }
+/* Simbolo no header dos cards de auth — usa background-image (nao
+   mask) pra preservar as 2 cores oficiais do SVG + adaptar light/
+   dark via @media interna ao SVG. Antes usava mask + accent, perdia
+   a 2a cor e nao adaptava ao tema. */
 .auth-marca-simbolo {
     width: 38px; height: 38px;
     display: block;
-    background: var(--ui-accent);
-    -webkit-mask: url(/assets/logo.svg) no-repeat center / contain;
-            mask: url(/assets/logo.svg) no-repeat center / contain;
+    background: url(/assets/logo.svg) no-repeat center / contain;
 }
 .auth-marca-wordmark {
     font-size: 1.1rem;

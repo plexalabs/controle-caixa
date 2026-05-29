@@ -106,16 +106,18 @@ html[data-sb-collapsed="1"] { --sb-larg: 68px; }
     transition: background 160ms var(--ui-ease);
 }
 .sb-brand-link:hover { background: var(--ui-surface-2); }
+/* Mark do logo na sidebar — fundo transparente (sem container colorido
+   competindo com a marca). O proprio SVG inline carrega as 2 cores
+   oficiais do simbolo e adapta light/dark via @media interna.
+   BRAND_GUIDE secao 8: "Nao use o simbolo dentro de outro container
+   colorido sem necessidade." */
 .sb-brand-mark {
     width: 34px; height: 34px;
-    border-radius: var(--ui-r-sm);
-    background: var(--ui-ink);
-    color: var(--ui-bg);
     display: grid;
     place-items: center;
     flex-shrink: 0;
 }
-.sb-brand-mark svg { width: 21px; height: 21px; }
+.sb-brand-mark svg { width: 30px; height: 30px; }
 .sb-brand-meta { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .sb-brand-name {
     font-weight: 700;

@@ -1,6 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <!-- Ledo · favicon · versão simplificada -->
-  <!-- Em escalas extremas (16x16) o detalhe interno do símbolo principal vira mancha. -->
-  <!-- Favicon usa apenas a forma externa pra manter reconhecimento. -->
-  <path d="M16,5 L22.5,5 C22.5,5 26.25,8.75 26.25,16.25 C26.25,23.75 22.5,27.5 16,27.5 L9.5,27.5 C9.5,27.5 6.25,23.75 6.25,16.25 C6.25,8.75 10,5 16,5 Z" fill="#2D4A2E"/>
+  <!-- Ledo · favicon adaptativo light/dark.
+       prefers-color-scheme dentro de SVG inline e respeitado por
+       Chrome, Firefox, Safari, Edge na tab favicon. Em light mode:
+       verde-musgo (#2D4A2E). Em dark mode: verde-palido (#E8F0E5)
+       — fica visivel sobre fundo escuro da tab. -->
+  <style>
+    .petala { fill: #2D4A2E; }
+    @media (prefers-color-scheme: dark) {
+      .petala { fill: #E8F0E5; }
+    }
+  </style>
+  <path class="petala"
+        d="M16,5 L22.5,5 C22.5,5 26.25,8.75 26.25,16.25 C26.25,23.75 22.5,27.5 16,27.5 L9.5,27.5 C9.5,27.5 6.25,23.75 6.25,16.25 C6.25,8.75 10,5 16,5 Z"/>
 </svg>

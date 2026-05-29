@@ -280,11 +280,15 @@ const SVG_ATTRS = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-
 
 // Marca do sistema — "A registradora": a caixa com a moeda entrando.
 function svgMarca() {
-  // Símbolo Ledo — pétala dupla (BRAND_GUIDE). Versão completa (2
-  // cores) pra 40px do sidebar — detalhe interno ainda legivel nesse
-  // tamanho. Em escalas menores (favicon 16px) usa a versao
-  // simplificada de brand/favicon.svg.
-  return `<svg viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M128,40 L180,40 C180,40 210,70 210,130 C210,190 180,220 128,220 L76,220 C76,220 50,190 50,130 C50,70 80,40 128,40 Z" fill="#2D4A2E"/><path d="M128,40 L160,40 C160,40 175,55 175,85 C175,115 160,130 128,130 C100,130 85,115 85,85 C85,55 100,40 128,40 Z" fill="#E8F0E5"/></svg>`;
+  // Símbolo Ledo — pétala dupla (BRAND_GUIDE secao 4).
+  // Cores FIXAS musgo+pálido — a sidebar tem fundo --ui-surface
+  // (branco/papel) sempre, independente do prefers-color-scheme do
+  // navegador. Adaptar pelo tema do browser inverteria as cores
+  // sobre o branco constante e ficaria errado.
+  return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">` +
+    `<path fill="#2D4A2E" d="M128,40 L180,40 C180,40 210,70 210,130 C210,190 180,220 128,220 L76,220 C76,220 50,190 50,130 C50,70 80,40 128,40 Z"/>` +
+    `<path fill="#E8F0E5" d="M128,40 L160,40 C160,40 175,55 175,85 C175,115 160,130 128,130 C100,130 85,115 85,85 C85,55 100,40 128,40 Z"/>` +
+    `</svg>`;
 }
 function svgPainel() {
   return `<svg ${SVG_ATTRS}><rect x="2" y="2" width="5.5" height="6" rx="1"/><rect x="2" y="9.5" width="5.5" height="4.5" rx="1"/><rect x="8.5" y="2" width="5.5" height="4.5" rx="1"/><rect x="8.5" y="8" width="5.5" height="6" rx="1"/></svg>`;
