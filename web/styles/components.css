@@ -6649,84 +6649,164 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    + texto Manrope + ações editorial.
    ============================================================ */
 
+/* ═══════════════════════════════════════════════════════════════
+   TELAS DE ERRO (404, lancamento nao encontrado, etc.)
+   Padrao v2 unificado: fundo --ui-surface-2 com canvas topografico
+   opcional, card branco centralizado com simbolo Ledo + hierarquia
+   editorial (eyebrow accent + titulo grande + texto + acoes).
+   ═══════════════════════════════════════════════════════════════ */
 .erro-shell {
-    min-height: 80vh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink);
+    font-family: 'Manrope', sans-serif;
     display: grid;
-    grid-template-columns: 60px 1fr;
-    gap: 2rem;
-    padding: 3rem 2rem;
-    max-width: 720px;
-    margin: 0 auto;
-    align-items: start;
-    animation: fade-up 600ms var(--ease-out) backwards;
+    place-items: center;
+    padding: 2rem 1rem;
 }
 
-.erro-etiqueta {
-    background: var(--c-ambar);
-    color: var(--c-papel);
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-weight: 500;
-    font-size: 2rem;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    padding: 1.5rem 0.5rem;
-    /* Etiqueta inverte a regra do projeto: aqui é round-LEFT/flat-RIGHT
-       porque a etiqueta "abraça" o conteúdo pela direita. */
-    border-radius: 12px 0 0 12px;
+/* Canvas topografico no fundo (quando .erro-topo-canvas estiver
+   presente). z-index 0 — atras do card. */
+.erro-topo-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    display: block;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Card centralizado com tudo do erro */
+.erro-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 32rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 1.75rem 1.6rem 1.5rem;
+    box-shadow:
+        0 12px 40px -12px rgba(20, 20, 20, 0.12),
+        0 4px 12px -4px rgba(20, 20, 20, 0.08);
+    animation: erro-rise 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes erro-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@media (min-width: 540px) {
+    .erro-card { padding: 2rem 1.9rem 1.7rem; }
+}
+
+/* Cabec — simbolo Ledo + eyebrow do tipo de erro */
+.erro-cabec {
     display: flex;
     align-items: center;
-    justify-content: center;
-    letter-spacing: 0.08em;
-    height: fit-content;
-    min-height: 8rem;
-    box-shadow: 0 8px 24px -16px rgba(199, 122, 63, 0.4);
+    gap: 0.85rem;
+    margin-bottom: 1.4rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.erro-cabec-simbolo {
+    width: 40px; height: 40px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+.erro-cabec-simbolo svg { width: 100%; height: 100%; }
+.erro-cabec-meta { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.erro-cabec-codigo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ui-accent);
+    line-height: 1;
+}
+.erro-cabec-app {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    letter-spacing: -0.005em;
+    line-height: 1;
 }
 
-.erro-conteudo .h-eyebrow {
-    margin-bottom: 0.4rem;
-}
-
+/* Titulo do erro */
 .erro-titulo {
-    font-family: 'Fraunces', serif;
-    font-weight: 400;
-    font-style: normal;
-    font-variation-settings: "opsz" 144;
-    font-size: clamp(1.85rem, 4vw, 2.6rem);
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 4.5vw, 1.85rem);
     line-height: 1.15;
-    color: var(--c-tinta);
-    margin: 0.5rem 0 1.5rem;
-    letter-spacing: -0.01em;
+    color: var(--ui-ink);
+    margin: 0 0 0.9rem;
+    letter-spacing: -0.025em;
 }
 .erro-titulo em {
     font-style: italic;
-    color: var(--c-musgo);
-    font-weight: 400;
+    font-weight: 500;
+    color: var(--ui-accent);
 }
 
+/* Texto explicativo */
 .erro-texto {
-    font-family: 'Manrope', sans-serif;
-    font-size: 1rem;
-    color: var(--c-tinta-2);
+    font-size: 0.95rem;
     line-height: 1.6;
-    margin-bottom: 2rem;
-    max-width: 480px;
+    color: var(--ui-ink-3);
+    margin: 0 0 1.5rem;
 }
 
+/* Acoes — primaria + secundaria */
 .erro-acoes {
     display: flex;
-    gap: 1.5rem;
+    gap: 0.7rem;
     align-items: center;
     flex-wrap: wrap;
 }
-
-@media (max-width: 640px) {
-    .erro-shell { grid-template-columns: 40px 1fr; padding: 2rem 1rem; gap: 1.25rem; }
-    .erro-etiqueta { font-size: 1.4rem; padding: 1rem 0.3rem; min-height: 6rem; }
+.erro-acoes .btn-primary {
+    background: var(--ui-accent);
+    color: var(--ui-bg);
+    border: 1px solid var(--ui-accent);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 1.1rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease);
+    line-height: 1.2;
+}
+.erro-acoes .btn-primary:hover {
+    background: var(--ui-accent-2);
+    border-color: var(--ui-accent-2);
+}
+.erro-acoes .btn-link {
+    background: transparent;
+    border: 0;
+    padding: 0.55rem 0.3rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 160ms var(--ui-ease);
+}
+.erro-acoes .btn-link:hover {
+    color: var(--ui-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .erro-shell { animation: none; }
+    .erro-card { animation: none; }
 }
 
 

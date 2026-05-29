@@ -273,30 +273,41 @@ function formatarTimestampLongo(ts) {
   }).format(new Date(ts));
 }
 
+// Simbolo Ledo inline pra tela de erro
+const SIMBOLO_LEDO_ERRO = `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">` +
+  `<path fill="#2D4A2E" d="M128,40 L180,40 C180,40 210,70 210,130 C210,190 180,220 128,220 L76,220 C76,220 50,190 50,130 C50,70 80,40 128,40 Z"/>` +
+  `<path fill="#E8F0E5" d="M128,40 L160,40 C160,40 175,55 175,85 C175,115 160,130 128,130 C100,130 85,115 85,85 C85,55 100,40 128,40 Z"/>` +
+  `</svg>`;
+
 function mostrarErro(msg) {
-  // Usa o shell editorial da 404 com etiqueta âmbar lateral. Texto e CTAs
-  // contextuais a "Lançamento não encontrado / inválido", em vez do 404
-  // genérico — guia o operador de volta pra /caixas (lugar natural pra
-  // procurar uma NF, não pra /dashboard).
+  // Mesmo padrao visual do /erros/404 — card branco + simbolo Ledo +
+  // hierarquia editorial. CTAs contextuais: /caixas (lugar natural
+  // pra procurar uma NF) em vez de /dashboard.
   document.querySelector('#app').innerHTML = `
     <main id="main" class="erro-shell" role="main">
-      <aside class="erro-etiqueta" aria-hidden="true">NF</aside>
+      <article class="erro-card">
+        <header class="erro-cabec">
+          <span class="erro-cabec-simbolo" aria-hidden="true">${SIMBOLO_LEDO_ERRO}</span>
+          <div class="erro-cabec-meta">
+            <span class="erro-cabec-codigo">Lançamento não encontrado</span>
+            <span class="erro-cabec-app">Ledo · auditoria de caixa</span>
+          </div>
+        </header>
 
-      <section class="erro-conteudo">
-        <p class="h-eyebrow">Lançamento não encontrado</p>
         <h1 class="erro-titulo">
-          Esta nota fiscal<br>
-          <em>não está no caderno.</em>
+          Esta nota fiscal <em>não está no caderno</em>.
         </h1>
+
         <p class="erro-texto">
-          ${esc(msg)} Pode ter sido excluído, arquivado ou o link veio com
-          o identificador errado. Confira a lista de caixas pra encontrá-lo.
+          ${esc(msg)} Pode ter sido excluído, arquivado ou o link veio
+          com o identificador errado. Confira a lista de caixas pra encontrá-lo.
         </p>
+
         <div class="erro-acoes">
           <a href="/caixas" data-link class="btn-primary">Ver todos os caixas</a>
           <a href="/dashboard" data-link class="btn-link">Ir para o início</a>
         </div>
-      </section>
+      </article>
     </main>`;
 }
 
