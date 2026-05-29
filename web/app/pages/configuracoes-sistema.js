@@ -66,6 +66,19 @@ const META = {
     desc: 'Quando ativo, o sistema abre um caixa novo automaticamente todo domingo de manhã.',
     onText: 'Domingo conta', offText: 'Domingo de fora',
   },
+  'caixa.auto_fechar_vazio': {
+    grupo: 'caixa', icon: 'arquivo',
+    titulo: 'Fechar caixas vazios sozinho',
+    desc: 'Quando ativo, o sistema fecha automaticamente os caixas que passaram do dia sem nenhum lançamento. Roda 1x por dia, de manhã, sem incomodar ninguém.',
+    onText: 'Auto-fechar ativo', offText: 'Manual',
+  },
+  'caixa.auto_fechar_vazio_dias': {
+    grupo: 'caixa', icon: 'intervalo',
+    titulo: 'Espera antes de auto-fechar',
+    desc: 'Quantos dias depois da data do caixa o sistema espera antes de fechar sozinho. Em 1, o caixa de ontem fecha hoje de manhã. Em 7, espera uma semana inteira sem lançamento.',
+    unidade: 'dias', unidadeSing: 'dia',
+    min: 1, max: 30, step: 1, sugestoes: [1, 2, 3, 7],
+  },
 
   // ── Janela operacional ──
   'janela_op_ativa': {
