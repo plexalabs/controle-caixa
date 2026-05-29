@@ -3,11 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Caixa Boti — caderno de auditoria diária da central.">
-    <title>Caixa Boti</title>
+    <meta name="description" content="Ledo — auditoria diária de caixa.">
+    <title>Ledo</title>
 
-    <!-- Favicon adaptativo: musgo no light, papel no dark (CP5-FIX 6). -->
+    <!-- Favicon: SVG quando suportado, PNG fallback (16/32). -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+
+    <!-- App icon iOS -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#2D4A2E">
+
+    <!-- Open Graph (compartilhamento em redes / WhatsApp) -->
+    <meta property="og:title" content="Ledo">
+    <meta property="og:description" content="Auditoria diária de caixa">
+    <meta property="og:image" content="/og-image.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://caixa-boti.plexalabs.com">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Ledo">
+    <meta name="twitter:description" content="Auditoria diária de caixa">
+    <meta name="twitter:image" content="/og-image.png">
 
     <!-- Google Fonts: Fraunces (display serif) + Manrope (body humanist sans).
          Não-padrão, com personalidade — evita o "AI slop" de Inter/Roboto. -->

@@ -1,4 +1,4 @@
-// Service Worker — Caixa Boti
+// Service Worker — Ledo
 //
 // Responsabilidade única (por enquanto): receber Web Push do navegador
 // quando a aba está fechada / browser em background, mostrar a
@@ -7,7 +7,7 @@
 // Sem precache de assets, sem offline-first — não é um PWA completo,
 // é um SW mínimo de push. Mantém o footprint pequeno e a lógica óbvia.
 
-const TAG_FALLBACK = 'caixa-boti-notif';
+const TAG_FALLBACK = 'ledo-notif';
 
 self.addEventListener('install', (event) => {
   // Ativa imediatamente sem esperar ciclo de fechar todas as abas
@@ -23,10 +23,10 @@ self.addEventListener('push', (event) => {
   try {
     dados = event.data ? event.data.json() : {};
   } catch (_) {
-    dados = { titulo: 'Caixa Boti', mensagem: event.data ? event.data.text() : '' };
+    dados = { titulo: 'Ledo', mensagem: event.data ? event.data.text() : '' };
   }
 
-  const titulo = dados.titulo || 'Caixa Boti';
+  const titulo = dados.titulo || 'Ledo';
   const opcoes = {
     body: dados.mensagem || '',
     icon: '/assets/logo.svg',

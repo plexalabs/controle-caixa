@@ -231,7 +231,7 @@ function tentarDispararNotificacaoSO(notif) {
   if (notif.usuario_destino && notif.usuario_destino !== uidAtual) return;
 
   try {
-    const n = new Notification(notif.titulo || 'Caixa Boti', {
+    const n = new Notification(notif.titulo || 'Ledo', {
       body: notif.mensagem || '',
       icon: '/assets/logo.svg',
       badge: '/assets/logo.svg',

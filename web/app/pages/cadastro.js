@@ -6,16 +6,18 @@ import { cadastrar }       from '../auth.js';
 import { navegar }         from '../router.js';
 import { validarEmail, validarSenha, debounce } from '../utils.js';
 import { ligarOlhoSenha }  from './login.js';
+import { iniciarTopografia } from '../topo-bg.js';
 
 const ICON_OLHO = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-4.6 7-4.6S15 8 15 8s-2.6 4.6-7 4.6S1 8 1 8Z"/><circle cx="8" cy="8" r="2.1"/></svg>`;
 
 export function renderCadastro() {
   document.querySelector('#app').innerHTML = `
     <div id="main" class="auth-shell">
+      <canvas id="auth-topo-canvas" class="auth-topo-canvas" aria-hidden="true"></canvas>
       <main class="auth-card auth-card--lg" aria-labelledby="auth-titulo">
         <header class="auth-marca">
           <span class="auth-marca-simbolo" aria-hidden="true"></span>
-          <span class="auth-marca-wordmark">Caixa Boti</span>
+          <span class="auth-marca-wordmark">Ledo</span>
         </header>
 
         <div class="auth-cabec">
@@ -86,11 +88,16 @@ export function renderCadastro() {
         </p>
       </main>
 
-      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Caixa Boti</footer>
+      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Ledo</footer>
     </div>
   `;
 
   ligarOlhoSenha();
+  // Fundo topografico animado — mesmo padrao do login + /fora-do-horario.
+  const topo = iniciarTopografia(document.querySelector('#auth-topo-canvas'), {
+    escala: 0.004, vel: 0.00036, niveis: 14,
+  });
+  window.addEventListener('popstate', () => topo.stop(), { once: true });
 
   // ─── Estado de validação ────────────────────────────────────────────
   const form   = document.querySelector('#form-cadastro');

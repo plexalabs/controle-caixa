@@ -6,6 +6,7 @@
 import { entrarComSenha } from '../auth.js';
 import { navegar }        from '../router.js';
 import { validarEmail }   from '../utils.js';
+import { iniciarTopografia } from '../topo-bg.js';
 
 const ICON_OLHO = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-4.6 7-4.6S15 8 15 8s-2.6 4.6-7 4.6S1 8 1 8Z"/><circle cx="8" cy="8" r="2.1"/></svg>`;
 const ICON_OLHO_OFF = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.6-4.6 7-4.6S15 8 15 8s-2.6 4.6-7 4.6S1 8 1 8Z"/><circle cx="8" cy="8" r="2.1"/><path d="M2.4 2.4l11.2 11.2"/></svg>`;
@@ -20,10 +21,11 @@ export function renderLogin() {
 
   document.querySelector('#app').innerHTML = `
     <div id="main" class="auth-shell">
+      <canvas id="auth-topo-canvas" class="auth-topo-canvas" aria-hidden="true"></canvas>
       <main class="auth-card" aria-labelledby="auth-titulo">
         <header class="auth-marca">
           <span class="auth-marca-simbolo" aria-hidden="true"></span>
-          <span class="auth-marca-wordmark">Caixa Boti</span>
+          <span class="auth-marca-wordmark">Ledo</span>
         </header>
 
         <div class="auth-cabec">
@@ -65,11 +67,16 @@ export function renderLogin() {
         </p>
       </main>
 
-      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Caixa Boti</footer>
+      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Ledo</footer>
     </div>
   `;
 
   ligarOlhoSenha();
+  // Fundo topografico animado — mesmo padrao do /fora-do-horario.
+  const topo = iniciarTopografia(document.querySelector('#auth-topo-canvas'), {
+    escala: 0.004, vel: 0.00036, niveis: 14,
+  });
+  window.addEventListener('popstate', () => topo.stop(), { once: true });
 
   // ─── Comportamento ──────────────────────────────────────────────────
   const form = document.querySelector('#form-login');
