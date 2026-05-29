@@ -473,12 +473,13 @@
     padding: 0.85rem 1rem;
     text-align: left;
     cursor: pointer;
-    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease), background 160ms var(--ui-ease);
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease), background 160ms var(--ui-ease), transform 200ms var(--ui-ease);
     animation: ntf-fade-up 420ms var(--ui-ease) backwards;
 }
 .ntf-item:hover {
     border-color: var(--ui-border-strong);
     box-shadow: var(--ui-shadow-sm);
+    transform: translateY(-2px);
 }
 .ntf-item:focus-visible {
     outline: 0;
@@ -769,9 +770,30 @@
     .ntf-pag { justify-content: center; }
 }
 
+/* ─── Animações de entrada + microinterações ───────────────────────── */
+/* Carregamento orquestrado: o topo da tela sobe em cascata suave. A
+   lista de itens tem o próprio stagger (ntf-fade-up + delay inline). */
+.ntf-header  { animation: ntf-rise 480ms var(--ui-ease) backwards; }
+.ntf-filtros { animation: ntf-rise 480ms var(--ui-ease) 90ms backwards; }
+.ntf-resumo  { animation: ntf-rise 480ms var(--ui-ease) 150ms backwards; }
+/* O card de push é injetado depois — ganha a própria entrada. */
+.ntf-push-card { animation: ntf-rise 380ms var(--ui-ease) backwards; }
+@keyframes ntf-rise {
+    from { opacity: 0; transform: translateY(11px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* O ponto de "não lida" pulsa de leve — chama o olho sem agitar. */
+.ntf-item-dot { animation: ntf-dot-pulse 2.4s ease-in-out infinite; }
+@keyframes ntf-dot-pulse {
+    0%, 100% { transform: scale(1);   opacity: 1; }
+    50%      { transform: scale(1.4); opacity: 0.65; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .ntf-item { animation: none; }
-    .ntf-item--saindo { animation: none; }
+    .ntf-item, .ntf-item--saindo, .ntf-skel,
+    .ntf-header, .ntf-filtros, .ntf-resumo, .ntf-push-card,
+    .ntf-item-dot { animation: none; }
     .ntf-li--saindo { transition: none; }
-    .ntf-skel { animation: none; }
+    .ntf-item:hover { transform: none; }
 }

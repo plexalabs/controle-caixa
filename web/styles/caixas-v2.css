@@ -240,64 +240,73 @@
     padding-left: 0.4rem;
 }
 
-/* Layout masonry-like via CSS columns: cards mantem altura natural,
-   o seguinte 'sobe' pra encostar no anterior, mesmo que fiquem
-   desalinhados entre as duas colunas. */
+/* Grid responsivo de cards — substitui o masonry (column-count) que
+   gerava cards desalinhados entre as duas colunas. Auto-fill com
+   minmax garante linhas alinhadas; cards crescem em altura juntos. */
 .cx2-items {
     list-style: none;
     margin: 0;
     padding: 0;
-    column-count: 2;
-    column-gap: 0.6rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+    gap: 0.65rem;
 }
-.cx2-items > li {
-    break-inside: avoid;
-    -webkit-column-break-inside: avoid;
-    page-break-inside: avoid;
-    margin-bottom: 0.6rem;
-    display: block;
-}
-.cx2-items > li:last-child { margin-bottom: 0; }
+.cx2-items > li { min-width: 0; }
 
 @media (max-width: 740px) {
-    .cx2-items { column-count: 1; }
+    .cx2-items { grid-template-columns: 1fr; }
 }
 
-/* Cada caixa: cartao com 2 secoes verticais — topo (3 zonas) + resumo
-   (chips de categoria + alerta). Estado indicado APENAS pelo badge
-   superior direito e por sutil border-color (sem filete lateral). */
+/* Cada caixa: card em 3 zonas verticais
+     header (data + dia da semana + estado)
+     body   (valor + stats)
+     footer (chips de categoria + alerta de pendencia critica) - opcional
+   Hierarquia clara: a data ancora a esquerda, o valor domina o body,
+   o estado fica discreto no canto, os chips contextualizam embaixo. */
 .cx2-item {
+    /* height:100% + flex column garantem que TODOS os cards na
+       mesma linha do grid tem a mesma altura (igual ao maior do
+       grupo). O body com flex:1 absorve o espaco sobrando — assim
+       o footer (chips/alerta) sempre encosta no fundo do card,
+       mesmo em caixas vazios sem chips. */
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
-    padding: 0.85rem 1rem;
+    gap: 0.7rem;
+    padding: 0.9rem 1rem;
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-md);
     text-decoration: none;
     color: inherit;
-    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease), transform 160ms var(--ui-ease);
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
     animation: fade-up 480ms var(--ui-ease) backwards;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
 }
 .cx2-item:hover {
     border-color: var(--ui-border-strong);
     box-shadow: var(--ui-shadow-sm);
-    transform: translateY(-1px);
 }
-/* Border tonal sutil por estado — sem filete lateral chamativo */
+
+/* Border tonal sutil por estado */
 .cx2-item[data-estado="aberto"]         { border-color: color-mix(in srgb, var(--ui-accent) 22%, var(--ui-border)); }
 .cx2-item[data-estado="em_conferencia"] { border-color: color-mix(in srgb, var(--ui-warn) 22%, var(--ui-border)); }
 .cx2-item[data-estado="aberto"]:hover         { border-color: var(--ui-accent); }
 .cx2-item[data-estado="em_conferencia"]:hover { border-color: var(--ui-warn); }
 
-/* Modo "vidro fosco" — caixa fechado/arquivado fica visualmente
-   recuado: cores dessaturadas, opacidade reduzida, sem cor de fundo
-   chamativa. Como se houvesse um vidro fosco na frente. */
+/* Caixa de hoje — destaque discreto via anel verde */
+.cx2-item[data-hoje="sim"] {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+}
+.cx2-item[data-hoje="sim"]:hover {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-accent) 28%, transparent), var(--ui-shadow-sm);
+}
+
+/* Vidro fosco em caixas fechados/arquivados — visualmente recuados */
 .cx2-item[data-estado="fechado"],
 .cx2-item[data-estado="arquivado"] {
     background: linear-gradient(180deg, rgba(244, 244, 239, 0.7), rgba(255, 255, 255, 0.6));
-    backdrop-filter: blur(1px);
-    -webkit-backdrop-filter: blur(1px);
     filter: saturate(0.65);
     opacity: 0.78;
     border-color: var(--ui-border);
@@ -311,10 +320,9 @@
 .cx2-item[data-estado="arquivado"] { opacity: 0.62; }
 .cx2-item[data-estado="arquivado"]:hover { opacity: 0.92; }
 
-/* Caixa com pendencia critica ou muito acumulo — destaque vermelho
-   forte por cima do estado atual. */
+/* Caixa critico — sobrescreve estado normal */
 .cx2-item[data-alerta="critica"] {
-    background: linear-gradient(180deg, rgba(254, 226, 226, 0.55), rgba(255, 255, 255, 0.85));
+    background: linear-gradient(180deg, rgba(254, 226, 226, 0.5), rgba(255, 255, 255, 0.92));
     border-color: color-mix(in srgb, var(--ui-danger) 35%, var(--ui-border));
     filter: none;
     opacity: 1;
@@ -325,145 +333,175 @@
 }
 .cx2-item[data-alerta="critica"] .cx2-item-dia { color: var(--ui-danger); }
 
-/* Topo: 3 zonas — data (esq), meio (stats), direita (badge+valor).
-   Em 2-col, ajustamos pra ficar mais compacto verticalmente. */
-.cx2-item-topo {
-    display: grid;
-    grid-template-columns: 3.8rem 1fr auto;
-    gap: 0.9rem;
-    align-items: center;
-}
-
-/* Zona data: dia grande + /mes + dia semana */
-.cx2-item-data {
+/* ============================================================
+   ZONA 1 — HEADER: data + semana + estado, tudo numa linha
+   ============================================================ */
+.cx2-item-head {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    align-items: baseline;
+    gap: 0.55rem;
+    min-width: 0;
+}
+.cx2-item-data {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0;
+    flex-shrink: 0;
     line-height: 1;
-    position: relative;
 }
 .cx2-item-dia {
-    font-size: 1.75rem;
+    font-size: 1.65rem;
     font-weight: 700;
     color: var(--ui-ink);
     letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
-    line-height: 0.95;
+    line-height: 1;
 }
 .cx2-item-mes {
-    font-size: 0.8rem;
+    font-size: 0.95rem;
     color: var(--ui-ink-3);
     font-weight: 600;
-    margin-top: 0.1rem;
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
 }
 .cx2-item-semana {
-    font-size: 0.66rem;
+    font-size: 0.7rem;
     color: var(--ui-ink-3);
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    margin-top: 0.35rem;
+    letter-spacing: 0.14em;
+    flex: 1;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-.cx2-item-marca {
-    margin-top: 0.4rem;
-    font-size: 0.6rem;
+.cx2-item-hoje {
+    background: var(--ui-accent);
+    color: var(--ui-bg);
+    font-size: 0.58rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    background: var(--ui-accent);
-    color: var(--ui-bg);
-    padding: 0.12rem 0.4rem;
+    padding: 0.1rem 0.42rem;
     border-radius: 999px;
+    line-height: 1.4;
 }
 
-/* Zona meio: stats compactas */
-.cx2-item-meio { min-width: 0; }
-.cx2-item-stats {
-    display: flex;
-    gap: 1.1rem;
-    flex-wrap: wrap;
-}
-.cx2-item-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 0.05rem;
-}
-.cx2-item-stat-val {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--ui-ink);
-    letter-spacing: -0.015em;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.15;
-}
-.cx2-item-stat-lab {
-    font-size: 0.7rem;
-    color: var(--ui-ink-3);
-    font-weight: 500;
-    text-transform: lowercase;
-}
-.cx2-item-stat[data-pend="sim"] .cx2-item-stat-val { color: var(--ui-warn); }
-.cx2-item-stat[data-pend="sim"] .cx2-item-stat-lab { color: var(--ui-warn); opacity: 0.85; }
-
-/* Zona direita: badge + valor */
-.cx2-item-direita {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.35rem;
-    text-align: right;
-}
 .cx2-item-badge {
+    flex-shrink: 0;
     font-size: 0.62rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    padding: 0.18rem 0.55rem;
+    letter-spacing: 0.1em;
+    padding: 0.2rem 0.55rem;
     border-radius: 999px;
     background: var(--ui-surface-2);
     color: var(--ui-ink-3);
     line-height: 1.4;
+    white-space: nowrap;
+    align-self: center;
 }
 .cx2-item-badge[data-tone="ok"]      { background: var(--ui-accent-soft); color: var(--ui-accent); }
 .cx2-item-badge[data-tone="warn"]    { background: var(--ui-warn-soft);   color: var(--ui-warn); }
 .cx2-item-badge[data-tone="neutral"] { background: var(--ui-surface-2);   color: var(--ui-ink-2); }
 .cx2-item-badge[data-tone="muted"]   { background: var(--ui-surface-2);   color: var(--ui-ink-3); opacity: 0.8; }
 
+/* ============================================================
+   ZONA 2 — BODY: valor grande (esquerda) + stats (direita)
+   ============================================================ */
+.cx2-item-body {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    /* Absorve o espaco vertical sobrando — empurra o footer
+       (.cx2-item-resumo) pra colar no fundo do card. Quando o
+       card nao tem footer, o body simplesmente preenche tudo. */
+    flex: 1;
+}
 .cx2-item-valor {
-    font-size: 1.05rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: var(--ui-ink);
-    letter-spacing: -0.018em;
+    letter-spacing: -0.025em;
     font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.cx2-item-stats {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    line-height: 1.4;
+    min-width: 0;
+}
+.cx2-item-stat {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+.cx2-item-stat strong {
+    font-weight: 700;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.86rem;
+    letter-spacing: -0.012em;
+}
+.cx2-item-stat[data-pend="sim"] strong { color: var(--ui-warn); }
+.cx2-item-stat[data-pend="sim"]        { color: var(--ui-warn); opacity: 0.85; }
+.cx2-item-stat-sep {
+    color: var(--ui-ink-4);
+    user-select: none;
 }
 
-/* Resumo do caixa — segunda linha com chips de top categorias +
-   badge opcional de alerta (pendencias criticas). */
+/* ============================================================
+   ZONA 3 — FOOTER: chips de categoria + alerta critico
+   ============================================================ */
 .cx2-item-resumo {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.6rem;
     padding-top: 0.65rem;
     border-top: 1px dashed var(--ui-border);
     flex-wrap: wrap;
+    min-width: 0;
+}
+/* Placeholder discreto pra caixas sem lancamentos — mantem a
+   anatomia do card (footer sempre presente) mas comunica vazio
+   com tipografia leve, sem alarme. */
+.cx2-item-vazio-tag {
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: var(--ui-ink-4);
+    font-style: italic;
+    letter-spacing: -0.005em;
 }
 .cx2-item-cats {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.3rem;
     flex-wrap: wrap;
+    min-width: 0;
 }
 .cx2-item-cat-chip {
     display: inline-flex;
     align-items: baseline;
     gap: 0.3rem;
-    padding: 0.18rem 0.55rem;
+    padding: 0.16rem 0.5rem;
     background: var(--ui-surface-2);
     border-radius: 999px;
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     line-height: 1.3;
+    white-space: nowrap;
 }
 .cx2-item-cat-rotulo {
     color: var(--ui-ink-2);
@@ -474,7 +512,6 @@
     color: var(--ui-ink);
     font-variant-numeric: tabular-nums;
 }
-/* Mini-pintura por categoria — bem leve, sem agressao */
 .cx2-item-cat-chip[data-cat="pix"]         { background: rgba(15, 118, 110, 0.10); }
 .cx2-item-cat-chip[data-cat="pix"]         .cx2-item-cat-rotulo { color: #0F766E; }
 .cx2-item-cat-chip[data-cat="cartao"]      { background: rgba(30, 64, 175, 0.08); }
@@ -490,16 +527,15 @@
 .cx2-item-cat-chip[data-cat="disponivel_retirada"] { background: rgba(139, 90, 43, 0.10); }
 .cx2-item-cat-chip[data-cat="disponivel_retirada"] .cx2-item-cat-rotulo { color: #8B5A2B; }
 
-/* Alerta de pendencia critica */
 .cx2-item-alerta {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
     background: var(--ui-danger-soft);
     color: var(--ui-danger);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    padding: 0.2rem 0.55rem;
+    padding: 0.18rem 0.5rem;
     border-radius: 999px;
     text-transform: lowercase;
     letter-spacing: 0.01em;
@@ -507,21 +543,11 @@
     flex-shrink: 0;
 }
 
-@media (max-width: 600px) {
-    .cx2-item-topo {
-        grid-template-columns: 4rem 1fr;
-        gap: 0.8rem;
-    }
-    .cx2-item-direita {
-        grid-column: 1 / -1;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        padding-top: 0.5rem;
-        border-top: 1px dashed var(--ui-border);
-        text-align: left;
-    }
-    .cx2-item-dia { font-size: 1.7rem; }
+@media (max-width: 480px) {
+    .cx2-item { padding: 0.8rem 0.85rem; }
+    .cx2-item-dia { font-size: 1.5rem; }
+    .cx2-item-valor { font-size: 1.25rem; }
+    .cx2-item-head { gap: 0.45rem; flex-wrap: wrap; }
 }
 
 /* ============================================================
@@ -543,7 +569,7 @@
     overflow: hidden;
 }
 .cx2-painel-head {
-    padding: 1rem 1.15rem 0.8rem;
+    padding: 0.9rem 1.15rem 0.75rem;
     border-bottom: 1px solid var(--ui-border);
     background: var(--ui-surface-2);
 }
@@ -555,42 +581,42 @@
     letter-spacing: -0.015em;
 }
 .cx2-painel-sub {
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     color: var(--ui-ink-3);
-    margin: 0.15rem 0 0;
-    text-transform: lowercase;
+    margin: 0.18rem 0 0;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.005em;
 }
-.cx2-painel-body { padding: 0.85rem 1.15rem 1.1rem; }
+.cx2-painel-body { padding: 0.85rem 1rem 1.05rem; }
 
 .cx2-painel-vazio {
     text-align: center;
     padding: 1.5rem 0.5rem;
 }
 
-/* Buckets — Criticas / Em atencao / Recentes */
+/* ============================================================
+   BUCKET — mesma anatomia dos .cx2-item:
+   ancora a esquerda (num gigante) + header (rotulo) + meta inline.
+   ============================================================ */
 .cx2-painel-bucket-grupo {
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.5rem;
     margin-bottom: 1.1rem;
 }
-/* Bucket — pílula horizontal sem filete lateral. Hierarquia
-   inteira no numero grande + rotulo + valor. Background tonal
-   bem leve com a cor do tom (rgba 5%) — sem borda colorida. */
 .cx2-bucket {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto auto;
-    column-gap: 0.95rem;
-    row-gap: 0.05rem;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.85rem;
     align-items: center;
-    padding: 0.8rem 1rem;
+    padding: 0.7rem 0.9rem;
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
-    border-radius: var(--ui-r-sm);
+    border-radius: var(--ui-r-md);
     transition: border-color 160ms var(--ui-ease), background 160ms var(--ui-ease);
+    min-width: 0;
 }
-.cx2-bucket[data-zero="true"] { opacity: 0.4; }
+.cx2-bucket[data-zero="true"] { opacity: 0.45; }
 .cx2-bucket[data-tone="danger"] {
     background: linear-gradient(180deg, rgba(185, 28, 28, 0.05), transparent);
     border-color: color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
@@ -605,60 +631,62 @@
 }
 
 .cx2-bucket-num {
-    grid-row: 1 / span 2;
-    grid-column: 1;
-    font-size: 1.7rem;
+    font-size: 1.8rem;
     font-weight: 700;
     line-height: 1;
     color: var(--ui-ink);
-    letter-spacing: -0.028em;
+    letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
-    min-width: 1.6rem;
+    min-width: 1.8rem;
     text-align: center;
 }
 .cx2-bucket[data-tone="danger"] .cx2-bucket-num { color: var(--ui-danger); }
 .cx2-bucket[data-tone="warn"]   .cx2-bucket-num { color: var(--ui-warn); }
 .cx2-bucket[data-tone="info"]   .cx2-bucket-num { color: var(--ui-info); }
 
+.cx2-bucket-corpo {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
 .cx2-bucket-rotulo {
-    grid-row: 1;
-    grid-column: 2;
-    font-size: 0.88rem;
+    font-size: 0.82rem;
     font-weight: 700;
     color: var(--ui-ink);
-    letter-spacing: -0.012em;
+    letter-spacing: -0.01em;
     line-height: 1.2;
 }
-.cx2-bucket-nota {
-    grid-row: 2;
-    grid-column: 2;
-    font-size: 0.7rem;
+.cx2-bucket-meta {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
     color: var(--ui-ink-3);
-    text-transform: lowercase;
-    font-weight: 500;
     line-height: 1.3;
-    letter-spacing: 0.005em;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
 }
+.cx2-bucket-sep { color: var(--ui-ink-4); user-select: none; }
 .cx2-bucket-valor {
-    grid-row: 1 / span 2;
-    grid-column: 3;
-    font-size: 0.8rem;
     font-weight: 700;
     color: var(--ui-ink-2);
     font-variant-numeric: tabular-nums;
-    text-align: right;
-    align-self: center;
     white-space: nowrap;
+    letter-spacing: -0.005em;
 }
 
-/* Secao: lista mini */
+/* ============================================================
+   SECAO — separador entre buckets e listas
+   ============================================================ */
 .cx2-painel-secao {
     border-top: 1px dashed var(--ui-border);
-    padding-top: 0.85rem;
-    margin-top: 0.85rem;
+    padding-top: 0.9rem;
+    margin-top: 0.9rem;
 }
 .cx2-painel-secao-title {
-    font-size: 0.66rem;
+    font-size: 0.64rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.14em;
@@ -666,93 +694,130 @@
     margin: 0 0 0.55rem;
 }
 
-/* Lista de pendencias urgentes */
+/* ============================================================
+   PEND — pendencia em duas linhas (NF+cliente / meta).
+   Mesma anatomia do .cx2-sug-item da busca; hover sutil.
+   ============================================================ */
 .cx2-painel-pend {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.25rem;
 }
 .cx2-pend {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 0.55rem;
-    align-items: center;
-    padding: 0.45rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid transparent;
     border-radius: var(--ui-r-sm);
     text-decoration: none;
     color: inherit;
-    font-size: 0.8rem;
-    transition: background 160ms var(--ui-ease);
+    transition: border-color 160ms var(--ui-ease), background 160ms var(--ui-ease);
+    min-width: 0;
 }
-.cx2-pend:hover { background: var(--ui-danger-soft); }
+.cx2-pend:hover {
+    background: var(--ui-danger-soft);
+    border-color: color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
+}
+.cx2-pend-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-width: 0;
+}
 .cx2-pend-nf {
     font-family: 'Manrope', monospace;
     font-weight: 700;
     color: var(--ui-ink);
     font-variant-numeric: tabular-nums;
     font-size: 0.78rem;
+    flex-shrink: 0;
 }
 .cx2-pend-cliente {
-    color: var(--ui-ink-2);
+    color: var(--ui-ink);
+    font-size: 0.84rem;
+    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
+    letter-spacing: -0.01em;
 }
-.cx2-pend-idade {
-    color: var(--ui-danger);
-    font-weight: 600;
+.cx2-pend-meta {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
     font-size: 0.72rem;
-    white-space: nowrap;
+    color: var(--ui-ink-3);
     font-variant-numeric: tabular-nums;
 }
+.cx2-pend-sep { color: var(--ui-ink-4); user-select: none; }
+.cx2-pend-idade {
+    color: var(--ui-danger);
+    font-weight: 700;
+    letter-spacing: -0.005em;
+}
 
-/* Dias com mais pendencias — barras horizontais */
+/* ============================================================
+   DIA-PEND — data + barra + count. Mantem layout horizontal,
+   mas com hover e proporcoes melhores.
+   ============================================================ */
 .cx2-painel-dias {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.25rem;
 }
 .cx2-dia-pend {
     display: grid;
     grid-template-columns: 3rem 1fr auto;
-    gap: 0.6rem;
+    gap: 0.65rem;
     align-items: center;
-    padding: 0.3rem 0.4rem;
+    padding: 0.42rem 0.6rem;
+    border: 1px solid transparent;
     border-radius: var(--ui-r-sm);
     text-decoration: none;
     color: inherit;
     font-size: 0.78rem;
-    transition: background 160ms var(--ui-ease);
+    transition: border-color 160ms var(--ui-ease), background 160ms var(--ui-ease);
+    min-width: 0;
 }
-.cx2-dia-pend:hover { background: var(--ui-surface-2); }
+.cx2-dia-pend:hover {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border);
+}
 .cx2-dia-pend-data {
-    color: var(--ui-ink-2);
-    font-weight: 600;
+    color: var(--ui-ink);
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
+    font-size: 0.78rem;
 }
 .cx2-dia-pend-bar {
     background: var(--ui-surface-2);
     border-radius: 999px;
-    height: 5px;
+    height: 6px;
     overflow: hidden;
+    border: 1px solid var(--ui-border);
 }
 .cx2-dia-pend-fill {
     display: block;
     height: 100%;
-    background: var(--ui-warn);
+    background: linear-gradient(90deg, var(--ui-warn), color-mix(in srgb, var(--ui-warn) 60%, var(--ui-danger)));
     border-radius: 999px;
+    transition: width 380ms var(--ui-ease);
 }
 .cx2-dia-pend-count {
     font-weight: 700;
     color: var(--ui-ink);
     font-variant-numeric: tabular-nums;
+    font-size: 0.84rem;
+    min-width: 1.5rem;
+    text-align: right;
 }
 
 /* Estado vazio interno */

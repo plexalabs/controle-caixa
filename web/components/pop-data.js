@@ -350,11 +350,15 @@ export function instalarPopData(input) {
 
     popover.style.position = 'fixed';
     // Largura fixa do popover, alinha pela esquerda do trigger sem
-    // estourar a viewport
+    // estourar a viewport. Usa documentElement.clientWidth (sem
+    // scrollbar) em vez de window.innerWidth (com scrollbar) — o
+    // scrollbar-gutter: stable cria offset permanente, e usar
+    // innerWidth fazia o clamp empurrar o popover ~14px pra esquerda.
     const larguraPop = 308;
+    const viewportW = document.documentElement.clientWidth;
     let leftAlvo = r.left;
-    if (leftAlvo + larguraPop > window.innerWidth - 12) {
-      leftAlvo = Math.max(12, window.innerWidth - larguraPop - 12);
+    if (leftAlvo + larguraPop > viewportW - 12) {
+      leftAlvo = Math.max(12, viewportW - larguraPop - 12);
     }
     popover.style.left = `${leftAlvo}px`;
 

@@ -3,8 +3,11 @@
    /caixa/:data (cards papel, eyebrow verde, sem gradients).
 */
 
+/* Largura de "ficha" — mais estreita que as telas de lista (.cxd 78rem,
+   .pnd 72rem). Lancamento e um registro individual, le-se melhor numa
+   coluna proxima do "optimal reading width" (52-56rem). */
 .lnc {
-    max-width: 64rem;
+    max-width: 52rem;
     margin: 0 auto;
     padding: 1.75rem 1.75rem 3.5rem;
     color: var(--ui-ink);
@@ -32,60 +35,74 @@
 .lnc-link-back:hover svg { transform: translateX(-2px); }
 
 /* ============================================================
-   Header
+   Header — 3 zonas (eyebrow + titulo + meta) alinhadas com o
+   resto do sistema (.cxd-header, .pnd-header, .cx2-header).
+   Badge de estado no canto direito, em coluna propria.
    ============================================================ */
 .lnc-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.85rem 1rem;
+    align-items: start;
+    margin-bottom: 1.4rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid var(--ui-border);
 }
+.lnc-header-meta { min-width: 0; }
+.lnc-header-direita {
+    align-self: start;
+    display: inline-flex;
+    align-items: center;
+}
+
 .lnc-eyebrow {
-    font-size: 0.66rem;
+    font-size: 0.64rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.18em;
     color: var(--ui-accent);
-    margin: 0 0 0.35rem;
+    margin: 0 0 0.45rem;
+    font-variant-numeric: tabular-nums;
 }
 .lnc-title {
-    font-size: 1.55rem;
+    font-size: 1.45rem;
     font-weight: 700;
     letter-spacing: -0.025em;
     color: var(--ui-ink);
     margin: 0;
     line-height: 1.2;
+    overflow-wrap: anywhere;
 }
 .lnc-sub {
     display: flex;
     align-items: baseline;
-    gap: 0.6rem;
-    margin: 0.5rem 0 0;
+    gap: 0.55rem;
+    margin: 0.55rem 0 0;
     flex-wrap: wrap;
 }
 .lnc-valor {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--ui-ink);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.018em;
 }
-.lnc-sep { color: var(--ui-ink-4); }
+.lnc-sep { color: var(--ui-ink-4); user-select: none; }
 
+/* Chip de categoria — cores canonicas alinhadas com .pnd-item-cat
+   e .cx2-item-cat-chip (mesma intensidade de fundo). */
 .lnc-cat-chip {
     display: inline-flex;
     align-items: center;
     padding: 0.18rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     background: var(--ui-surface-2);
     color: var(--ui-ink-3);
-    line-height: 1.35;
+    line-height: 1.4;
 }
 .lnc-cat-chip[data-cat="pix"]                { background: rgba(15, 118, 110, 0.12); color: #0F766E; }
 .lnc-cat-chip[data-cat="cartao"]             { background: rgba(30, 64, 175, 0.10); color: #1E40AF; }
@@ -95,12 +112,17 @@
 .lnc-cat-chip[data-cat="obs"]                { background: var(--ui-warn-soft);      color: var(--ui-warn); }
 .lnc-cat-chip[data-cat="disponivel_retirada"]{ background: rgba(139, 90, 43, 0.12); color: #8B5A2B; }
 
+/* Badge de estado — usa a mesma paleta de tone do modal-edit-v2
+   (analise = warn-suave neutro, em curso = warn, finalizado/resolvido
+   = accent, cancelado = danger). 'analise' migrou de info(azul) pra
+   warn(ambar): combina com o resto do sistema, onde 'em analise'
+   pede atencao (warn-soft em .pnd-item-cat, modal badges, etc.). */
 .lnc-badge {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 0.3rem 0.7rem;
+    letter-spacing: 0.12em;
+    padding: 0.28rem 0.65rem;
     border-radius: 999px;
     background: var(--ui-surface-2);
     color: var(--ui-ink-3);
@@ -108,58 +130,68 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    white-space: nowrap;
 }
 .lnc-badge::before {
     content: '';
-    width: 7px; height: 7px;
+    width: 6px; height: 6px;
     border-radius: 50%;
     background: currentColor;
-    opacity: 0.8;
+    opacity: 0.85;
 }
-.lnc-badge[data-tone="analise"]    { background: var(--ui-info-soft);   color: var(--ui-info); }
+.lnc-badge[data-tone="analise"]    { background: var(--ui-warn-soft);   color: var(--ui-warn); }
 .lnc-badge[data-tone="completo"]   { background: var(--ui-warn-soft);   color: var(--ui-warn); }
 .lnc-badge[data-tone="resolvido"]  { background: var(--ui-accent-soft); color: var(--ui-accent); }
 .lnc-badge[data-tone="finalizado"] { background: var(--ui-accent-soft); color: var(--ui-accent-2); }
 .lnc-badge[data-tone="cancelado"]  { background: var(--ui-danger-soft); color: var(--ui-danger); }
 
 /* ============================================================
-   Bloco de info (Cliente, Cód., Categoria, Caixa)
+   Bloco de info (Cliente, Cód. pedido, Categoria, Caixa)
+   Grid 2x2 fixo — blocos balanceados, sem auto-fit que cria
+   alturas desiguais na largura reduzida da ficha.
    ============================================================ */
 .lnc-info {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-    gap: 0.55rem;
-    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 1.6rem;
+}
+@media (max-width: 540px) {
+    .lnc-info { grid-template-columns: 1fr; }
 }
 .lnc-info-bloco {
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-md);
-    padding: 0.75rem 0.95rem;
+    padding: 0.8rem 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-    transition: border-color 160ms var(--ui-ease);
+    gap: 0.3rem;
+    min-width: 0;
+    transition: border-color 160ms var(--ui-ease), background 160ms var(--ui-ease);
 }
-.lnc-info-bloco:hover { border-color: var(--ui-border-strong); }
+.lnc-info-bloco:hover {
+    border-color: var(--ui-border-strong);
+    background: var(--ui-surface-2);
+}
 .lnc-info-label {
-    font-size: 0.66rem;
+    font-size: 0.62rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     color: var(--ui-ink-3);
     margin: 0;
 }
 .lnc-info-valor {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 600;
     color: var(--ui-ink);
     margin: 0;
-    line-height: 1.3;
+    line-height: 1.35;
     overflow-wrap: anywhere;
 }
 .lnc-info-extra {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     color: var(--ui-ink-3);
     font-weight: 500;
 }
@@ -172,13 +204,17 @@
     color: var(--ui-accent);
     text-decoration: underline;
     text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, var(--ui-accent) 38%, transparent);
     font-weight: 600;
-    transition: color 160ms var(--ui-ease);
+    transition: color 160ms var(--ui-ease), text-decoration-color 160ms var(--ui-ease);
 }
-.lnc-info-link:hover { color: var(--ui-accent-2); }
+.lnc-info-link:hover {
+    color: var(--ui-accent-2);
+    text-decoration-color: var(--ui-accent-2);
+}
 
 /* ============================================================
-   Timeline
+   Timeline — card editorial (mesma anatomia dos cards do sistema)
    ============================================================ */
 .lnc-timeline-bloco {
     background: var(--ui-surface);
@@ -188,22 +224,27 @@
     margin-bottom: 1.25rem;
 }
 .lnc-timeline-head {
-    margin-bottom: 0.85rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--ui-border);
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px dashed var(--ui-border);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
 }
 .lnc-timeline-title {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--ui-ink);
     margin: 0;
     letter-spacing: -0.015em;
 }
 .lnc-timeline-sub {
-    font-size: 0.74rem;
+    font-size: 0.7rem;
     color: var(--ui-ink-3);
-    margin: 0.15rem 0 0;
-    text-transform: lowercase;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 .lnc-timeline {
@@ -296,32 +337,50 @@
 .lnc-tl-autor strong { color: var(--ui-ink); font-weight: 600; }
 
 /* ============================================================
-   Rodapé
+   Rodape — botao de acao alinhado a direita, mesma anatomia do
+   .cxd-btn--primary (sistema). Sem transform no :active pra evitar
+   jitter num layout sticky/fixo proximo.
    ============================================================ */
 .lnc-rodape {
     display: flex;
     justify-content: flex-end;
-    gap: 0.5rem;
-    margin-top: 1rem;
+    gap: 0.6rem;
+    margin-top: 1.4rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--ui-border);
 }
 .lnc-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.45rem;
     background: var(--ui-ink);
     color: var(--ui-bg);
-    border: 0;
+    border: 1px solid var(--ui-ink);
     border-radius: var(--ui-r-sm);
-    padding: 0.65rem 1.2rem;
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.9rem;
+    padding: 0.6rem 1.1rem;
+    font-family: inherit;
+    font-size: 0.88rem;
     font-weight: 600;
     text-decoration: none;
     cursor: pointer;
-    transition: background 160ms var(--ui-ease), transform 80ms var(--ui-ease);
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
     line-height: 1.2;
+    letter-spacing: -0.005em;
 }
-.lnc-btn:hover { background: #1A2904; }
-.lnc-btn:active { transform: translateY(1px); }
-.lnc-btn--primary { background: var(--ui-accent); }
-.lnc-btn--primary:hover { background: var(--ui-accent-2); }
+.lnc-btn:hover {
+    background: #1A2904;
+    border-color: #1A2904;
+}
+.lnc-btn--primary {
+    background: var(--ui-accent);
+    border-color: var(--ui-accent);
+}
+.lnc-btn--primary:hover {
+    background: var(--ui-accent-2);
+    border-color: var(--ui-accent-2);
+    box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--ui-accent) 35%, transparent);
+}
+.lnc-btn:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 28%, transparent);
+}

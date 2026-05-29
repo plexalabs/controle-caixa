@@ -7,7 +7,7 @@ import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
 import { LABEL_CATEGORIA, dataLonga, resumoDetalhes } from '../dominio.js';
-import { formatBRL } from '../utils.js';
+import { formatBRL, formatarNumeroNF, formatarCodigoPedido, formatarNomeCliente } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
 import { navegar } from '../router.js';
 
@@ -68,8 +68,8 @@ export async function renderLancamento({ params }) {
 
       <header class="lnc-header">
         <div class="lnc-header-meta">
-          <p class="lnc-eyebrow">Nota fiscal · NF ${esc(lanc.numero_nf)}</p>
-          <h1 class="lnc-title">${esc(lanc.cliente_nome || '— sem cliente —')}</h1>
+          <p class="lnc-eyebrow">Nota fiscal · NF ${esc(formatarNumeroNF(lanc.numero_nf))}</p>
+          <h1 class="lnc-title">${esc(formatarNomeCliente(lanc.cliente_nome) || '— sem cliente —')}</h1>
           <p class="lnc-sub">
             <span class="lnc-valor">${formatBRL(lanc.valor_nf)}</span>
             <span class="lnc-sep" aria-hidden="true">·</span>
@@ -82,8 +82,8 @@ export async function renderLancamento({ params }) {
       </header>
 
       <section class="lnc-info">
-        ${blocoInfo('Cliente', esc(lanc.cliente_nome || '—'))}
-        ${blocoInfo('Código do pedido', esc(lanc.codigo_pedido || '—'))}
+        ${blocoInfo('Cliente', esc(formatarNomeCliente(lanc.cliente_nome) || '—'))}
+        ${blocoInfo('Código do pedido', esc(lanc.codigo_pedido ? formatarCodigoPedido(lanc.codigo_pedido) : '—'))}
         ${blocoInfo('Categoria', lanc.categoria
           ? `${esc(catLabel)}${detalheCat ? `<span class="lnc-info-extra"> · ${esc(detalheCat)}</span>` : ''}`
           : '<em class="lnc-info-vazio">aguardando categorização</em>', { html: true })}
@@ -155,9 +155,9 @@ function itemTimeline(ev) {
   if (tipo === 'criacao') {
     corpoHtml = `
       <p class="lnc-tl-corpo">
-        <strong>NF ${esc(c.numero_nf)}</strong> registrada com valor <strong>${formatBRL(c.valor_nf)}</strong>
-        ${c.cliente_nome ? `para <strong>${esc(c.cliente_nome)}</strong>` : ''}
-        ${c.codigo_pedido ? `<span class="lnc-tl-pedido">· pedido ${esc(c.codigo_pedido)}</span>` : ''}
+        <strong>NF ${esc(formatarNumeroNF(c.numero_nf))}</strong> registrada com valor <strong>${formatBRL(c.valor_nf)}</strong>
+        ${c.cliente_nome ? `para <strong>${esc(formatarNomeCliente(c.cliente_nome))}</strong>` : ''}
+        ${c.codigo_pedido ? `<span class="lnc-tl-pedido">· pedido ${esc(formatarCodigoPedido(c.codigo_pedido))}</span>` : ''}
       </p>`;
   } else {
     corpoHtml = `<p class="lnc-tl-corpo">${esc(c.texto || '')}</p>`;

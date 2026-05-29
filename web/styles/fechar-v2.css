@@ -1,0 +1,704 @@
+/* fechar-v2.css — Tela /caixa/:data/fechar refator v2.
+   Namespace .fch-*. Reusa tokens --ui-*. Mesma linguagem visual de
+   lancamento-v2 / caixa-v2 / pendencias-v2. Layout focado (ficha
+   formal de fechamento): max-width 56rem, card-by-card, rodape sticky
+   com botao primario. */
+
+.fch {
+    max-width: 56rem;
+    margin: 0 auto;
+    padding: 1.75rem 1.75rem 6rem;
+    color: var(--ui-ink);
+}
+@media (max-width: 767px) {
+    .fch {
+        padding: 1.1rem 1rem;
+        padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* ============================================================
+   Breadcrumb
+   ============================================================ */
+.fch-breadcrumb { margin-bottom: 0.9rem; }
+.fch-link-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--ui-ink-3);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: color 160ms var(--ui-ease);
+}
+.fch-link-back:hover { color: var(--ui-ink); }
+.fch-link-back svg { transition: transform 160ms var(--ui-ease); }
+.fch-link-back:hover svg { transform: translateX(-2px); }
+@media (max-width: 767px) {
+    .fch-breadcrumb { display: none; }
+}
+
+/* ============================================================
+   Header — fechamento e acao critica: eyebrow vermelho discreto
+   ============================================================ */
+.fch-header {
+    margin-bottom: 1.6rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.fch-eyebrow {
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ui-danger);
+    margin: 0 0 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.fch-eyebrow::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--ui-danger);
+}
+.fch-title {
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.028em;
+    color: var(--ui-ink);
+    margin: 0;
+    line-height: 1.15;
+}
+.fch-sub {
+    font-size: 0.92rem;
+    color: var(--ui-ink-3);
+    margin: 0.55rem 0 0;
+    line-height: 1.55;
+    max-width: 44rem;
+}
+@media (max-width: 767px) {
+    .fch-title { font-size: 1.45rem; letter-spacing: -0.022em; }
+    .fch-sub   { font-size: 0.86rem; }
+    .fch-header { margin-bottom: 1.1rem; padding-bottom: 0.9rem; }
+}
+
+/* ============================================================
+   KPIs do resumo do dia — Valor líquido como HERO (2fr), outros
+   1fr. Hierarquia: Valor é a metrica auditavel; demais sao detalhes.
+   Mesma anatomia do .cxd-kpi (baseline alinhado, valor a direita).
+   ============================================================ */
+.fch-kpis {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    gap: 0.55rem;
+    margin-bottom: 1.4rem;
+}
+@media (max-width: 900px) {
+    .fch-kpis { grid-template-columns: repeat(2, 1fr); }
+    .fch-kpi--destaque { grid-column: 1 / -1; }
+}
+@media (max-width: 480px) {
+    .fch-kpis { grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+    .fch-kpi--destaque { grid-column: 1 / -1; }
+}
+
+/* MOBILE: layout drasticamente diferente para os widgets menores
+   vs o hero. Valor líquido ocupa linha cheia com valor grande.
+   Os 4 menores compartilham um padrao MINI:
+     - card compacto (padding menor)
+     - label tiny caps
+     - valor 0.95-1.15rem (escala via clamp pra caber em qualquer tela)
+     - sub micro
+   Stack vertical garante que value nunca disputa espaco lateral com
+   label e sempre tem a largura cheia do card. */
+@media (max-width: 600px) {
+    .fch-kpis {
+        gap: 0.5rem;
+    }
+    /* Mobile: ajusta tamanhos do baseline-aligned grid (label esquerda +
+       valor direita). Quando valor nao cabe, o marquee entra (logica
+       do dashboard) — sem mudar o layout fundamental. */
+    .fch-kpi {
+        padding: 0.8rem 0.95rem 0.85rem;
+        column-gap: 0.6rem;
+        min-width: 0;
+    }
+    .fch-kpi-label {
+        font-size: 0.6rem;
+        letter-spacing: 0.14em;
+    }
+    .fch-kpi-value {
+        font-size: 1.3rem;
+    }
+    .fch-kpi-sub {
+        font-size: 0.68rem;
+    }
+    .fch-kpi--destaque .fch-kpi-value {
+        font-size: 1.5rem;
+    }
+}
+.fch-kpi {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: baseline;
+    column-gap: 0.85rem;
+    row-gap: 0.5rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.85rem 1rem 0.9rem;
+    min-width: 0;
+    transition: border-color 160ms var(--ui-ease), background 160ms var(--ui-ease);
+    /* Stagger fade-in: cada card entra ~40ms depois do anterior */
+    animation: fch-fade-up 460ms var(--ui-ease) backwards;
+}
+.fch-kpi:nth-child(1) { animation-delay: 40ms; }
+.fch-kpi:nth-child(2) { animation-delay: 80ms; }
+.fch-kpi:nth-child(3) { animation-delay: 120ms; }
+.fch-kpi:nth-child(4) { animation-delay: 160ms; }
+.fch-kpi:nth-child(5) { animation-delay: 200ms; }
+.fch-kpi:hover { border-color: var(--ui-border-strong); }
+@keyframes fch-fade-up {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.fch-kpi-label {
+    grid-column: 1; grid-row: 1;
+    font-size: 0.62rem;
+    color: var(--ui-ink-3);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    line-height: 1.2;
+}
+.fch-kpi-value {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.025em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    /* Marquee container — quando o valor nao cabe, JS adiciona
+       .is-marquee e o track roda em loop infinito como nos KPIs
+       do dashboard. Quando cabe, fica estatico (clone escondido). */
+    overflow: hidden;
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+    text-align: right;
+}
+.fch-kpi-value.is-marquee {
+    justify-content: flex-start;
+    mask-image: linear-gradient(to right,
+        transparent 0, black 8px,
+        black calc(100% - 12px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right,
+        transparent 0, black 8px,
+        black calc(100% - 12px), transparent 100%);
+}
+.fch-kpi-value-track {
+    display: inline-flex;
+    align-items: baseline;
+    width: max-content;
+    white-space: nowrap;
+}
+.fch-kpi-value-part {
+    flex-shrink: 0;
+    padding-right: 2.5rem;
+}
+.fch-kpi-value:not(.is-marquee) .fch-kpi-value-part--clone { display: none; }
+.fch-kpi-value:not(.is-marquee) .fch-kpi-value-part { padding-right: 0; }
+.fch-kpi-value.is-marquee .fch-kpi-value-track {
+    animation: fch-kpi-marquee 14s linear infinite;
+}
+.fch-kpi:hover .fch-kpi-value.is-marquee .fch-kpi-value-track {
+    animation-play-state: paused;
+}
+@keyframes fch-kpi-marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fch-kpi-value.is-marquee .fch-kpi-value-track { animation: none; }
+}
+.fch-kpi-sub {
+    grid-column: 1; grid-row: 2;
+    font-size: 0.72rem;
+    color: var(--ui-ink-3);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+.fch-kpi-sub a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+    font-weight: 600;
+    transition: text-decoration-color 160ms var(--ui-ease);
+}
+.fch-kpi-sub a:hover { text-decoration-color: currentColor; }
+
+/* Tons — destaque vira HERO da linha: padding maior, valor maior */
+.fch-kpi--destaque {
+    background: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 28%, var(--ui-border));
+    padding: 1rem 1.1rem 1.05rem;
+}
+.fch-kpi--destaque .fch-kpi-value {
+    color: var(--ui-accent);
+    font-size: 1.7rem;
+    letter-spacing: -0.03em;
+}
+.fch-kpi--destaque .fch-kpi-label { color: var(--ui-accent); }
+.fch-kpi--destaque .fch-kpi-sub   { color: var(--ui-accent-2); }
+
+.fch-kpi--warn {
+    background: linear-gradient(180deg, rgba(180, 83, 9, 0.06), transparent);
+    border-color: color-mix(in srgb, var(--ui-warn) 22%, var(--ui-border));
+}
+.fch-kpi--warn .fch-kpi-value { color: var(--ui-warn); }
+.fch-kpi--warn .fch-kpi-sub a { color: var(--ui-warn); }
+
+.fch-kpi--good {
+    background: linear-gradient(180deg, rgba(22, 101, 52, 0.05), transparent);
+    border-color: color-mix(in srgb, var(--ui-accent) 18%, var(--ui-border));
+}
+.fch-kpi--good .fch-kpi-value { color: var(--ui-accent); }
+.fch-kpi--good .fch-kpi-sub { color: var(--ui-accent-2); }
+
+.fch-kpi--alerta {
+    background: linear-gradient(180deg, rgba(185, 28, 28, 0.05), transparent);
+    border-color: color-mix(in srgb, var(--ui-danger) 22%, var(--ui-border));
+}
+.fch-kpi--alerta .fch-kpi-value { color: var(--ui-danger); }
+
+/* ============================================================
+   Avisos — banners coloridos (warn / danger). Stagger fade-in.
+   ============================================================ */
+.fch-aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 0.95rem 1.15rem;
+    border-radius: var(--ui-r-md);
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    animation: fch-fade-up 460ms var(--ui-ease) 240ms backwards;
+}
+.fch-aviso + .fch-aviso { animation-delay: 320ms; }
+.fch-aviso--warn {
+    background: var(--ui-warn-soft);
+    border-color: color-mix(in srgb, var(--ui-warn) 26%, var(--ui-border));
+}
+.fch-aviso--danger {
+    background: var(--ui-danger-soft);
+    border-color: color-mix(in srgb, var(--ui-danger) 28%, var(--ui-border));
+}
+.fch-aviso-icone {
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ui-surface);
+    color: var(--ui-warn);
+    margin-top: 0.1rem;
+}
+.fch-aviso--danger .fch-aviso-icone { color: var(--ui-danger); }
+.fch-aviso-corpo { min-width: 0; flex: 1; }
+.fch-aviso-eyebrow {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ui-warn);
+    margin: 0 0 0.3rem;
+}
+.fch-aviso--danger .fch-aviso-eyebrow { color: var(--ui-danger); }
+.fch-aviso-texto {
+    font-size: 0.9rem;
+    color: var(--ui-ink-2);
+    margin: 0;
+    line-height: 1.5;
+}
+.fch-aviso-texto strong { color: var(--ui-ink); font-weight: 700; }
+
+/* ============================================================
+   Cards (checklist + justificativa) — stagger fade-in tardio
+   ============================================================ */
+.fch-card {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 1.15rem 1.25rem 1.25rem;
+    margin-bottom: 1rem;
+    animation: fch-fade-up 500ms var(--ui-ease) 360ms backwards;
+}
+.fch-card + .fch-card { animation-delay: 440ms; }
+.fch-card-head {
+    margin-bottom: 0.95rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px dashed var(--ui-border);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+.fch-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin: 0;
+    letter-spacing: -0.015em;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+.fch-card-title-req {
+    color: var(--ui-danger);
+    font-weight: 700;
+}
+.fch-card-sub {
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Checklist — card inteiro clicavel (label envolve tudo), checkbox
+   custom (mark) que vira tick verde animado quando marcado.
+   Stagger animation na entrada, strike-through quando completo.
+   ============================================================ */
+.fch-itens {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+.fch-itens > li { min-width: 0; }
+
+.fch-item {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr 1.8rem;
+    align-items: center;
+    gap: 0.95rem;
+    padding: 0.95rem 1.1rem 0.95rem 1rem;
+    background: var(--ui-surface-2);
+    border: 1px solid transparent;
+    border-radius: var(--ui-r-md);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 200ms var(--ui-ease),
+                background 200ms var(--ui-ease),
+                box-shadow 200ms var(--ui-ease);
+    /* Stagger fade-in apos os cards */
+    animation: fch-fade-up 460ms var(--ui-ease) backwards;
+}
+.fch-itens > li:nth-child(1) .fch-item { animation-delay: 460ms; }
+.fch-itens > li:nth-child(2) .fch-item { animation-delay: 520ms; }
+.fch-itens > li:nth-child(3) .fch-item { animation-delay: 580ms; }
+.fch-itens > li:nth-child(4) .fch-item { animation-delay: 640ms; }
+
+/* Hover state — sutil "indicador de clicabilidade" no nao-marcado */
+.fch-item:hover:not(:has(.fch-item-input:checked)) {
+    background: var(--ui-surface-3);
+    border-color: var(--ui-border-strong);
+}
+/* Marcado — fundo accent-soft, borda verde sutil, sombra leve */
+.fch-item:has(.fch-item-input:checked) {
+    background: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 30%, var(--ui-border));
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--ui-accent) 12%, transparent);
+}
+
+/* Input nativo escondido (acessibilidade preservada) */
+.fch-item-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+/* Focus visivel pelo teclado — anel ao redor do mark */
+.fch-item-input:focus-visible ~ .fch-item-mark {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 30%, transparent);
+}
+
+/* Numero — coluna esquerda, mono tabular, vira accent quando marcado */
+.fch-item-num {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ui-ink-3);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    text-align: center;
+    transition: color 200ms var(--ui-ease);
+}
+.fch-item:has(.fch-item-input:checked) .fch-item-num {
+    color: var(--ui-accent);
+}
+
+/* Corpo — texto principal + aviso opcional */
+.fch-item-corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    min-width: 0;
+}
+.fch-item-texto {
+    font-size: 0.94rem;
+    color: var(--ui-ink);
+    font-weight: 500;
+    line-height: 1.4;
+    transition: color 200ms var(--ui-ease), text-decoration-color 200ms var(--ui-ease);
+}
+.fch-item:has(.fch-item-input:checked) .fch-item-texto {
+    color: var(--ui-accent-2);
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--ui-accent) 55%, transparent);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2px;
+}
+.fch-item-aviso {
+    font-size: 0.74rem;
+    color: var(--ui-warn);
+    font-weight: 500;
+    line-height: 1.3;
+}
+.fch-item:has(.fch-item-input:checked) .fch-item-aviso {
+    color: var(--ui-ink-3);
+    text-decoration: line-through;
+}
+
+/* Mark — checkbox visual custom (quadrado arredondado).
+   Vazio: borda cinza forte com fundo branco.
+   Marcado: vira accent solido com tick branco. */
+.fch-item-mark {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: var(--ui-surface);
+    border: 1.5px solid var(--ui-border-strong);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: background 200ms var(--ui-ease),
+                border-color 200ms var(--ui-ease),
+                color 200ms var(--ui-ease),
+                transform 200ms cubic-bezier(0.32, 0.72, 0.4, 1.4),
+                box-shadow 160ms var(--ui-ease);
+    justify-self: end;
+}
+.fch-item-mark svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+    transform: scale(0.6);
+}
+.fch-item:hover .fch-item-mark {
+    border-color: var(--ui-ink-3);
+}
+.fch-item:has(.fch-item-input:checked) .fch-item-mark {
+    background: var(--ui-accent);
+    border-color: var(--ui-accent);
+    color: var(--ui-bg);
+    transform: scale(1.08);
+}
+.fch-item:has(.fch-item-input:checked) .fch-item-mark svg {
+    transform: scale(1);
+}
+
+/* Sub do card-head muda de cor conforme progresso (visual feedback
+   do estado da checklist no proprio header). */
+.fch-card-sub[data-estado="parcial"]  { color: var(--ui-warn); }
+.fch-card-sub[data-estado="completo"] { color: var(--ui-accent); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+    .fch-item,
+    .fch-item-mark,
+    .fch-item-mark svg { animation: none; transition: none; }
+}
+
+/* ============================================================
+   Textarea da justificativa — usa o card-head pra label/hint;
+   o textarea fica como controle dentro do card.
+   ============================================================ */
+.fch-justif-textarea {
+    width: 100%;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.7rem 0.9rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.94rem;
+    color: var(--ui-ink);
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 5.5rem;
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease), background 160ms var(--ui-ease);
+}
+.fch-justif-textarea::placeholder { color: var(--ui-ink-4); }
+.fch-justif-textarea:hover { border-color: var(--ui-border-strong); }
+.fch-justif-textarea:focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+}
+
+/* ============================================================
+   Erro inline
+   ============================================================ */
+.fch-erro {
+    margin: 1rem 0 0;
+    padding: 0.85rem 1.05rem;
+    background: var(--ui-danger-soft);
+    color: var(--ui-danger);
+    border: 1px solid color-mix(in srgb, var(--ui-danger) 25%, var(--ui-border));
+    border-radius: var(--ui-r-sm);
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.45;
+}
+.fch-erro.hidden { display: none; }
+
+/* ============================================================
+   Rodape sticky no fundo da pagina — botao primario sempre visivel
+   ============================================================ */
+.fch-rodape {
+    position: sticky;
+    bottom: 0;
+    margin: 1.5rem -1.75rem 0;
+    padding: 1rem 1.75rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--ui-bg) 88%, transparent);
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    border-top: 1px solid var(--ui-border);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.7rem;
+    z-index: 5;
+}
+@media (max-width: 767px) {
+    .fch-rodape {
+        margin: 1.2rem -1rem 0;
+        padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+.fch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: var(--ui-r-sm);
+    padding: 0.7rem 1.25rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease), color 160ms var(--ui-ease);
+    line-height: 1.2;
+    border: 1px solid transparent;
+    letter-spacing: -0.005em;
+}
+.fch-btn--link {
+    background: transparent;
+    color: var(--ui-ink-3);
+}
+.fch-btn--link:hover { color: var(--ui-ink); }
+.fch-btn--primary {
+    background: var(--ui-accent);
+    color: var(--ui-bg);
+    border-color: var(--ui-accent);
+}
+.fch-btn--primary:hover:not(:disabled) {
+    background: var(--ui-accent-2);
+    border-color: var(--ui-accent-2);
+    box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--ui-accent) 38%, transparent);
+}
+.fch-btn--primary:disabled {
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border);
+    color: var(--ui-ink-4);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.fch-btn--primary[aria-busy="true"] {
+    opacity: 0.8;
+    cursor: progress;
+}
+.fch-btn:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 28%, transparent);
+}
+.fch-btn svg {
+    transition: transform 160ms var(--ui-ease);
+}
+.fch-btn--primary:not(:disabled):hover svg {
+    transform: translateX(2px);
+}
+
+/* ============================================================
+   Erro full-page (data invalida etc.)
+   ============================================================ */
+.fch-erro-full {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+}
+.fch-erro-full-inner { max-width: 32rem; }
+.fch-erro-full-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ui-danger);
+    margin: 0 0 0.5rem;
+}
+.fch-erro-full-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.022em;
+}
+.fch-erro-full-texto {
+    font-size: 0.95rem;
+    color: var(--ui-ink-3);
+    margin: 0 0 1.5rem;
+    line-height: 1.5;
+}
+
+/* ============================================================
+   Acessibilidade — respeita preferencia de motion reduzido
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    .fch-kpi,
+    .fch-aviso,
+    .fch-card {
+        animation: none;
+    }
+    .fch-btn svg { transition: none; }
+}

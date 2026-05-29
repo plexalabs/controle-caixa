@@ -5,6 +5,9 @@
 
 .auth-shell {
     min-height: 100vh;
+    min-height: 100dvh;
+    position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -13,10 +16,28 @@
     padding: 2rem 1.1rem;
     font-family: 'Manrope', -apple-system, system-ui, sans-serif;
     color: var(--ui-ink);
-    /* Brilho verde suave no topo — atmosfera sem ruído. */
-    background:
-        radial-gradient(58rem 30rem at 50% -9rem, var(--ui-accent-soft), transparent 72%),
-        var(--ui-bg);
+    background: var(--ui-surface-2);
+}
+
+/* Canvas topografico no fundo — fixed pra cobrir viewport todo.
+   z-index 0 (base). Pointer-events none deixa cliques passarem. */
+.auth-topo-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    display: block;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Conteudo do shell (TUDO menos o canvas) fica ACIMA do canvas.
+   :not(canvas) e fundamental — sem ele, o catch-all sobrepunha o
+   z-index do canvas e ele ia parar na frente do card. */
+.auth-shell > *:not(canvas) {
+    position: relative;
+    z-index: 1;
 }
 
 /* ─── Card ───────────────────────────────────────────────────────────── */

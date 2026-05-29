@@ -10,10 +10,11 @@ import { abrirModalAdicionarNF }    from '../../components/modal-adicionar-nf.js
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
 import { abrirModalReabrirCaixa }   from '../../components/modal-reabrir-caixa.js';
 import { instalarFilterBar } from '../../components/filter-bar.js';
+import { instalarPopSelect } from '../../components/pop-select.js';
 import { dataLonga, dataCurta, isoData, hora,
          LABEL_CATEGORIA, LABEL_CATEGORIA_CURTA, ESTADO_CAIXA,
          CATEGORIAS, resumoDetalhes } from '../dominio.js';
-import { formatBRL } from '../utils.js';
+import { formatBRL, formatarNumeroNF, formatarNomeCliente } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
 import { carregarPermissoes, temPermissaoSync } from '../papeis.js';
 
@@ -51,7 +52,7 @@ export async function renderCaixa({ params }) {
       <header class="cxd-header">
         <div class="cxd-header-meta">
           <p class="cxd-eyebrow">Caixa do dia</p>
-          <h1 class="cxd-title" id="cab-data">${dataLonga(dataAlvo)}</h1>
+          <h1 class="cxd-title" id="cab-data">${capitalizarPrimeira(dataLonga(dataAlvo))}</h1>
           <p class="cxd-sub" id="cab-sub">—</p>
         </div>
         <div class="cxd-header-direita">
@@ -97,7 +98,8 @@ export async function renderCaixa({ params }) {
             <div class="cxd-filter-body">
               <label class="cxd-filter-field">
                 <span class="cxd-filter-label">Categoria</span>
-                <select id="cxd-f-categoria" class="cxd-filter-input">
+                <select id="cxd-f-categoria" class="cxd-filter-input"
+                        data-pop-class="cxd-pop" data-pop-anchor="parent">
                   <option value="">Todas</option>
                   <option value="em_analise">Em análise (sem categoria)</option>
                   ${CATEGORIAS.map(c => `<option value="${c.valor}">${c.rotulo}</option>`).join('')}
@@ -106,7 +108,8 @@ export async function renderCaixa({ params }) {
 
               <label class="cxd-filter-field">
                 <span class="cxd-filter-label">Estado</span>
-                <select id="cxd-f-estado" class="cxd-filter-input">
+                <select id="cxd-f-estado" class="cxd-filter-input"
+                        data-pop-class="cxd-pop" data-pop-anchor="parent">
                   <option value="">Todos</option>
                   <option value="pendente">Em análise</option>
                   <option value="completo">Categorizado</option>
@@ -289,9 +292,20 @@ async function carregarCaixa(dataAlvo) {
       // Há pendências — hint editorial em vez do CTA
       const n = caixa.total_pendentes;
       if (hintTxt) {
-        hintTxt.innerHTML = `Resolva ${n === 1 ? 'a pendência' : 'as <strong>' + n + '</strong> pendências'} antes de fechar`;
+        // "Resta 1 pendência" / "Restam 3 pendências".
+        hintTxt.innerHTML = n === 1
+          ? `Resta <strong>1</strong> pendência`
+          : `Restam <strong>${n}</strong> pendências`;
       }
       hintPend?.setAttribute('href', `/pendencias?busca=${dataAlvo}`);
+      hintPend?.setAttribute(
+        'data-tooltip',
+        `Resolva ${n === 1 ? 'a pendência' : `as ${n} pendências`} antes de fechar o caixa`
+      );
+      hintPend?.setAttribute(
+        'aria-label',
+        `${n} ${n === 1 ? 'pendência' : 'pendências'} — resolva antes de fechar`
+      );
       hintPend?.classList.remove('hidden');
     }
   }
@@ -344,23 +358,73 @@ async function carregarLancamentos(caixaId) {
 }
 
 // ─── Filtro v2 (popover flutuante) ────────────────────────────────────
+//
+// IMPORTANTE: ligarFiltroV2() roda toda vez que o caixa carrega, porque
+// o DOM e recriado. Antes tinha um guard `filtroV2Ligado` que impedia
+// re-binding apos a 1a visita — mas o trigger button novo (DOM novo)
+// ficava sem listener e o popover nao abria. Agora rebindamos sempre,
+// e os listeners de documento (mousedown/keydown) sao tracked num holder
+// pra serem removidos antes de re-adicionar e em desmontar().
 let filtroV2Estado = { categoria: '', estado: '', busca: '', ocultar_resolvidos: false };
-let filtroV2Ligado = false;
+let filtroV2DocListeners = null;
 
 function ligarFiltroV2() {
-  if (filtroV2Ligado) return;
-  filtroV2Ligado = true;
-
   const trigger = document.querySelector('#cxd-filter-trigger');
   const pop     = document.querySelector('#cxd-filter-pop');
   const close   = document.querySelector('#cxd-filter-close');
   const root    = document.querySelector('#cxd-filter');
-  if (!trigger || !pop) return;
+  if (!trigger || !pop || !root) return;
+
+  // Substitui <select> nativos pelo pop-select skinado (cxd-pop).
+  // Idempotente: pop-select checa dataset.popInstalled antes de re-rodar.
+  pop.querySelectorAll('select[data-pop-class]').forEach(instalarPopSelect);
+
+  // Limpa listeners de documento da chamada anterior (root antigo ja
+  // foi removido do DOM; manter o handler antigo causa close em loop).
+  if (filtroV2DocListeners) {
+    document.removeEventListener('mousedown', filtroV2DocListeners.mousedown);
+    document.removeEventListener('keydown',   filtroV2DocListeners.keydown);
+    filtroV2DocListeners = null;
+  }
+
+  // ResizeObserver pra reposicionar o popover quando seu conteudo
+  // expande (ex: dropdown interno abre). Detached quando popover fecha.
+  let resizeObs = null;
+
+  const ajustarPosicao = () => {
+    if (pop.hidden) return;
+    // Reset pra medir a posicao "natural" (top: 100% + 6px do trigger)
+    pop.style.setProperty('--cxd-pop-translateY', '0px');
+    const r = pop.getBoundingClientRect();
+    const margem = 12; // respiro do fundo da viewport
+    const transbordo = r.bottom - window.innerHeight + margem;
+    if (transbordo > 0) {
+      // Sobe o quanto necessario, mas nunca passa pra cima do topo
+      // visivel (limita a subida pelo topo atual do popover - 8px).
+      const subidaMax = Math.max(0, r.top - 8);
+      const subida = Math.min(transbordo, subidaMax);
+      pop.style.setProperty('--cxd-pop-translateY', `-${subida}px`);
+    }
+  };
 
   const abrirFechar = (abrir) => {
     pop.hidden = !abrir;
     trigger.setAttribute('aria-expanded', String(abrir));
     root.dataset.aberto = String(abrir);
+    if (abrir) {
+      // Ajusta na proxima frame (depois do reflow) e observa mudancas
+      // de tamanho (ex: pop-select inline abrindo dentro do filtro).
+      requestAnimationFrame(ajustarPosicao);
+      if (!resizeObs && typeof ResizeObserver !== 'undefined') {
+        resizeObs = new ResizeObserver(() => ajustarPosicao());
+        resizeObs.observe(pop);
+      }
+      window.addEventListener('resize', ajustarPosicao);
+    } else {
+      pop.style.setProperty('--cxd-pop-translateY', '0px');
+      if (resizeObs) { resizeObs.disconnect(); resizeObs = null; }
+      window.removeEventListener('resize', ajustarPosicao);
+    }
   };
 
   trigger.addEventListener('click', (e) => {
@@ -369,13 +433,20 @@ function ligarFiltroV2() {
   });
   close?.addEventListener('click', () => abrirFechar(false));
 
-  // Click fora fecha
-  document.addEventListener('mousedown', (e) => {
-    if (!root.contains(e.target)) abrirFechar(false);
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') abrirFechar(false);
-  });
+  filtroV2DocListeners = {
+    // Fecha qualquer clique fora do trigger E fora do popover. Permite
+    // que cliques no backdrop (mobile bottom sheet) ou em qualquer
+    // outro lugar da pagina fechem — sem disparar acoes da pagina
+    // (mousedown precede click, entao captura primeiro).
+    mousedown: (e) => {
+      if (!trigger.contains(e.target) && !pop.contains(e.target)) {
+        abrirFechar(false);
+      }
+    },
+    keydown:   (e) => { if (e.key === 'Escape') abrirFechar(false); },
+  };
+  document.addEventListener('mousedown', filtroV2DocListeners.mousedown);
+  document.addEventListener('keydown',   filtroV2DocListeners.keydown);
 
   // Aplicar / limpar
   document.querySelector('#cxd-f-aplicar')?.addEventListener('click', () => {
@@ -584,12 +655,12 @@ function linhaLancamento(l) {
       <span class="cxd-lanc-status" aria-hidden="true"></span>
 
       <div class="cxd-lanc-esq">
-        <span class="cxd-lanc-nf">NF ${esc(l.numero_nf)}</span>
+        <span class="cxd-lanc-nf">NF ${esc(formatarNumeroNF(l.numero_nf))}</span>
         <time class="cxd-lanc-hora">${hora(l.criado_em)}</time>
       </div>
 
       <div class="cxd-lanc-meio">
-        <span class="cxd-lanc-cliente">${esc(l.cliente_nome || '— sem cliente —')}</span>
+        <span class="cxd-lanc-cliente">${esc(formatarNomeCliente(l.cliente_nome) || '— sem cliente —')}</span>
         ${cat
           ? `<span class="cxd-lanc-detalhe">${esc(detalhe || '—')}</span>`
           : `<span class="cxd-lanc-detalhe cxd-lanc-detalhe--analise">aguardando categorização</span>`}
@@ -666,15 +737,23 @@ function atualizarRodape(lancamentos) {
     `).join('')}
 
     <div class="cxd-kpi-dist">
-      <span class="cxd-kpi-dist-label">Por categoria</span>
+      <div class="cxd-kpi-dist-head">
+        <span class="cxd-kpi-dist-label">Por categoria</span>
+        ${(() => {
+          const totalCat = itensDist.reduce((s, i) => s + (i.n || 0), 0);
+          return totalCat > 0
+            ? `<span class="cxd-kpi-dist-total"><strong>${totalCat}</strong> ${totalCat === 1 ? 'lançamento' : 'lançamentos'}</span>`
+            : '';
+        })()}
+      </div>
       <div class="cxd-kpi-dist-chips">
         ${itensDist.filter(i => i.n > 0).map(i => `
           <span class="cxd-kpi-dist-chip" data-cat="${esc(i.cat)}">
-            <span class="cxd-kpi-dist-chip-nome">${esc(i.nome)}</span>
             <span class="cxd-kpi-dist-chip-n">${i.n}</span>
+            <span class="cxd-kpi-dist-chip-nome">${esc(i.nome)}</span>
           </span>
         `).join('')}
-        ${itensDist.every(i => i.n === 0) ? '<span class="cxd-kpi-dist-vazio">— sem lançamentos categorizados</span>' : ''}
+        ${itensDist.every(i => i.n === 0) ? '<span class="cxd-kpi-dist-vazio">Nenhum lançamento categorizado ainda</span>' : ''}
       </div>
     </div>
   `;
@@ -752,6 +831,11 @@ function desmontar() {
     window.removeEventListener('resize', fbOverlayResizeFn);
     fbOverlayResizeFn = null;
   }
+  if (filtroV2DocListeners) {
+    document.removeEventListener('mousedown', filtroV2DocListeners.mousedown);
+    document.removeEventListener('keydown',   filtroV2DocListeners.keydown);
+    filtroV2DocListeners = null;
+  }
   lancCache = [];
 }
 
@@ -777,4 +861,11 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
+}
+
+// Capitaliza so a primeira letra (preserva "quarta-feira" e "de").
+// Substitui o text-transform:capitalize do CSS que estragava datas pt-BR.
+function capitalizarPrimeira(s) {
+  const str = String(s ?? '');
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }

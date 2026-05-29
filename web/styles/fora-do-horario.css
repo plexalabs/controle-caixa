@@ -1,130 +1,315 @@
 /* fora-do-horario.css — tela /fora-do-horario
-   Editorial silencioso: cartao papel grande centralizado, fundo
-   degrade muito sutil pro vinho/musgo, glifo entre tracos.
-*/
+   Visual simples e quieto: fundo claro do sistema, card minimalista
+   centralizado, tipografia Manrope, accent verde apenas no detalhe
+   essencial (eyebrow dot + destaque do horário). Sem animações
+   pesadas — apenas um pulse discreto e fade-in no carregamento. */
 
 .fdh-fundo {
     min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink);
+    font-family: 'Manrope', sans-serif;
     display: grid;
     place-items: center;
     padding: 2rem 1rem;
-    background:
-      radial-gradient(circle at 18% 12%, rgba(199, 122, 63, 0.08) 0, transparent 38%),
-      radial-gradient(circle at 82% 88%, rgba(15, 76, 58, 0.07) 0, transparent 42%),
-      var(--c-papel-2);
+}
+
+/* Canvas topografico no fundo — position FIXED ancora no viewport,
+   nao no parent. Resolve o caso de telas grandes onde o pai pode ter
+   altura indefinida (min-height nao propaga pra height:100% do filho).
+   Pointer-events:none deixa cliques passarem pro card. */
+.fdh-topo-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    display: block;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Main precisa ficar ACIMA do canvas — card herda fundo solido
+   da regra original abaixo + sombra extra que adicionamos. */
+.fdh-main {
+    position: relative;
+    z-index: 1;
 }
 
 .fdh-main {
     width: 100%;
-    max-width: 32rem;
-    margin: 0 auto;
+    max-width: 30rem;
 }
 
+/* Card — fundo branco, borda fina, sombra suave. Layout em 5 ZONAS
+   bem separadas seguindo hierarquia UX:
+     1. Cabec    — status + titulo (quem somos)
+     2. Hero     — REABRE EM X (o que importa pro usuario)
+     3. Janela   — horario operacional (contexto)
+     4. Corpo    — explicacao curta (por que)
+     5. Footer   — sessao + relogio (admin/diagnostico) */
 .fdh-card {
-    background: var(--c-papel);
-    border: 1px solid var(--c-papel-3);
-    border-radius: 0 var(--r-md) var(--r-md) 0;
-    padding: 2.4rem 2rem 2.2rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 1.75rem 1.6rem 1.2rem;
     text-align: left;
-    position: relative;
-    overflow: hidden;
+    box-shadow:
+        0 12px 40px -12px rgba(20, 20, 20, 0.12),
+        0 4px 12px -4px rgba(20, 20, 20, 0.08);
+    animation: fdh-fade 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.3rem;
 }
-.fdh-card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
-    background: linear-gradient(180deg, var(--c-ambar) 0%, var(--c-musgo) 100%);
+@media (min-width: 540px) {
+    .fdh-card { padding: 2rem 1.9rem 1.4rem; }
+}
+
+/* ZONA 1: Cabec — sem gap interno entre eyebrow e titulo */
+.fdh-cabec { display: flex; flex-direction: column; gap: 0.5rem; }
+@keyframes fdh-fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 @media (min-width: 640px) {
-    .fdh-card { padding: 3rem 2.6rem 2.6rem 2.8rem; }
+    .fdh-card { padding: 2.4rem 2.2rem; }
 }
 
+/* Eyebrow: dot verde + texto pequeno em uppercase */
 .fdh-eyebrow {
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.22em;
-    color: var(--c-musgo);
-    margin: 0 0 1.1rem;
-}
-
-.fdh-titulo {
-    font-family: 'Fraunces', serif;
-    font-weight: 300;
-    font-style: italic;
-    font-variation-settings: "opsz" 144, "SOFT" 90, "WONK" 1;
-    font-size: clamp(2.4rem, 7vw, 3.6rem);
-    line-height: 0.96;
-    color: var(--c-tinta);
+    letter-spacing: 0.18em;
+    color: var(--ui-ink-3);
     margin: 0;
-    letter-spacing: -0.018em;
-}
-.fdh-titulo-fora { display: block; color: var(--c-tinta-3); }
-.fdh-titulo-horario { display: block; color: var(--c-tinta); }
-
-.fdh-divisor {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.85rem;
-    margin: 1.7rem 0 1.4rem;
-    color: var(--c-ambar);
+    gap: 0.55rem;
 }
-.fdh-divisor-traco {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(to right, transparent, var(--c-papel-3), transparent);
+.fdh-eyebrow-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    animation: fdh-pulse 1.8s ease-in-out infinite;
 }
-.fdh-divisor-glifo {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 1.1rem;
-    color: var(--c-ambar);
-    opacity: 0.85;
+@keyframes fdh-pulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 1; }
 }
 
-.fdh-corpo {
+/* Título — Manrope bold, sem decoração */
+.fdh-titulo {
     font-family: 'Manrope', sans-serif;
-    font-size: 1.02rem;
-    line-height: 1.6;
-    color: var(--c-tinta-2);
-    margin: 0 0 1.4rem;
+    font-weight: 700;
+    font-size: clamp(1.7rem, 5vw, 2rem);
+    line-height: 1.1;
+    color: var(--ui-ink);
+    margin: 0;
+    letter-spacing: -0.025em;
 }
-.fdh-corpo strong {
-    font-family: 'Fraunces', serif;
+.fdh-titulo-fora {
+    color: var(--ui-ink-3);
+    font-weight: 500;
+}
+.fdh-titulo-horario {
+    color: var(--ui-ink);
+}
+
+/* Esconde elementos decorativos do JS antigo (SVG topografia,
+   divisor, orbs) — agora o card e plano e direto. */
+.fdh-topo,
+.fdh-orbs,
+.fdh-divisor { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ZONA 2: HERO — REABRE EM X
+   Card discreto verde-soft. Sem borda lateral (era estranha).
+   Tipografia hero centralizada, label + tempo + meta empilhados.
+   ═══════════════════════════════════════════════════════════════ */
+.fdh-hero {
+    margin: 0;
+    padding: 1rem 1.1rem;
+    background: var(--ui-accent-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-accent) 22%, var(--ui-border));
+    border-radius: var(--ui-r-md);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.fdh-hero-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ui-accent);
+    margin: 0;
+}
+.fdh-hero-tempo {
+    font-family: 'Manrope', sans-serif;
+    font-size: clamp(1.6rem, 5.5vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--ui-accent-2);
+    font-variant-numeric: tabular-nums;
+    margin: 0;
+}
+.fdh-hero-meta {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--ui-accent);
+    margin: 0;
+    opacity: 0.78;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ZONA 3: JANELA OPERACIONAL — contexto inline
+   Sem card destacado nem label redundante: linha unica horizontal
+   com horas + dias + fuso. Vive em texto comum dentro do fluxo.
+   ═══════════════════════════════════════════════════════════════ */
+.fdh-janela {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    text-align: center;
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.45rem 0.65rem;
+    color: var(--ui-ink-2);
+}
+.fdh-janela-label { display: none; }
+.fdh-janela-horas {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+.fdh-janela-num {
+    font-family: 'Manrope', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+.fdh-janela-num small {
+    font-size: 0.65em;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    margin-left: 0.05em;
+    text-transform: uppercase;
+}
+.fdh-janela-seta {
+    font-size: 0.85rem;
+    color: var(--ui-ink-3);
+    opacity: 0.7;
+}
+.fdh-janela-dias {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--ui-ink-3);
+    margin: 0;
+    letter-spacing: -0.005em;
+}
+.fdh-janela-dias::before {
+    content: '· ';
+    color: var(--ui-ink-4);
+    margin-right: 0.1rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ZONA 4: CORPO — explicacao curta
+   ═══════════════════════════════════════════════════════════════ */
+.fdh-corpo {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--ui-ink-3);
+    margin: 0;
+    text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ZONA 5: FOOTER — sessao + relogio (admin/diagnostico)
+   Linhas hairline separadoras, tipografia minima, info secundaria.
+   ═══════════════════════════════════════════════════════════════ */
+.fdh-footer {
+    margin: 0;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--ui-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.fdh-footer-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+}
+.fdh-footer-label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ui-ink-4);
+    min-width: 4rem;
+}
+.fdh-footer-val {
+    color: var(--ui-ink-2);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.fdh-footer-val em {
+    color: var(--ui-ink-3);
     font-style: italic;
     font-weight: 500;
-    color: var(--c-musgo);
-    font-variation-settings: "opsz" 144;
-    font-size: 1.08em;
 }
-
-.fdh-meta {
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.85rem;
-    color: var(--c-tinta-3);
-    margin: 0 0 1.4rem;
-}
-.fdh-meta strong {
-    color: var(--c-tinta);
+.fdh-footer-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: 0.72rem;
     font-weight: 600;
+    color: var(--ui-accent);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 160ms ease;
 }
-
-.fdh-relogio {
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.78rem;
-    color: var(--c-tinta-3);
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
-    letter-spacing: 0.02em;
-    margin: 0;
-    padding-top: 1.2rem;
-    border-top: 1px dashed var(--c-papel-3);
-    text-transform: lowercase;
-    opacity: 0.85;
+.fdh-footer-btn:hover {
+    color: var(--ui-accent-2);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.fdh-footer-pulse {
+    margin-left: auto;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    animation: fdh-pulse 2s ease-in-out infinite;
+    align-self: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .fdh-card { animation: none; }
+    .fdh-card,
+    .fdh-eyebrow-dot,
+    .fdh-footer-pulse {
+        animation: none !important;
+    }
 }

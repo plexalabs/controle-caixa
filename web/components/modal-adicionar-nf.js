@@ -8,7 +8,9 @@ import { supabase } from '../app/supabase.js';
 import { comRetry } from '../app/supabase-wrapper.js';
 import { abrirModal, fecharModal } from './modal.js';
 import { mostrarToast } from '../app/notifications.js';
-import { debounce } from '../app/utils.js';
+import {
+  debounce, soDigitos, formatarNomeCliente, instalarMascarasFormulario,
+} from '../app/utils.js';
 
 let estado = null;
 
@@ -17,6 +19,7 @@ export function abrirModalAdicionarNF({ dataCaixa, aoSalvar = () => {}, origemEv
 
   abrirModal({
     lateral: false,
+    amplo: true,
     origemEvento,
     eyebrow: `Em análise · ${formatarDataPt(dataCaixa)}`,
     titulo:  'Anotar uma nota fiscal.',
@@ -38,37 +41,51 @@ export function abrirModalAdicionarNF({ dataCaixa, aoSalvar = () => {}, origemEv
 
 function corpoForm() {
   return `
-    <p class="text-body" style="font-size:0.92rem;color:var(--c-tinta-3);margin-bottom:1.5rem;line-height:1.5">
-      Anote o que sabe agora. A categoria — Cartão, Pix, Dinheiro, Link
-      ou Observação — você define depois, quando o pagamento estiver claro.
-    </p>
+    <div class="man2">
+      <div class="man2-split">
+        <aside class="man2-esq" aria-label="Como funciona">
+          <h3 class="man2-esq-headline">
+            Só o essencial.
+            <span class="man2-esq-headline-accent">O resto vem depois.</span>
+          </h3>
 
-    <form id="form-add-nf" novalidate>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="numero_nf">Número da NF *</label>
-          <input id="numero_nf" name="numero_nf" required maxlength="15" class="field-input"
-                 autocomplete="off" inputmode="numeric" />
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="valor_nf">Valor (R$) *</label>
-          <input id="valor_nf" name="valor_nf" type="number" step="0.01" min="0.01" required
-                 class="field-input" inputmode="decimal" />
-        </div>
-      </div>
+          <p class="man2-esq-texto">
+            Pedido e valor já bastam. NF entra quando faturar,
+            categoria quando o pagamento ficar claro.
+          </p>
+        </aside>
 
-      <div class="field mt-5">
-        <label class="field-label" for="codigo_pedido">Código do pedido</label>
-        <input id="codigo_pedido" name="codigo_pedido" maxlength="20" class="field-input"
-               autocomplete="off" placeholder="opcional, ajuda a localizar o cliente" />
-      </div>
+        <form id="form-add-nf" class="man2-dir" novalidate>
+          <div class="man2-grid">
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label" for="codigo_pedido">Código do pedido *</label>
+              <input id="codigo_pedido" name="codigo_pedido" required maxlength="11" class="field-input"
+                     autocomplete="off" inputmode="numeric"
+                     placeholder="123.456.789" />
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label" for="valor_nf">Valor (R$) *</label>
+              <input id="valor_nf" name="valor_nf" type="number" step="0.01" min="0.01" required
+                     class="field-input" inputmode="decimal" />
+            </div>
+          </div>
 
-      <div class="field mt-5">
-        <label class="field-label" for="cliente_nome">Cliente</label>
-        <input id="cliente_nome" name="cliente_nome" maxlength="120" class="field-input"
-               autocomplete="off" placeholder="opcional, pode preencher depois" />
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="numero_nf">Número da NF</label>
+            <input id="numero_nf" name="numero_nf" maxlength="6" class="field-input"
+                   autocomplete="off" inputmode="numeric"
+                   placeholder="12.345" />
+          </div>
+
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="cliente_nome">Cliente</label>
+            <input id="cliente_nome" name="cliente_nome" maxlength="120" class="field-input"
+                   autocomplete="off" autocapitalize="words"
+                   placeholder="Nome do cliente" />
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   `;
 }
 
@@ -78,7 +95,7 @@ function ligarComportamento() {
   const f = (id) => document.querySelector(`#${id}`);
   const erroEl = document.querySelector('#erro-form');
 
-  setTimeout(() => f('numero_nf')?.focus(), 360);
+  setTimeout(() => f('codigo_pedido')?.focus(), 360);
 
   form.addEventListener('input', () => {
     estado.sujo = true;
@@ -87,9 +104,19 @@ function ligarComportamento() {
 
   f('btn-cancel').addEventListener('click', () => fecharModal(false));
 
+  // Mascaras NF (XX.XXX), pedido (XXX.XXX.XXX), cliente (title-case
+  // no blur). Helper unica do utils — comportamento identico ao dos
+  // modais de edicao/categorizar.
+  instalarMascarasFormulario(form, {
+    idNF: 'numero_nf',
+    idPedido: 'codigo_pedido',
+    idCliente: 'cliente_nome',
+  });
+
   // Auto-preenche cliente pelo cliente_cache no blur do codigo_pedido.
+  // O cache armazena o codigo SEM pontos — buscamos so com digitos.
   const buscar = debounce(async () => {
-    const codigo = f('codigo_pedido').value.trim();
+    const codigo = soDigitos(f('codigo_pedido').value);
     if (!codigo) return;
     const { data } = await supabase
       .from('cliente_cache')
@@ -97,7 +124,11 @@ function ligarComportamento() {
       .eq('codigo_pedido', codigo)
       .maybeSingle();
     if (!data) return;
-    if (!f('cliente_nome').value) f('cliente_nome').value = data.cliente_nome;
+    if (!f('cliente_nome').value && data.cliente_nome) {
+      // Se o cache devolver tudo em caixa alta, normaliza tambem.
+      const nome = data.cliente_nome;
+      f('cliente_nome').value = (nome === nome.toUpperCase()) ? titleCasePtBR(nome) : nome;
+    }
     if (!f('valor_nf').value && data.valor_nf_ultimo) {
       f('valor_nf').value = Number(data.valor_nf_ultimo).toFixed(2);
     }
@@ -112,11 +143,23 @@ function ligarComportamento() {
     btn.setAttribute('aria-busy', 'true');
     btn.disabled = true;
 
+    // Cliente: normaliza title case AGORA (e nao so no blur) — clique
+    // direto no Salvar com input focado nem sempre dispara blur antes
+    // do submit; sem isto, "JOAO DA SILVA" ia pro banco em caps.
+    const nomeCliente = formatarNomeCliente(f('cliente_nome').value);
+    f('cliente_nome').value = nomeCliente;
+
+    // Pedido e obrigatorio (regra de negocio: lancamento existe a partir
+    // do pedido, NF entra depois quando faturado). NF vazia vai como
+    // placeholder '—' para satisfazer NOT NULL do schema legado — o
+    // operador completa quando faturar.
+    const codigoPedido = soDigitos(f('codigo_pedido').value);
+    const numeroNF     = soDigitos(f('numero_nf').value);
     const payload = {
       p_data_caixa:      estado.dataCaixa,
-      p_numero_nf:       f('numero_nf').value.trim(),
-      p_codigo_pedido:   f('codigo_pedido').value.trim() || '—',
-      p_cliente_nome:    f('cliente_nome').value.trim() || '— sem cliente —',
+      p_numero_nf:       numeroNF || '—',
+      p_codigo_pedido:   codigoPedido,
+      p_cliente_nome:    nomeCliente || '— sem cliente —',
       p_valor_nf:        Number(f('valor_nf').value),
       // categoria=NULL + estado=pendente passa pelo check
       // lancamento_categoria_estado e marca a NF como "em análise".
@@ -152,3 +195,7 @@ function formatarDataPt(iso) {
   const d = new Date(iso + 'T00:00:00');
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long' }).format(d);
 }
+
+// Helpers de formatacao (soDigitos, formatarNumeroNF, formatarCodigoPedido,
+// formatarNomeCliente) ficam em ../app/utils.js — sao compartilhados com
+// os renderers de caixa, pendencias, topbar etc.

@@ -1,4 +1,4 @@
-// janela.js — Janela operacional (6h-20h seg-sex America/Sao_Paulo).
+// janela.js — Janela operacional (7h-19h seg-sex America/Sao_Paulo).
 //
 // Espelha exatamente a logica da fn dentro_da_janela_operacional()
 // no Postgres. Cliente e fonte rapida, servidor e fonte da verdade
@@ -13,12 +13,16 @@ import { pegarPapeis } from './papeis.js';
 
 const PADROES = {
   janela_op_ativa:        true,
-  janela_op_hora_ini:     6,
-  janela_op_hora_fim:     20,                // exclusiva
+  janela_op_hora_ini:     7,
+  janela_op_hora_fim:     19,                // exclusiva
   janela_op_dias_semana:  [1, 2, 3, 4, 5],   // ISO seg=1..dom=7
 };
 
 let cache = null;
+
+export async function pegarConfigJanela() {
+  return await lerConfig();
+}
 
 async function lerConfig() {
   if (cache) return cache;

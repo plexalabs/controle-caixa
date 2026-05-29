@@ -97,6 +97,11 @@ export function instalarPopSelect(select) {
 
     menu = document.createElement('div');
     menu.className = 'pop-select-menu';
+    // Skin do menu — default 'cxd-pop' (look v2 moderno aplicado em
+    // todo o sistema). data-pop-class no <select> permite trocar o
+    // skin pra um custom, e 'none' opta por sair (look legado).
+    const popClass = select.dataset.popClass || 'cxd-pop';
+    if (popClass && popClass !== 'none') menu.classList.add(popClass);
     menu.setAttribute('role', 'listbox');
     menu.innerHTML = opcoes.map((o, i) => `
       <button type="button" class="pop-select-item" role="option"
@@ -106,8 +111,28 @@ export function instalarPopSelect(select) {
       </button>
     `).join('');
 
-    document.body.appendChild(menu);
-    posicionar();
+    // data-pop-anchor="parent" no <select> faz o menu ser anexado como
+    // FILHO ABSOLUTE do parent do trigger — pop-out classico que NAO
+    // muda o tamanho do container (popover). Tem scroll interno proprio
+    // via max-height + overflow auto definidos no CSS do skin cxd-pop.
+    const ancoraParent = select.dataset.popAnchor === 'parent';
+    if (ancoraParent) {
+      menu.classList.add('pop-select-menu--inline');
+      trigger.parentElement.appendChild(menu);
+      // Rola o container scrollavel ate o field ficar visivel (topo do
+      // body) — maximiza espaco disponivel abaixo pro dropdown. Se ainda
+      // assim o dropdown nao couber, ele tem max-height + overflow-y:auto
+      // proprios pra mostrar todas as opcoes via scroll interno.
+      requestAnimationFrame(() => {
+        const field = trigger.parentElement;
+        if (field && typeof field.scrollIntoView === 'function') {
+          field.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+      });
+    } else {
+      document.body.appendChild(menu);
+      posicionar();
+    }
     requestAnimationFrame(() => menu.classList.add('is-aberto'));
 
     // Foca o item selecionado, ou o primeiro
@@ -129,9 +154,12 @@ export function instalarPopSelect(select) {
       window.addEventListener('mousedown', clickFora);
       window.addEventListener('keydown',  tecla);
       window.addEventListener('resize',   fechar);
-      // Captura scroll em qualquer ancestral (drawer, body, etc) — mas
-      // onScrollFora ignora a rolagem feita DENTRO do próprio menu.
-      window.addEventListener('scroll', onScrollFora, true);
+      // Menu portado para body precisa fechar ao rolar (perderia
+      // ancoragem com o trigger). Menu INLINE (ancorado no parent
+      // sticky) acompanha o trigger naturalmente — manter aberto.
+      if (!ancoraParent) {
+        window.addEventListener('scroll', onScrollFora, true);
+      }
     }, 0);
   }
 
@@ -214,7 +242,16 @@ export function instalarPopSelect(select) {
     const acima = espacoBaixo < 220 && espacoAlto > espacoBaixo;
 
     menu.style.position = 'fixed';
+    // Ancora pelo LEFT + WIDTH. Nao usar right calculado por
+    // (window.innerWidth - r.right): window.innerWidth INCLUI a
+    // scrollbar do <html> (e scrollbar-gutter: stable reserva uns
+    // 12-15px permanentemente), enquanto getBoundingClientRect()
+    // retorna coords da area de layout SEM scrollbar — a diferenca
+    // criava um gap visivel a direita do menu portado. Com width
+    // absoluto (r.width), o menu sempre bate exatamente com o trigger,
+    // imune a qualquer assimetria de scrollbar / containing block.
     menu.style.left  = `${r.left}px`;
+    menu.style.right = '';
     menu.style.width = `${r.width}px`;
     if (acima) {
       menu.style.bottom = `${window.innerHeight - r.top + 6}px`;

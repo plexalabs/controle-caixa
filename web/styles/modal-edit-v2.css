@@ -569,6 +569,81 @@
     flex-wrap: wrap;
 }
 
+/* Variante UNICA — todas as acoes em uma so linha (secundarias na
+   esquerda, primarias na direita). Sem border-bottom separador. */
+.painel-rodape .painel-rodape-acoes--unica {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+.painel-rodape .painel-rodape-acoes--unica .painel-acoes-secundarias {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: 0;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.painel-rodape .painel-rodape-acoes--unica .painel-acoes-primarias {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+/* Secao secundaria vazia ocupa espaco zero — primarias colam na direita */
+.painel-rodape .painel-rodape-acoes--unica .painel-acoes-secundarias:empty {
+    display: none;
+}
+/* btn-link secundario (Editar): tom discreto musgo */
+.painel-rodape .btn-link.btn-link--sec {
+    color: var(--ui-ink-3);
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, var(--ui-ink-4) 60%, transparent);
+    transition: color 160ms var(--ui-ease), text-decoration-color 160ms var(--ui-ease);
+}
+.painel-rodape .btn-link.btn-link--sec:hover {
+    color: var(--ui-ink);
+    text-decoration-color: var(--ui-ink);
+}
+/* btn-link perigo (Excluir): tom vermelho discreto */
+.painel-rodape .btn-link.btn-link--danger {
+    color: var(--ui-danger);
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, var(--ui-danger) 35%, transparent);
+    transition: color 160ms var(--ui-ease), text-decoration-color 160ms var(--ui-ease);
+}
+.painel-rodape .btn-link.btn-link--danger:hover {
+    color: #7F1D1D;
+    text-decoration-color: var(--ui-danger);
+}
+@media (max-width: 600px) {
+    /* Mobile: empilha em duas linhas se nao couber */
+    .painel-rodape .painel-rodape-acoes--unica .painel-acoes-secundarias {
+        order: 2;
+        width: 100%;
+        justify-content: flex-start;
+        padding-top: 0.6rem;
+        border-top: 1px dashed var(--ui-border);
+    }
+    .painel-rodape .painel-rodape-acoes--unica .painel-acoes-primarias {
+        order: 1;
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+
 .painel-rodape .painel-acoes-finais {
     display: flex;
     gap: 0.55rem;
@@ -690,8 +765,12 @@
 
 /* ===================================================================
    MODO GERENCIAR v2 — modal amplo split 1/3 + 2/3 (.mel2-*)
-   Esquerda: resumo + linha do tempo / anotações com filtro.
-   Direita: detalhes do pagamento + anotar  /  edição in-place.
+   Esquerda (1fr): HISTORICO — filtro + eventos/anotacoes + composer
+   fixo no fundo. E o painel de CONVERSA do pedido (log + input).
+   Direita (2fr): PEDIDO — resumo + detalhes do pagamento (ou form
+   de edicao). E o painel principal/maior, onde os dados do pedido
+   ficam em destaque. Em modo edicao, essa coluna engole a esquerda
+   pra dar todo espaco ao form.
    =================================================================== */
 
 /* Header — badge de estado ao lado do botão fechar */
@@ -721,10 +800,13 @@
    IMPORTANTE: o .modal-card base (components.css) tem max-width:560px;
    sem zerar isso aqui o modal amplo fica preso em 560px (estreito,
    layout quebrado). O width já cuida do limite responsivo. */
+/* Modal amplo (em curso / gerenciar) — ocupa ~3/4 da viewport.
+   Cap superior em 66rem pra nao ficar gigante em monitores ultrawide;
+   floor min em 60vw pra nao colar nas bordas em telas medias. */
 .modal-card--amplo {
-    width: min(66rem, calc(100vw - 2.5rem));
+    width: min(66rem, 75vw);
     max-width: none;
-    height: 82vh;
+    height: 75vh;
     box-shadow: 0 20px 60px -20px rgba(20, 20, 20, 0.25);
 }
 .modal-card--amplo .painel-corpo {
@@ -748,6 +830,10 @@
     min-height: 0;
     width: 100%;
 }
+/* Abas Detalhes / Histórico — SO mobile (≤720px). Pilula deslizante
+   no estilo do filtro segmentado. No desktop nao aparecem (display:none
+   no base, override no @media abaixo). */
+.mel2-tabs { display: none; }
 .mel2-split {
     display: grid;
     grid-template-columns: 1fr 2fr;
@@ -758,90 +844,179 @@
     flex: 1;
     min-height: 0;
 }
-
-/* ─── Coluna esquerda — resumo + histórico ─────────────────────────── */
-.mel2-esq {
-    border-right: 1px solid var(--ui-border);
-    background: var(--ui-surface-2);
-    overflow-y: auto;
-    min-height: 0;
-    min-width: 0;
-    padding: 1.1rem 1.2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.1rem;
+/* MODO EDIÇÃO — sem expansao. O form aparece no mesmo espaco que os
+   detalhes ocupavam (data-edicao substitui data-leitura na .mel2-dir).
+   O historico (.mel2-esq) continua visivel e funcional na esquerda.
+   No mobile: as abas Detalhes/Histórico desaparecem (forca Detalhes).
+   Em ambos os modos: o botao "Editar" some — a unica saida e
+   "Cancelar edição" do rodape. */
+.mel2[data-modo="edicao"] #mel2-btn-editar {
+    display: none;
+}
+@media (max-width: 720px) {
+    .mel2[data-modo="edicao"] .mel2-tabs {
+        display: none;
+    }
 }
 
+/* ─── Coluna esquerda (1fr) — HISTORICO + COMPOSER ─────────────────
+   Log de eventos + anotacoes com filtro e composer fixo no fundo.
+   Fundo --ui-surface-2 pra "feel de conversation log" em contraste
+   com a direita branca (painel principal do pedido). 3 areas:
+     1) .mel2-esq-barra — label "Histórico" + filtro segmentado
+     2) .mel2-hist — scroll dos eventos/anotacoes
+     3) .mel2-composer — input de nova anotacao fixo
+   Scroll fica apenas no .mel2-hist (composer e barra continuam
+   visiveis o tempo todo). ────────────────────────────────────── */
+.mel2-esq {
+    overflow: hidden;
+    min-height: 0;
+    min-width: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--ui-surface-2);
+    border-right: 1px solid var(--ui-border);
+}
+
+/* Resumo — card hero da ficha. Categoria como etiqueta colada no
+   canto superior direito; valor como heroica; meta-row com NF e
+   Pedido como dois "stat blocks"; rodape com "aberto ha X". */
 .mel2-resumo {
+    position: relative;
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-md);
-    padding: 0.95rem 1rem;
+    padding: 1.1rem 1.1rem 0.95rem;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    align-items: flex-start;
+    gap: 0.75rem;
+    box-shadow: 0 1px 0 rgba(20, 20, 20, 0.02);
 }
 .mel2-resumo-cat {
-    padding: 0.15rem 0.55rem;
+    position: absolute;
+    top: 0.85rem;
+    right: 0.95rem;
+    padding: 0.18rem 0.6rem;
     border-radius: 999px;
-    font-size: 0.66rem;
+    font-size: 0.62rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
+    line-height: 1.4;
+    white-space: nowrap;
+    max-width: calc(100% - 1.9rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.mel2-resumo-valor {
-    font-size: 1.5rem;
+/* Bloco valor — eyebrow + numero hero */
+.mel2-resumo-valor-bloco {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding-top: 0.1rem;
+}
+.mel2-resumo-eyebrow {
+    font-size: 0.6rem;
     font-weight: 700;
-    letter-spacing: -0.025em;
-    color: var(--ui-ink);
-    font-variant-numeric: tabular-nums;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ui-ink-3);
     line-height: 1;
 }
-.mel2-resumo-ped { font-size: 0.78rem; color: var(--ui-ink-3); }
-
-.mel2-hist { display: flex; flex-direction: column; }
-.mel2-sub {
-    font-size: 0.64rem;
+.mel2-resumo-valor {
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -0.028em;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.05;
+    word-break: keep-all;
+}
+/* Meta-row: NF + Pedido lado a lado, separados por hairline.
+   Cada "celula" tem dt (label minusculo) e dd (valor tabular). */
+.mel2-resumo-meta {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 0;
+    margin: 0;
+    border-top: 1px solid var(--ui-border);
+    padding-top: 0.7rem;
+}
+.mel2-resumo-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    min-width: 0;
+}
+.mel2-resumo-meta-item + .mel2-resumo-meta-item {
+    border-left: 1px solid var(--ui-border);
+    padding-left: 0.75rem;
+}
+.mel2-resumo-meta-item dt {
+    font-size: 0.58rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.16em;
+    color: var(--ui-ink-4);
+    line-height: 1;
+}
+.mel2-resumo-meta-item dd {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mel2-resumo-tempo {
+    font-size: 0.72rem;
     color: var(--ui-ink-3);
-    margin: 0.7rem 0 0.5rem;
+    margin: 0;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    border-top: 1px solid var(--ui-border);
+    padding-top: 0.6rem;
 }
 
-/* Filtro Tudo / Linha do tempo / Anotações — pílula verde deslizante */
+/* Filtro Tudo / Eventos / Anotacoes — pilula deslizante compacta
+   dentro do .mel2-dir-barra. Sem margin-bottom (a barra mesma da
+   a separacao com o log abaixo). */
 .mel2-filtro {
     display: flex;
     gap: 0;
-    background: var(--ui-surface);
+    background: var(--ui-surface-2);
     border: 1px solid var(--ui-border);
     border-radius: 999px;
     padding: 0.2rem;
-    margin-bottom: 0.85rem;
+    margin: 0;
     position: relative;
+    box-shadow: none;
 }
 .mel2-filtro-ind {
     position: absolute;
-    top: 0.2rem;
-    bottom: 0.2rem;
-    left: 0.2rem;
+    top: 0.22rem;
+    bottom: 0.22rem;
+    left: 0.22rem;
     width: 0;
     background: var(--ui-ink);
     border-radius: 999px;
-    box-shadow: 0 1px 5px rgba(40, 62, 6, 0.28);
-    transition: left 280ms cubic-bezier(0.22, 1, 0.36, 1),
-                width 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 1px 4px rgba(20, 20, 20, 0.18);
+    transition: left 320ms cubic-bezier(0.22, 1, 0.36, 1),
+                width 320ms cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 0;
     pointer-events: none;
 }
 .mel2-fbtn {
-    flex: 1;
     background: none;
     border: 0;
-    padding: 0.4rem 0.45rem;
+    padding: 0.38rem 0.85rem;
     font-family: 'Manrope', sans-serif;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 600;
     color: var(--ui-ink-3);
     cursor: pointer;
@@ -862,81 +1037,111 @@
     color: var(--ui-ink-3);
     font-size: 0.8rem;
     font-style: italic;
-    padding: 0.4rem 0;
+    padding: 0.5rem 0;
     list-style: none;
 }
 
-/* Linha do tempo */
+/* Linha do tempo — dots maiores com ring colorido, espacamento
+   uniforme, hover anima dot sutilmente. */
 .mel2-tl, .mel2-anot { list-style: none; margin: 0; padding: 0; }
 .mel2-tl { position: relative; }
 .mel2-tl::before {
     content: '';
     position: absolute;
-    left: 5px; top: 0.5rem; bottom: 0.5rem;
+    left: 6px; top: 0.6rem; bottom: 0.6rem;
     width: 1px;
-    background: var(--ui-border);
+    background: linear-gradient(
+        to bottom,
+        transparent 0,
+        var(--ui-border) 8px,
+        var(--ui-border) calc(100% - 8px),
+        transparent 100%
+    );
 }
 .mel2-tl-item {
     display: grid;
-    grid-template-columns: 12px 1fr;
+    grid-template-columns: 14px 1fr;
     gap: 0.7rem;
     padding: 0.5rem 0;
+    transition: background 160ms var(--ui-ease);
+    border-radius: 4px;
 }
+.mel2-tl-item:hover { background: color-mix(in srgb, var(--ui-surface) 55%, transparent); }
 .mel2-tl-dot {
-    width: 10px; height: 10px;
+    width: 12px; height: 12px;
     border-radius: 50%;
     background: var(--ui-ink-4);
-    margin-top: 0.3rem;
-    box-shadow: 0 0 0 3px var(--ui-surface-2);
+    margin-top: 0.32rem;
+    box-shadow: 0 0 0 3px var(--ui-surface-2), 0 0 0 4px var(--ui-ink-4);
     position: relative;
     z-index: 1;
+    transition: transform 240ms var(--ui-ease);
 }
-.mel2-tl-item[data-tone="criacao"]   .mel2-tl-dot { background: var(--ui-info); }
-.mel2-tl-item[data-tone="edicao"]    .mel2-tl-dot { background: var(--ui-warn); }
-.mel2-tl-item[data-tone="resolucao"] .mel2-tl-dot { background: var(--ui-accent); }
-.mel2-tl-item[data-tone="ok"]        .mel2-tl-dot { background: var(--ui-accent); }
-.mel2-tl-item[data-tone="alerta"]    .mel2-tl-dot { background: var(--ui-danger); }
+.mel2-tl-item:hover .mel2-tl-dot { transform: scale(1.15); }
+.mel2-tl-item[data-tone="criacao"]   .mel2-tl-dot { background: var(--ui-info);   box-shadow: 0 0 0 3px var(--ui-surface-2), 0 0 0 4px var(--ui-info); }
+.mel2-tl-item[data-tone="edicao"]    .mel2-tl-dot { background: var(--ui-warn);   box-shadow: 0 0 0 3px var(--ui-surface-2), 0 0 0 4px var(--ui-warn); }
+.mel2-tl-item[data-tone="resolucao"] .mel2-tl-dot { background: var(--ui-accent); box-shadow: 0 0 0 3px var(--ui-surface-2), 0 0 0 4px var(--ui-accent); }
+.mel2-tl-item[data-tone="ok"]        .mel2-tl-dot { background: var(--ui-accent); box-shadow: 0 0 0 3px var(--ui-surface-2), 0 0 0 4px var(--ui-accent); }
+.mel2-tl-item[data-tone="alerta"]    .mel2-tl-dot { background: var(--ui-danger); box-shadow: 0 0 0 3px var(--ui-surface-2), 0 0 0 4px var(--ui-danger); }
 .mel2-tl-head {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     gap: 0.5rem;
+    flex-wrap: wrap;
 }
 .mel2-tl-tipo {
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.13em;
     color: var(--ui-ink-3);
 }
-.mel2-tl-head time { font-size: 0.7rem; color: var(--ui-ink-3); white-space: nowrap; }
+.mel2-tl-item[data-tone="criacao"]   .mel2-tl-tipo { color: var(--ui-info); }
+.mel2-tl-item[data-tone="edicao"]    .mel2-tl-tipo { color: var(--ui-warn); }
+.mel2-tl-item[data-tone="resolucao"] .mel2-tl-tipo { color: var(--ui-accent); }
+.mel2-tl-item[data-tone="ok"]        .mel2-tl-tipo { color: var(--ui-accent); }
+.mel2-tl-item[data-tone="alerta"]    .mel2-tl-tipo { color: var(--ui-danger); }
+.mel2-tl-head time {
+    font-size: 0.7rem;
+    color: var(--ui-ink-3);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
 .mel2-tl-texto {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     color: var(--ui-ink-2);
-    margin: 0.2rem 0 0.15rem;
-    line-height: 1.45;
+    margin: 0.25rem 0 0.2rem;
+    line-height: 1.5;
 }
 .mel2-tl-autor { font-size: 0.72rem; color: var(--ui-ink-3); margin: 0; }
+.mel2-tl-autor strong { color: var(--ui-ink-2); font-weight: 600; }
 
-/* Anotações */
-.mel2-anot { display: flex; flex-direction: column; gap: 0.5rem; }
+/* Anotacoes — cards compactos pra coluna estreita, com hover sutil. */
+.mel2-anot { display: flex; flex-direction: column; gap: 0.45rem; }
 .mel2-anot-item {
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-sm);
-    padding: 0.6rem 0.75rem;
+    padding: 0.65rem 0.75rem;
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.mel2-anot-item:hover {
+    border-color: var(--ui-border-strong);
+    box-shadow: 0 1px 6px -2px rgba(20, 20, 20, 0.06);
 }
 .mel2-anot-texto {
-    font-size: 0.82rem;
+    font-size: 0.84rem;
     color: var(--ui-ink-2);
-    margin: 0 0 0.25rem;
-    line-height: 1.45;
+    margin: 0 0 0.35rem;
+    line-height: 1.5;
 }
 .mel2-anot-meta {
     font-size: 0.7rem;
     color: var(--ui-ink-3);
     margin: 0;
     font-weight: 500;
+    font-variant-numeric: tabular-nums;
 }
 .mel2-anot-item.lanc-row--flash {
     animation: mel2-flash 1.6s var(--ui-ease);
@@ -946,17 +1151,27 @@
     100% { background: var(--ui-surface);   border-color: var(--ui-border); }
 }
 
-/* ─── Coluna direita — detalhes / edição ───────────────────────────── */
+/* ─── Coluna direita (2fr) — PEDIDO + DETALHES + EDICAO ────────────
+   Painel principal do pedido. Resumo no topo (categoria/valor/NF/
+   pedido/aberto ha X), barra "Detalhes do pagamento" / "Editar",
+   e o corpo (leitura: detalhes da categoria | edicao: form passos).
+   Em modo edicao, essa coluna expande pra 100% (engole a esquerda). */
 .mel2-dir {
+    border-right: 0;
+    background: var(--ui-surface);
     overflow-y: auto;
     min-height: 0;
     min-width: 0;
-    padding: 1.1rem 1.5rem 1.4rem;
+    padding: 1.2rem 1.5rem 1.4rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.05rem;
 }
 
+/* Barra "Detalhes do pagamento" / "Editar lançamento" — section
+   divider dentro do .mel2-dir branco. Sem background extra (herda
+   do parent), apenas hairline + padding pra separar do que vem
+   abaixo (detalhes ou form). */
 .mel2-dir-barra {
     display: flex;
     align-items: center;
@@ -969,8 +1184,119 @@
     font-size: 0.66rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     color: var(--ui-accent);
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* Area do histórico — rola sozinha. Padding lateral 1rem (mesmo da
+   barra acima e composer abaixo) pra dar maximo espaco horizontal
+   aos items numa coluna estreita (1fr ~ 350px). */
+.mel2-hist {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 1rem 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.mel2-hist::-webkit-scrollbar { width: 6px; }
+.mel2-hist::-webkit-scrollbar-thumb { background: var(--ui-border-strong); border-radius: 3px; }
+.mel2-hist::-webkit-scrollbar-track { background: transparent; }
+
+/* Composer fixo no fundo — textarea + botao "Anotar" inline,
+   tipo messenger. Border-top hairline + fundo branco isolam do
+   log cinza. Padding lateral 1rem (mesmo da barra topo). */
+.mel2-composer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.55rem;
+    padding: 0.8rem 1rem 0.95rem;
+    background: var(--ui-surface);
+    border-top: 1px solid var(--ui-border);
+}
+.mel2-composer textarea {
+    flex: 1 1 auto;
+    min-height: 2.4rem;
+    max-height: 8rem;
+    width: 100%;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 0.75rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.88rem;
+    color: var(--ui-ink);
+    line-height: 1.45;
+    resize: none;
+    overflow-y: auto;
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.mel2-composer textarea::placeholder { color: var(--ui-ink-4); }
+.mel2-composer textarea:hover { border-color: var(--ui-border-strong); }
+.mel2-composer textarea:focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 16%, transparent);
+}
+.mel2-composer-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--ui-accent);
+    color: var(--ui-bg);
+    border: 1px solid var(--ui-accent);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 0.95rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 160ms var(--ui-ease),
+                border-color 160ms var(--ui-ease),
+                opacity 160ms var(--ui-ease),
+                transform 160ms var(--ui-ease);
+    line-height: 1.2;
+    height: 2.4rem;
+}
+.mel2-composer-btn:hover {
+    background: var(--ui-accent-2);
+    border-color: var(--ui-accent-2);
+}
+.mel2-composer-btn:active { transform: translateY(1px); }
+.mel2-composer-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+    transform: none;
+}
+.mel2-composer-btn svg { flex-shrink: 0; }
+
+/* Barra topo da esquerda — pílula segmentada full-width, sem
+   label redundante. As proprias abas (Tudo/Eventos/Anotacoes) sao
+   a navegacao primaria — label "Historico" sumiu pra economizar
+   espaco vertical e horizontal. Fundo branco isola do log cinza
+   abaixo, hairline marca a transicao. */
+.mel2-esq-barra {
+    padding: 0.85rem 1rem;
+    background: var(--ui-surface);
+    border-bottom: 1px solid var(--ui-border);
+    flex-shrink: 0;
+}
+/* Filtro dentro da barra ocupa 100% da largura. Os 3 botoes
+   dividem o espaco igualmente (flex: 1) — bate visualmente com a
+   largura disponivel da coluna. */
+.mel2-esq-barra .mel2-filtro {
+    width: 100%;
+    margin: 0;
+}
+.mel2-esq-barra .mel2-fbtn {
+    flex: 1 1 0;
+    padding: 0.42rem 0.5rem;
+    text-align: center;
 }
 
 /* Botão editar — ícone-lápis + texto, fica verde quando ativo */
@@ -1001,85 +1327,67 @@
     color: var(--ui-accent);
 }
 
-/* Detalhes da categoria dentro da direita — espelha .dmm-leitura-detalhes
-   do mockup /demo-modal: zera a margem herdada e alinha padding/gaps. */
-.mel2-dir .lanc-leitura-detalhes { margin-top: 0; padding: 0.95rem 1.1rem; }
-.mel2-dir .lanc-leitura-dl { gap: 0.5rem 1rem; }
+/* Detalhes da categoria — dentro da .mel2-dir (painel pedido).
+   Card sutil cinza-claro com borda fina; tipografia tabular nos
+   valores e gap dl moderado. */
+.mel2-dir .lanc-leitura-detalhes {
+    margin-top: 0;
+    padding: 1rem 1.1rem;
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+}
+.mel2-dir .lanc-leitura-dl { gap: 0.55rem 1rem; }
 .mel2-sem-detalhe {
     background: var(--ui-surface-2);
-    border: 1px dashed var(--ui-border);
+    border: 1px dashed var(--ui-border-strong);
     border-radius: var(--ui-r-md);
-    padding: 1.1rem 1rem;
+    padding: 1.5rem 1rem;
     text-align: center;
     color: var(--ui-ink-3);
-    font-size: 0.84rem;
-    font-style: italic;
+    font-size: 0.85rem;
+    font-style: normal;
     margin: 0;
+    line-height: 1.5;
 }
 
-/* Bloco "Adicionar anotação" — abaixo dos detalhes (igual .dmm-anot-add) */
-.mel2-anot-add {
-    margin-top: 0.7rem;
+/* ─── Formulário de edição in-place ─────────────────────────────────
+   Layout em 3 PASSOS numerados pra ser didatico:
+     1) Motivo (gate) — destacado warn, contador, exemplo
+     2) O que vai mudar — campos basicos com badge "alterado"
+     3) Detalhes do pagamento — bloqueado ate motivo OK
+   Cada passo tem header com numero-pill + titulo + subtitulo.
+   ──────────────────────────────────────────────────────────────── */
+.mel2-form {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 1.1rem;
 }
-.mel2-anot-add-titulo {
-    font-size: 0.66rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--ui-accent);
-    margin: 0 0 0.5rem;
-}
-.mel2-anot-add textarea {
-    width: 100%;
-    background: var(--ui-surface);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--ui-r-sm);
-    padding: 0.5rem 0.65rem;
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.83rem;
-    color: var(--ui-ink);
-    resize: vertical;
-}
-.mel2-anot-add textarea:focus {
-    outline: 0;
-    border-color: var(--ui-ink);
-    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.1);
-}
-.mel2-btn-anotar {
-    align-self: flex-end;
-    background: var(--ui-accent);
-    color: var(--ui-bg);
-    border: 0;
-    border-radius: var(--ui-r-sm);
-    padding: 0.42rem 0.85rem;
-    font-family: 'Manrope', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 160ms var(--ui-ease);
-}
-.mel2-btn-anotar:hover { background: var(--ui-accent-2); }
-.mel2-btn-anotar:disabled { opacity: 0.45; cursor: default; }
-
-/* ─── Formulário de edição in-place ────────────────────────────────── */
-.mel2-form { display: flex; flex-direction: column; gap: 0.85rem; }
 .mel2-grid2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.85rem;
 }
-/* Separador entre blocos do formulário — espelha .dmm-form-sep */
-.mel2-form-sep { height: 1px; background: var(--ui-border); margin: 0.3rem 0; }
-.mel2-campo { display: flex; flex-direction: column; gap: 0.3rem; }
+.mel2-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    position: relative;
+}
 .mel2-campo-label {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.13em;
     color: var(--ui-ink-3);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.mel2-campo-label svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
 }
 .mel2-hint {
     font-weight: 400;
@@ -1091,31 +1399,177 @@
     margin-left: 0.3rem;
 }
 .mel2-req { color: var(--ui-danger); font-style: normal; font-weight: 800; }
+
+/* Badge "alterado" no canto do label quando valor != data-original.
+   Pequeno chip accent que aparece pra dar feedback "voce mudou
+   esse campo". Microinteracao: fade-in suave. */
+.mel2-campo.is-alterado .mel2-campo-label::after {
+    content: 'alterado';
+    font-size: 0.56rem;
+    font-weight: 700;
+    text-transform: lowercase;
+    letter-spacing: 0.04em;
+    color: var(--ui-accent-2);
+    background: var(--ui-accent-soft);
+    padding: 0.1rem 0.42rem;
+    border-radius: 999px;
+    margin-left: 0.35rem;
+    animation: mel2-badge-in 240ms var(--ui-ease);
+}
+.mel2-campo.is-alterado input,
+.mel2-campo.is-alterado select,
+.mel2-campo.is-alterado textarea,
+.mel2-campo.is-alterado .pop-select-trigger {
+    border-color: color-mix(in srgb, var(--ui-accent) 38%, var(--ui-border));
+    background: color-mix(in srgb, var(--ui-accent-soft) 35%, var(--ui-surface));
+}
+@keyframes mel2-badge-in {
+    from { opacity: 0; transform: translateY(-2px) scale(0.9); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Passos numerados ─────────────────────────────────────────────── */
+.mel2-passo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+.mel2-passo-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.7rem;
+}
+.mel2-passo-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--ui-ink);
+    color: var(--ui-bg);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    transition: background 240ms var(--ui-ease), color 240ms var(--ui-ease);
+}
+.mel2-passo--motivo .mel2-passo-num {
+    background: var(--ui-warn);
+}
+/* Passo 3 (detalhes) — pill cinza quando bloqueado, preto quando ok */
+.mel2-passo[data-bloqueado="true"] .mel2-passo-num {
+    background: var(--ui-ink-4);
+    color: var(--ui-surface);
+}
+.mel2-passo[data-bloqueado="false"] .mel2-passo-num {
+    background: var(--ui-accent);
+    color: #fff;
+}
+.mel2-passo-meta {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.mel2-passo-titulo {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    margin: 0;
+    letter-spacing: -0.013em;
+    line-height: 1.25;
+}
+.mel2-passo-sub {
+    font-size: 0.75rem;
+    color: var(--ui-ink-3);
+    margin: 0;
+    line-height: 1.4;
+    font-weight: 500;
+}
+.mel2-passo-corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-left: calc(24px + 0.7rem);  /* alinha com o titulo (depois do pill) */
+}
+
+@media (max-width: 540px) {
+    .mel2-passo-corpo { padding-left: 0; }
+}
+
+/* Cadeado mostrando bloqueio dos detalhes */
+.mel2-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ui-warn);
+    background: var(--ui-warn-soft);
+    border: 1px solid color-mix(in srgb, var(--ui-warn) 22%, var(--ui-border));
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    line-height: 1;
+    transition: opacity 240ms var(--ui-ease),
+                color 240ms var(--ui-ease),
+                background 240ms var(--ui-ease),
+                border-color 240ms var(--ui-ease);
+}
+.mel2-lock svg { flex-shrink: 0; }
+.mel2-lock .mel2-lock-ok,
+.mel2-lock .mel2-lock-txt-ok { display: none; }
+.mel2-edit-campos[data-bloqueado="false"] .mel2-lock {
+    color: var(--ui-accent-2);
+    background: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 22%, var(--ui-border));
+}
+.mel2-edit-campos[data-bloqueado="false"] .mel2-lock .mel2-lock-bloq,
+.mel2-edit-campos[data-bloqueado="false"] .mel2-lock .mel2-lock-txt-bloq { display: none; }
+.mel2-edit-campos[data-bloqueado="false"] .mel2-lock .mel2-lock-ok,
+.mel2-edit-campos[data-bloqueado="false"] .mel2-lock .mel2-lock-txt-ok { display: inline; }
 .mel2-campo input,
 .mel2-campo select,
 .mel2-campo textarea {
     width: 100%;
+    box-sizing: border-box;
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-sm);
-    padding: 0.5rem 0.7rem;
+    padding: 0.55rem 0.75rem;
     font-family: 'Manrope', sans-serif;
-    font-size: 0.88rem;
+    font-size: 0.92rem;
     color: var(--ui-ink);
     transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.mel2-campo input::placeholder,
+.mel2-campo textarea::placeholder { color: var(--ui-ink-4); }
+.mel2-campo input:hover,
+.mel2-campo select:hover,
+.mel2-campo textarea:hover {
+    border-color: var(--ui-border-strong);
 }
 .mel2-campo input:focus,
 .mel2-campo select:focus,
 .mel2-campo textarea:focus {
     outline: 0;
     border-color: var(--ui-ink);
-    box-shadow: 0 0 0 3px rgba(40, 62, 6, 0.1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 16%, transparent);
 }
 .mel2-campo input[readonly] {
     background: var(--ui-surface-2);
     color: var(--ui-ink-3);
     cursor: default;
+    border-color: var(--ui-border);
 }
+.mel2-campo input[readonly]:hover { border-color: var(--ui-border); }
+/* Select nativo: regras mantidas como fallback (caso o pop-select
+   nao tenha sido instalado por algum motivo). Em uso normal, o
+   <select> e escondido e o .pop-select-trigger toma o lugar. */
 .mel2-campo select {
     appearance: none;
     -webkit-appearance: none;
@@ -1127,47 +1581,100 @@
     cursor: pointer;
 }
 
-/* Motivo da edição — destacado, vem antes dos campos */
-.mel2-campo--motivo {
+/* Pop-select trigger dentro de .mel2-campo — herda look v2 global
+   mas alinha padding/font-size com os outros inputs do form de
+   edicao pra altura visual uniforme. */
+.mel2-campo .pop-select-trigger {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.92rem;
+    width: 100%;
+    box-sizing: border-box;
+    line-height: 1.3;
+}
+.mel2-campo .pop-select-trigger:focus-visible {
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 16%, transparent);
+}
+/* Quando o campo esta marcado como alterado, o trigger ganha tint
+   accent (consistente com inputs). */
+.mel2-campo.is-alterado .pop-select-trigger {
+    border-color: color-mix(in srgb, var(--ui-accent) 38%, var(--ui-border));
+    background: color-mix(in srgb, var(--ui-accent-soft) 35%, var(--ui-surface));
+}
+
+/* Passo 1 (Motivo) — fundo warn-soft envolvendo head + textarea
+   pra reforcar que e o "gate" da edicao. */
+.mel2-passo--motivo {
     background: var(--ui-warn-soft);
     border: 1px solid color-mix(in srgb, var(--ui-warn) 22%, var(--ui-border));
     border-radius: var(--ui-r-md);
-    padding: 0.75rem 0.85rem;
+    padding: 0.95rem 1.05rem 1.05rem;
+    gap: 0.75rem;
 }
-.mel2-campo--motivo .mel2-campo-label { color: var(--ui-warn); }
-.mel2-campo--motivo textarea { resize: vertical; min-height: 3rem; }
+.mel2-passo--motivo .mel2-passo-titulo { color: var(--ui-ink-2); }
+.mel2-passo--motivo .mel2-passo-sub    { color: color-mix(in srgb, var(--ui-warn) 80%, var(--ui-ink-2)); }
+.mel2-passo--motivo textarea {
+    resize: vertical;
+    min-height: 3.4rem;
+    margin-left: calc(24px + 0.7rem);  /* alinha com a meta-coluna */
+}
+@media (max-width: 540px) {
+    .mel2-passo--motivo textarea { margin-left: 0; }
+}
 
-/* Campos da edição — bloqueados até o motivo estar preenchido */
-.mel2-edit-campos { position: relative; }
-.mel2-edit-aviso {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.78rem;
-    font-weight: 500;
-    line-height: 1.4;
+/* Contador 0/10 do motivo — pill que muda de warn pra accent quando OK */
+.mel2-motivo-cont {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
     color: var(--ui-warn);
-    background: var(--ui-warn-soft);
-    border: 1px dashed color-mix(in srgb, var(--ui-warn) 35%, var(--ui-border));
-    border-radius: var(--ui-r-sm);
-    padding: 0.6rem 0.75rem;
-    margin-bottom: 0.85rem;
+    background: var(--ui-surface);
+    border: 1px solid color-mix(in srgb, var(--ui-warn) 22%, var(--ui-border));
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    line-height: 1;
+    white-space: nowrap;
+    transition: color 200ms var(--ui-ease),
+                background 200ms var(--ui-ease),
+                border-color 200ms var(--ui-ease);
 }
-.mel2-edit-aviso svg { width: 16px; height: 16px; flex-shrink: 0; }
+.mel2-motivo-cont[data-ok="true"] {
+    color: var(--ui-accent-2);
+    background: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 22%, var(--ui-border));
+}
+.mel2-motivo-cont[data-ok="true"] #mel2-motivo-num::after {
+    content: ' ✓';
+    font-weight: 800;
+}
+
+/* Passo 3 (Detalhes) — bloqueado ate motivo OK. Visual claro com
+   opacity + grayscale + cursor not-allowed + bg cinza sutil. */
+.mel2-edit-campos {
+    position: relative;
+    transition: background 240ms var(--ui-ease);
+}
 .mel2-edit-form {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
-    transition: opacity 240ms var(--ui-ease), filter 240ms var(--ui-ease);
+    transition: opacity 240ms var(--ui-ease),
+                filter 240ms var(--ui-ease),
+                background 240ms var(--ui-ease);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.95rem 1rem;
+    background: var(--ui-surface);
 }
 .mel2-edit-form textarea { resize: vertical; min-height: 3rem; }
 .mel2-edit-campos[data-bloqueado="true"] .mel2-edit-form {
-    opacity: 0.45;
-    filter: grayscale(0.4);
+    opacity: 0.4;
+    filter: grayscale(0.5);
     pointer-events: none;
     user-select: none;
+    background: var(--ui-surface-2);
 }
-.mel2-edit-campos[data-bloqueado="false"] .mel2-edit-aviso { display: none; }
 .mel2-edit-nota {
     font-size: 0.78rem;
     color: var(--ui-ink-3);
@@ -1203,21 +1710,36 @@
     flex-wrap: wrap;
 }
 .mel2-rodape-aviso {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: var(--ui-ink-3);
-    font-style: italic;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 1.4;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.mel2-rodape-aviso::before {
+    content: '';
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--ui-warn);
+    flex-shrink: 0;
 }
 .mel2-link-hist {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.45rem;
     font-family: 'Manrope', sans-serif;
     font-size: 0.83rem;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--ui-accent);
     text-decoration: none;
+    transition: color 160ms var(--ui-ease);
 }
-.mel2-link-hist:hover { text-decoration: underline; text-underline-offset: 3px; }
+.mel2-link-hist:hover { color: var(--ui-accent-2); }
+.mel2-link-hist svg { transition: transform 200ms var(--ui-ease); }
+.mel2-link-hist:hover svg { transform: translateX(2px); }
 .mel2-acao-musgo  { color: var(--ui-accent) !important; font-weight: 600; }
 .mel2-acao-alerta { color: var(--ui-danger) !important; }
 
@@ -1231,7 +1753,65 @@
         height: auto;
         max-height: 96vh;
     }
-    .modal-card--amplo .painel-corpo { overflow-y: auto; }
+    /* TODOS os modais amplos (.modal-card--amplo) no mobile viram
+       BOTTOM SHEET de 75dvh, ancorados no fundo. Cobre em curso
+       (.mel2), novo lancamento + categorizar (.man2), e quaisquer
+       outros que usem o shell amplo. Padrao unificado. */
+    .overlay-fundo:has(.modal-card--amplo) {
+        align-items: flex-end !important;
+        justify-content: stretch !important;
+        padding: 0 !important;
+    }
+    /* !important pra ganhar das regras com :has(.man2) que existem
+       fora do @media (especificidade maior). Sem isso, o categorizar
+       e o novo lancamento ficavam com width: 60rem/53rem do desktop
+       e nao preenchiam a tela no mobile. */
+    .modal-card--amplo {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 75dvh !important;   /* ~2.25/3 da viewport */
+        max-height: none !important;
+        border-radius: 1.25rem 1.25rem 0 0 !important;
+        border-bottom: 0 !important;
+        margin: 0 !important;
+        box-shadow: 0 -8px 32px -12px rgba(20, 20, 20, 0.22);
+    }
+    /* Animacao SLIDE UP from bottom — funciona com ou sem
+       data-origem do click (override do clip-path/scale do desktop). */
+    .overlay-fundo:has(.modal-card--amplo) .modal-card--amplo {
+        clip-path: none !important;
+        transform: translateY(100%);
+        opacity: 1;
+        transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    }
+    .overlay-fundo:has(.modal-card--amplo).is-aberto .modal-card--amplo {
+        transform: translateY(0);
+    }
+    .overlay-fundo:has(.modal-card--amplo).is-fechando .modal-card--amplo {
+        transform: translateY(100%);
+        transition-duration: 240ms !important;
+    }
+    /* Em curso mantem o scroll INTERNO por coluna (igual desktop) —
+       sem isso, o painel-corpo inteiro rolaria e o composer ficaria
+       no fim, longe do alcance. */
+    .modal-card--amplo:has(.mel2) .painel-corpo {
+        overflow: hidden;
+    }
+    .modal-card--amplo:has(.mel2) .mel2-split {
+        grid-template-rows: minmax(0, 1fr);
+    }
+    .modal-card--amplo:has(.mel2) .mel2-esq {
+        overflow: hidden;  /* scroll fica no .mel2-hist interno */
+    }
+    .modal-card--amplo:has(.mel2) .mel2-dir {
+        overflow-y: auto;
+    }
+
+    /* Modal categorizar (.man2): mantem comportamento de altura
+       automatica com scroll do painel-corpo (form e mais simples,
+       sem split funcional). */
+    .modal-card--amplo:has(.man2) .painel-corpo { overflow-y: auto; }
+
     /* Empilha as colunas: volta as linhas pro fluxo automático
        (sem o minmax(0,1fr) da altura fixa do desktop). */
     .mel2-split { grid-template-columns: 1fr; grid-template-rows: none; }
@@ -1241,6 +1821,534 @@
     .mel2-esq, .mel2-dir { overflow: visible; }
     .mel2-esq {
         border-right: 0;
+        border-bottom: 0;
+        padding: 0;
+    }
+    .mel2-dir { padding: 1rem 1.2rem 1.2rem; }
+    /* Mobile: barras perdem sticky/fixed, paddings ajustados pra
+       quando empilhado. O painel-corpo do modal e quem rola. */
+    .mel2-esq-barra { padding: 0.85rem 1.2rem 0.8rem; }
+    .mel2-dir-barra { padding: 0 0 0.85rem; }
+    .mel2-hist { padding: 0.9rem 1.2rem 1rem; }
+    .mel2-composer { padding: 0.85rem 1.2rem 1rem; }
+
+    /* ── Abas Detalhes / Histórico ──────────────────────────────── */
+    .mel2-tabs {
+        display: flex;
+        position: relative;
+        margin: 0.6rem 1.2rem 0;
+        padding: 0.22rem;
+        background: var(--ui-surface-2);
+        border: 1px solid var(--ui-border);
+        border-radius: 999px;
+        flex-shrink: 0;
+    }
+    .mel2-tabs-ind {
+        position: absolute;
+        top: 0.22rem;
+        bottom: 0.22rem;
+        left: 0.22rem;
+        width: 0;
+        background: var(--ui-ink);
+        border-radius: 999px;
+        box-shadow: 0 1px 4px rgba(20, 20, 20, 0.18);
+        transition: left 280ms cubic-bezier(0.22, 1, 0.36, 1),
+                    width 280ms cubic-bezier(0.22, 1, 0.36, 1);
+        z-index: 0;
+        pointer-events: none;
+    }
+    .mel2-tab {
+        flex: 1 1 0;
+        background: none;
+        border: 0;
+        padding: 0.5rem 0.6rem;
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--ui-ink-3);
+        cursor: pointer;
+        border-radius: 999px;
+        transition: color 200ms var(--ui-ease);
+        position: relative;
+        z-index: 1;
+        white-space: nowrap;
+        text-align: center;
+        letter-spacing: -0.005em;
+    }
+    .mel2-tab:hover { color: var(--ui-ink-2); }
+    .mel2-tab[aria-selected="true"] { color: var(--ui-bg); font-weight: 700; }
+
+    /* Alternancia: mostra apenas a coluna correspondente a aba ativa.
+       Default e "detalhes" (state inicial). */
+    .mel2[data-aba="detalhes"]  .mel2-esq { display: none; }
+    .mel2[data-aba="historico"] .mel2-dir { display: none; }
+    /* Se a aba "historico" estiver ativa, a esquerda ocupa 100% (que
+       no mobile ja e o caso por causa do grid-template-columns: 1fr). */
+
+    /* ── Acoes destrutivas escondidas no mobile ─────────────────── */
+    .modal-card--amplo:has(.mel2) #btn-excluir,
+    .modal-card--amplo:has(.mel2) #btn-cancelar-pos {
+        display: none;
+    }
+
+    /* Resumo: chip categoria absoluto fica feio em telas estreitas
+       quando o valor tem muitos digitos. Volta pro fluxo. */
+    .mel2-resumo-cat {
+        position: static;
+        align-self: flex-start;
+    }
+    .mel2-resumo { padding: 1rem 1rem 0.9rem; }
+}
+
+/* ===================================================================
+   .man2-* — Modal Adicionar Nota fiscal (amplo compacto)
+   Modal de formulario, tamanho intermediario: 46rem (largo o
+   bastante pro split info+form, enxuto pra nao parecer um modal
+   de "ficha completa"). Altura adapta ao conteudo ate o cap.
+
+   COLORACAO: paleta --ui-* uniforme (sem tokens legados da paleta
+   anterior --c-papel/--c-musgo). Painel esquerdo neutro (surface-2);
+   inputs em superficie branca com borda fina e foco verde-petroleo.
+   =================================================================== */
+
+/* Tamanho proprio quando o amplo carrega .man2 (compacto — novo lanc) */
+.modal-card--amplo:has(.man2) {
+    width: min(53rem, calc(100vw - 2.5rem));
+    height: auto;
+    max-height: min(82vh, 41rem);
+}
+/* Variante categorizar: form mais alto (5+ campos + bloco-cat dinamico).
+   Largura maior pra acomodar 2 colunas confortavelmente; pode crescer
+   ate 82vh. Coluna direita scrolla. */
+.modal-card--amplo:has(.man2.man2--categorizar) {
+    width: min(60rem, calc(100vw - 2.5rem));
+    height: auto;
+    max-height: 82vh;
+}
+.man2.man2--categorizar .man2-dir {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-border-strong) transparent;
+}
+.man2.man2--categorizar .man2-dir::-webkit-scrollbar { width: 6px; }
+.man2.man2--categorizar .man2-dir::-webkit-scrollbar-thumb {
+    background: var(--ui-border-strong);
+    border-radius: 3px;
+}
+.man2.man2--categorizar .man2-dir::-webkit-scrollbar-track { background: transparent; }
+
+/* Bloco de campos dinamicos da categoria — separador editorial,
+   campos dentro herdam o styling do .man2-dir .field-input. */
+.man2-bloco-cat {
+    border: 0;
+    padding: 1rem 0 0;
+    margin: 0.45rem 0 0;
+    border-top: 1px dashed var(--ui-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+.man2-bloco-cat-titulo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ui-ink-3);
+    padding: 0;
+}
+.man2-bloco-cat-vazio {
+    font-size: 0.85rem;
+    color: var(--ui-ink-3);
+    font-style: italic;
+    margin: 0;
+    line-height: 1.5;
+}
+#bloco-cat-campos {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+#bloco-cat-campos:empty { display: none; }
+
+.man2 {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+.man2-split {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Coluna ESQUERDA — orientacao
+   ──────────────────────────────────────────────────────────── */
+.man2-esq {
+    border-right: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    padding: 1.4rem 1.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    min-height: 0;
+    min-width: 0;
+}
+.man2-esq-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ui-ink-3);
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.man2-esq-eyebrow::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--ui-warn);
+}
+
+/* Headline — Manrope bold em duas linhas. A segunda recebe accent
+   verde-petroleo + leve negative tracking pra "fechar" a frase.
+   Sem serifa: mantem a familia visual do sistema (--ui-*). */
+.man2-esq-headline {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: 1.45rem;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    color: var(--ui-ink);
+    margin: 0;
+}
+.man2-esq-headline-accent {
+    display: block;
+    color: var(--ui-accent);
+    font-weight: 700;
+}
+
+.man2-esq-texto {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--ui-ink-2);
+    margin: 0;
+    max-width: 22rem;
+}
+
+.man2-esq-dicas {
+    margin: 0;
+    padding: 0.85rem 0 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.84rem;
+    color: var(--ui-ink-3);
+    border-top: 1px dashed var(--ui-border);
+    line-height: 1.5;
+}
+.man2-esq-dicas li {
+    padding-left: 1.1rem;
+    position: relative;
+}
+.man2-esq-dicas li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    top: -0.05rem;
+    color: var(--ui-accent);
+    font-weight: 700;
+    font-size: 0.85em;
+}
+.man2-esq-dicas strong {
+    color: var(--ui-ink);
+    font-weight: 700;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Coluna DIREITA — formulario
+   Inputs / labels com tokens --ui-* (sobrescreve a paleta legada
+   de .painel-corpo .field-input que vinha de components.css).
+   ──────────────────────────────────────────────────────────── */
+.man2-dir {
+    padding: 1.4rem 1.55rem;
+    overflow-y: auto;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.man2-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Label — mesma anatomia do .lnc-info-label / .cxd-* labels */
+.man2-dir .field-label {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.71rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ui-ink-3);
+    margin: 0 0 0.4rem;
+}
+
+/* Input — superficie branca, borda fina, foco verde-petroleo accent.
+   Especificidade extra (.man2-dir .field-input) sobrescreve a regra
+   .painel-corpo .field-input legada sem precisar de !important. */
+.painel-corpo .man2-dir .field-input:not(select):not(textarea) {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.65rem 0.9rem;
+    color: var(--ui-ink);
+    font-family: 'Manrope', sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    box-shadow: none;
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease), background 160ms var(--ui-ease);
+}
+.painel-corpo .man2-dir .field-input:not(select):not(textarea)::placeholder {
+    color: var(--ui-ink-4);
+    opacity: 0.9;
+}
+.painel-corpo .man2-dir .field-input:not(select):not(textarea):hover {
+    border-color: var(--ui-border-strong);
+}
+.painel-corpo .man2-dir .field-input:not(select):not(textarea):focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+    background: var(--ui-surface);
+}
+/* Readonly: visual mais discreto pra indicar "este campo veio
+   preenchido e nao pode ser alterado aqui". */
+.painel-corpo .man2-dir .field-input:not(select):not(textarea)[readonly] {
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-2);
+    cursor: not-allowed;
+    border-color: var(--ui-border);
+}
+.painel-corpo .man2-dir .field-input:not(select):not(textarea)[readonly]:hover {
+    border-color: var(--ui-border);  /* nao escurece no hover */
+}
+.man2-dir .field-underline { display: none; }
+
+/* Pop-select trigger dentro do man2-dir herda o look dos inputs (mesma
+   borda, padding, foco accent). Sem skin legado papel/musgo. */
+.man2-dir .pop-select-trigger {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 0.75rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 1rem;
+    color: var(--ui-ink);
+    line-height: 1.3;
+    transition: border-color 160ms var(--ui-ease),
+                border-radius 160ms var(--ui-ease),
+                box-shadow 160ms var(--ui-ease);
+    width: 100%;
+    box-sizing: border-box;
+}
+.man2-dir .pop-select-trigger:hover { border-color: var(--ui-border-strong); }
+.man2-dir .pop-select-trigger:focus-visible {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+}
+.man2-dir .pop-select-trigger[aria-expanded="true"] {
+    border-color: var(--ui-ink);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    box-shadow: none;
+}
+.man2-dir .pop-select-trigger-texto.is-placeholder {
+    color: var(--ui-ink-3);
+    font-style: normal;
+}
+.man2-dir .pop-select-trigger-caret { color: var(--ui-ink-3); }
+.man2-dir .pop-select-trigger[aria-expanded="true"] .pop-select-trigger-caret {
+    color: var(--ui-ink);
+}
+
+/* Pop-data trigger no man2-dir — herda o mesmo look dos inputs do
+   form (font 1rem, padding e foco accent). Garante visual uniforme
+   entre date/time e selects dentro do modal de lancamento. */
+.man2-dir .pop-data-trigger {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 0.75rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 1rem;
+    color: var(--ui-ink);
+    line-height: 1.3;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 160ms var(--ui-ease),
+                box-shadow 160ms var(--ui-ease);
+}
+.man2-dir .pop-data-trigger:hover { border-color: var(--ui-border-strong); }
+.man2-dir .pop-data-trigger:focus-visible {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+}
+.man2-dir .pop-data-trigger[aria-expanded="true"] {
+    border-color: var(--ui-ink);
+    box-shadow: none;
+}
+.man2-dir .pop-data-trigger-texto.is-placeholder {
+    color: var(--ui-ink-3);
+    font-style: normal;
+}
+.man2-dir .pop-data-trigger-icone { color: var(--ui-ink-3); }
+.man2-dir .pop-data-trigger:hover  .pop-data-trigger-icone,
+.man2-dir .pop-data-trigger[aria-expanded="true"] .pop-data-trigger-icone {
+    color: var(--ui-ink);
+}
+/* Textarea no man2-dir — mesmo skin dos inputs */
+.painel-corpo .man2-dir textarea.field-input {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.65rem 0.9rem;
+    color: var(--ui-ink);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    min-height: 5rem;
+    resize: vertical;
+    box-shadow: none;
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.painel-corpo .man2-dir textarea.field-input::placeholder { color: var(--ui-ink-4); }
+.painel-corpo .man2-dir textarea.field-input:hover { border-color: var(--ui-border-strong); }
+.painel-corpo .man2-dir textarea.field-input:focus {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+}
+
+/* Grid Tailwind-like usado pelos campos dinamicos da categoria —
+   nossa propria implementacao pra evitar dependencia de utility
+   classes. Garante 2 colunas em desktop, 1 em mobile. */
+.man2-dir .grid {
+    display: grid;
+    gap: 0.95rem;
+}
+.man2-dir .grid.grid-cols-1 { grid-template-columns: 1fr; }
+@media (min-width: 640px) {
+    .man2-dir .grid.sm\:grid-cols-2 {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+/* Os mt-5 dos campos dinamicos viram gap consistente do man2-dir */
+.man2-dir .mt-5 { margin-top: 0; }
+.man2-bloco-cat .field { margin-bottom: 0 !important; }
+
+@media (max-width: 720px) {
+    /* Width/height do .man2 vem da regra unificada do bottom sheet
+       no bloco @media acima (.modal-card--amplo = 100% / 75dvh).
+       Aqui sobra so o ajuste do split pra empilhar as colunas. */
+    .man2-split {
+        grid-template-columns: 1fr;
+        grid-template-rows: none;
+    }
+    .man2-esq, .man2-dir { overflow: visible; }
+    .man2-esq {
+        border-right: 0;
         border-bottom: 1px solid var(--ui-border);
+        padding: 1rem 1.2rem;
+    }
+    .man2-dir { padding: 1.1rem 1.2rem; }
+    .man2-grid { grid-template-columns: 1fr; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MOBILE do modal "Em análise" (categorizar) — versao COMPACTA
+   da coluna esquerda + header do modal. O painel de orientacao
+   vira um header bem discreto pra priorizar o form. Tudo encurtado:
+   - header do modal compacto (eyebrow + titulo menores)
+   - eyebrow com pill colorido (compacto)
+   - headline em UMA linha (de duas), accent vira inline
+   - texto bem menor (0.78rem) ou cortado a uma frase
+   - dicas escondidas (operador ja sabe ou ve no desktop)
+   - padding minimo pra empurrar o form pra cima
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+    /* Header do modal categorizar — encolhe pra dar mais altura ao
+       form. Eyebrow "NF X · em analise" + titulo "Categorizar
+       lancamento." sao redundantes com a esq abaixo. */
+    .modal-card--amplo:has(.man2.man2--categorizar) .painel-header {
+        padding: 0.85rem 1.2rem 0.7rem;
+    }
+    .modal-card--amplo:has(.man2.man2--categorizar) .painel-eyebrow {
+        font-size: 0.6rem;
+        margin: 0 0 0.2rem;
+        letter-spacing: 0.14em;
+    }
+    .modal-card--amplo:has(.man2.man2--categorizar) .painel-titulo {
+        font-size: 1.05rem;
+        letter-spacing: -0.018em;
+    }
+
+    /* Painel esquerdo (Como funciona) no mobile — vale pros 2 modais
+       (Anotar NF e Categorizar). Padding lateral 1.2rem casa com o
+       form. Sem fundo bege/cinza nem border, fica continuo com o
+       resto do modal — sem "barra avulsa" entre titulo e form. */
+    .man2 .man2-esq {
+        padding: 0.7rem 1.2rem 0.4rem;
+        gap: 0.35rem;
+        background: transparent;
+        border-bottom: 0;
+    }
+    /* Eyebrow ESCONDIDO no mobile — header do modal ja exibe a
+       mesma informacao. Sem redundancia. */
+    .man2 .man2-esq-eyebrow { display: none; }
+    /* Headline ESCONDIDA no mobile — redundante com o titulo do
+       header. Economiza vertical pro form ser o protagonista. */
+    .man2 .man2-esq-headline { display: none; }
+    /* Texto explicativo cabe em ate 2 linhas no celular tipico */
+    .man2 .man2-esq-texto {
+        font-size: 0.78rem;
+        line-height: 1.4;
+        max-width: none;
+    }
+    /* Dicas escondidas no mobile — economiza ~6 linhas verticais. */
+    .man2 .man2-esq-dicas { display: none; }
+
+    /* Form ganha respiracao maior pra ser o foco do mobile */
+    .man2 .man2-dir {
+        padding: 1rem 1.2rem 1.3rem;
+        gap: 0.85rem;
+    }
+
+    /* Acoes secundarias (Editar sem categorizar / Excluir lancamento)
+       sumem no mobile. Acoes destrutivas/avancadas ficam apenas no
+       desktop pra evitar mis-tap em telas pequenas e poluicao do
+       rodape — operador mobile foca em Cancelar / Salvar. */
+    .modal-card--amplo:has(.man2.man2--categorizar) .painel-acoes-secundarias {
+        display: none;
+    }
+}
+
+/* Em telas BEM estreitas (smartphones pequenos), corta tambem o
+   texto explicativo — painel inteiro some, transicao direta pro form. */
+@media (max-width: 420px) {
+    .man2 .man2-esq {
+        display: none;
     }
 }

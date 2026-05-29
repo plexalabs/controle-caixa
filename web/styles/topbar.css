@@ -22,9 +22,12 @@
 }
 
 /* Search */
-.tb-search {
+.tb-search-shell {
     flex: 1;
     max-width: 34rem;
+    position: relative;
+}
+.tb-search {
     position: relative;
 }
 .tb-search input {
@@ -117,59 +120,8 @@
     pointer-events: none;
 }
 
-/* Botoes compactos do topbar */
-.tb-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: var(--ui-ink);
-    color: var(--ui-bg);
-    border: 0;
-    border-radius: var(--ui-r-sm);
-    padding: 0.45rem 0.85rem;
-    font-family: inherit;
-    font-size: 0.83rem;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    transition: background 160ms var(--ui-ease), transform 80ms var(--ui-ease);
-    line-height: 1.25;
-    letter-spacing: -0.005em;
-}
-.tb-btn:hover { background: #1A2904; }
-.tb-btn:active { transform: translateY(1px); }
-.tb-btn--primary {
-    background: var(--ui-accent);
-}
-.tb-btn--primary:hover { background: var(--ui-accent-2); }
-.tb-btn--warn {
-    background: var(--ui-warn);
-    color: var(--ui-bg);
-}
-.tb-btn--warn:hover { background: #92410A; }
-.tb-btn--ghost {
-    background: var(--ui-surface);
-    color: var(--ui-ink-2);
-    border: 1px solid var(--ui-border);
-    font-weight: 500;
-}
-.tb-btn--ghost:hover {
-    background: var(--ui-surface-2);
-    border-color: var(--ui-border-strong);
-    color: var(--ui-ink);
-}
-
-.tb-btn svg { width: 13px; height: 13px; }
-
-@media (max-width: 600px) {
-    .tb-btn span,
-    .tb-btn { font-size: 0.78rem; padding: 0.42rem 0.7rem; }
-    /* Em telas estreitas esconde o texto do botao, deixa so o + */
-}
-@media (max-width: 480px) {
-    .tb-btn--primary { padding: 0.45rem 0.6rem; }
-    .tb-btn--primary > :not(svg) { display: none; }
-}
+/* (Botoes do topbar removidos — o CTA do caixa saiu do header. A
+   topbar agora carrega so a busca global e o sino de notificacoes.) */
 
 /* ============================================================
    Popup do sino — painel ancorado no #tb-bell, "saindo do sino"
@@ -329,4 +281,258 @@
 @media (prefers-reduced-motion: reduce) {
     .bellpop { transform: none; transition: opacity 120ms var(--ui-ease); }
     .bellpop.is-open, .bellpop.is-closing { transform: none; }
+}
+
+/* ============================================================
+   Typeahead da busca global — dropdown de ate 5 resultados.
+   Espelha o visual de .pnd-item (pendencias) pra manter
+   harmonia com o resto do sistema.
+   ============================================================ */
+.tb-suggest {
+    position: absolute;
+    z-index: 60;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    box-shadow: var(--ui-shadow-lg);
+    font-family: 'Manrope', -apple-system, system-ui, sans-serif;
+    color: var(--ui-ink);
+    transform-origin: top center;
+    animation: tb-sug-in 180ms var(--ui-ease) both;
+    padding: 0.4rem;
+}
+.tb-suggest[hidden] { display: none; }
+
+@keyframes tb-sug-in {
+    from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Estados auxiliares (carregando / vazio / dica) */
+.tb-sug-status,
+.tb-sug-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.7rem 0.55rem;
+    font-size: 0.82rem;
+    color: var(--ui-ink-3);
+}
+.tb-sug-vazio strong {
+    color: var(--ui-ink);
+    font-weight: 700;
+}
+.tb-sug-vazio svg { color: var(--ui-ink-4); flex-shrink: 0; }
+
+.tb-sug-hint-kbd {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    padding: 0.05rem 0.42rem;
+    line-height: 1.3;
+}
+
+.tb-sug-spin {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    border: 2px solid var(--ui-border-strong);
+    border-top-color: var(--ui-accent);
+    animation: tb-sug-spin 0.7s linear infinite;
+}
+@keyframes tb-sug-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Lista */
+.tb-sug-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 24rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+/* Item — mesma anatomia do .pnd-item:
+   coluna icone | corpo (NF + cliente + meta) | direita (cat + valor) */
+.tb-sug-item {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr auto;
+    gap: 0.8rem;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: var(--ui-r-md);
+    background: transparent;
+    cursor: pointer;
+    transition: border-color 160ms var(--ui-ease),
+                background 160ms var(--ui-ease),
+                box-shadow 160ms var(--ui-ease);
+    animation: tb-sug-item-in 240ms var(--ui-ease) both;
+}
+@keyframes tb-sug-item-in {
+    from { opacity: 0; transform: translateY(-3px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.tb-sug-item:hover {
+    border-color: var(--ui-border);
+    background: var(--ui-surface-2);
+}
+.tb-sug-item.is-ativo {
+    border-color: var(--ui-accent);
+    background: var(--ui-surface);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-accent) 16%, transparent);
+}
+
+/* Icone do tipo (NF / Pedido / Cliente) — circulo suave */
+.tb-sug-icone {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid var(--ui-border);
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-2);
+    transition: background 160ms var(--ui-ease), color 160ms var(--ui-ease), border-color 160ms var(--ui-ease);
+}
+.tb-sug-icone[data-tipo="nf"] {
+    background: #FFFFFF;
+    border-color: var(--ui-border-strong);
+    color: var(--ui-ink);
+}
+.tb-sug-icone[data-tipo="pedido"] {
+    background: #FBF1E5;
+    border-color: #ECDABE;
+    color: #B86A30;
+}
+.tb-sug-icone[data-tipo="cliente"] {
+    background: var(--ui-accent-soft);
+    border-color: #C7EBD2;
+    color: var(--ui-accent-2);
+}
+
+/* Corpo */
+.tb-sug-corpo {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+}
+.tb-sug-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+.tb-sug-nf {
+    font-family: 'Manrope', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+.tb-sug-cliente {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ui-ink);
+    letter-spacing: -0.012em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+.tb-sug-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    flex-wrap: wrap;
+}
+.tb-sug-sep { opacity: 0.6; color: var(--ui-ink-4); }
+
+.tb-sug-item mark {
+    background: color-mix(in srgb, var(--ui-accent) 18%, transparent);
+    color: var(--ui-ink);
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: 700;
+}
+
+/* Lado direito — cat + valor (igual ao .pnd-item-dir) */
+.tb-sug-dir {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+    text-align: right;
+}
+
+/* Chip da categoria — mesmas cores do .pnd-item-cat */
+.tb-sug-cat {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-3);
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.tb-sug-cat--vazia {
+    color: var(--ui-ink-3);
+    background: var(--ui-surface-2);
+    font-style: italic;
+}
+.tb-sug-cat[data-cat="pix"]                 { background: rgba(15, 118, 110, 0.12); color: #0F766E; }
+.tb-sug-cat[data-cat="cartao"]              { background: rgba(30, 64, 175, 0.10); color: #1E40AF; }
+.tb-sug-cat[data-cat="dinheiro"]            { background: rgba(22, 101, 52, 0.12); color: #166534; }
+.tb-sug-cat[data-cat="cancelado"]           { background: var(--ui-danger-soft);   color: var(--ui-danger); }
+.tb-sug-cat[data-cat="cartao_link"]         { background: rgba(91, 33, 182, 0.10); color: #5B21B6; }
+.tb-sug-cat[data-cat="obs"]                 { background: var(--ui-warn-soft);     color: var(--ui-warn); }
+.tb-sug-cat[data-cat="disponivel_retirada"] { background: rgba(139, 90, 43, 0.12); color: #8B5A2B; }
+
+.tb-sug-valor {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.018em;
+}
+
+@media (max-width: 600px) {
+    .tb-sug-item {
+        grid-template-columns: 2rem 1fr;
+        gap: 0.6rem;
+    }
+    .tb-sug-icone { width: 2rem; height: 2rem; }
+    .tb-sug-dir {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 0.45rem;
+        margin-top: 0.1rem;
+        border-top: 1px dashed var(--ui-border);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tb-suggest,
+    .tb-sug-item { animation: none; }
 }
