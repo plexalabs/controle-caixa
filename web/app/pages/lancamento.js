@@ -7,7 +7,7 @@ import { log } from '../log.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
 import { LABEL_CATEGORIA, dataLonga, resumoDetalhes } from '../dominio.js';
-import { formatBRL } from '../utils.js';
+import { formatBRL, formatarNumeroNF, formatarCodigoPedido, formatarNomeCliente } from '../utils.js';
 import { mostrarToast } from '../notifications.js';
 import { navegar } from '../router.js';
 
@@ -68,8 +68,8 @@ export async function renderLancamento({ params }) {
 
       <header class="lnc-header">
         <div class="lnc-header-meta">
-          <p class="lnc-eyebrow">Nota fiscal · NF ${esc(lanc.numero_nf)}</p>
-          <h1 class="lnc-title">${esc(lanc.cliente_nome || '— sem cliente —')}</h1>
+          <p class="lnc-eyebrow">Nota fiscal · NF ${esc(formatarNumeroNF(lanc.numero_nf))}</p>
+          <h1 class="lnc-title">${esc(formatarNomeCliente(lanc.cliente_nome) || '— sem cliente —')}</h1>
           <p class="lnc-sub">
             <span class="lnc-valor">${formatBRL(lanc.valor_nf)}</span>
             <span class="lnc-sep" aria-hidden="true">·</span>
@@ -82,8 +82,8 @@ export async function renderLancamento({ params }) {
       </header>
 
       <section class="lnc-info">
-        ${blocoInfo('Cliente', esc(lanc.cliente_nome || '—'))}
-        ${blocoInfo('Código do pedido', esc(lanc.codigo_pedido || '—'))}
+        ${blocoInfo('Cliente', esc(formatarNomeCliente(lanc.cliente_nome) || '—'))}
+        ${blocoInfo('Código do pedido', esc(lanc.codigo_pedido ? formatarCodigoPedido(lanc.codigo_pedido) : '—'))}
         ${blocoInfo('Categoria', lanc.categoria
           ? `${esc(catLabel)}${detalheCat ? `<span class="lnc-info-extra"> · ${esc(detalheCat)}</span>` : ''}`
           : '<em class="lnc-info-vazio">aguardando categorização</em>', { html: true })}
@@ -155,9 +155,9 @@ function itemTimeline(ev) {
   if (tipo === 'criacao') {
     corpoHtml = `
       <p class="lnc-tl-corpo">
-        <strong>NF ${esc(c.numero_nf)}</strong> registrada com valor <strong>${formatBRL(c.valor_nf)}</strong>
-        ${c.cliente_nome ? `para <strong>${esc(c.cliente_nome)}</strong>` : ''}
-        ${c.codigo_pedido ? `<span class="lnc-tl-pedido">· pedido ${esc(c.codigo_pedido)}</span>` : ''}
+        <strong>NF ${esc(formatarNumeroNF(c.numero_nf))}</strong> registrada com valor <strong>${formatBRL(c.valor_nf)}</strong>
+        ${c.cliente_nome ? `para <strong>${esc(formatarNomeCliente(c.cliente_nome))}</strong>` : ''}
+        ${c.codigo_pedido ? `<span class="lnc-tl-pedido">· pedido ${esc(formatarCodigoPedido(c.codigo_pedido))}</span>` : ''}
       </p>`;
   } else {
     corpoHtml = `<p class="lnc-tl-corpo">${esc(c.texto || '')}</p>`;
@@ -273,30 +273,41 @@ function formatarTimestampLongo(ts) {
   }).format(new Date(ts));
 }
 
+// Simbolo Ledo inline pra tela de erro
+const SIMBOLO_LEDO_ERRO = `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">` +
+  `<path fill="#2D4A2E" d="M128,40 L180,40 C180,40 210,70 210,130 C210,190 180,220 128,220 L76,220 C76,220 50,190 50,130 C50,70 80,40 128,40 Z"/>` +
+  `<path fill="#E8F0E5" d="M128,40 L160,40 C160,40 175,55 175,85 C175,115 160,130 128,130 C100,130 85,115 85,85 C85,55 100,40 128,40 Z"/>` +
+  `</svg>`;
+
 function mostrarErro(msg) {
-  // Usa o shell editorial da 404 com etiqueta âmbar lateral. Texto e CTAs
-  // contextuais a "Lançamento não encontrado / inválido", em vez do 404
-  // genérico — guia o operador de volta pra /caixas (lugar natural pra
-  // procurar uma NF, não pra /dashboard).
+  // Mesmo padrao visual do /erros/404 — card branco + simbolo Ledo +
+  // hierarquia editorial. CTAs contextuais: /caixas (lugar natural
+  // pra procurar uma NF) em vez de /dashboard.
   document.querySelector('#app').innerHTML = `
     <main id="main" class="erro-shell" role="main">
-      <aside class="erro-etiqueta" aria-hidden="true">NF</aside>
+      <article class="erro-card">
+        <header class="erro-cabec">
+          <span class="erro-cabec-simbolo" aria-hidden="true">${SIMBOLO_LEDO_ERRO}</span>
+          <div class="erro-cabec-meta">
+            <span class="erro-cabec-codigo">Lançamento não encontrado</span>
+            <span class="erro-cabec-app">Ledo · auditoria de caixa</span>
+          </div>
+        </header>
 
-      <section class="erro-conteudo">
-        <p class="h-eyebrow">Lançamento não encontrado</p>
         <h1 class="erro-titulo">
-          Esta nota fiscal<br>
-          <em>não está no caderno.</em>
+          Esta nota fiscal <em>não está no caderno</em>.
         </h1>
+
         <p class="erro-texto">
-          ${esc(msg)} Pode ter sido excluído, arquivado ou o link veio com
-          o identificador errado. Confira a lista de caixas pra encontrá-lo.
+          ${esc(msg)} Pode ter sido excluído, arquivado ou o link veio
+          com o identificador errado. Confira a lista de caixas pra encontrá-lo.
         </p>
+
         <div class="erro-acoes">
           <a href="/caixas" data-link class="btn-primary">Ver todos os caixas</a>
           <a href="/dashboard" data-link class="btn-link">Ir para o início</a>
         </div>
-      </section>
+      </article>
     </main>`;
 }
 

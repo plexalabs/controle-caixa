@@ -240,20 +240,45 @@
    Toast de notificação
    ============================================================ */
 
+/* Toast v2 "Clean Profissional" — cartão escuro com chip de ícone
+   tingido pelo tipo (ok / erro / info). */
 .toast {
-    background: var(--c-tinta);
-    color: var(--c-papel);
-    padding: 0.85rem 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--ui-ink);
+    color: var(--ui-bg);
+    padding: 0.6rem 0.95rem 0.6rem 0.6rem;
     font-family: 'Manrope', sans-serif;
-    font-size: 0.9rem;
-    border-left: 3px solid var(--c-musgo);
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;  /* identidade do sistema */
-    box-shadow: var(--shadow-deep);
-    animation: fade-up 320ms var(--ease-out);
-    max-width: 380px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.4;
+    border-radius: var(--ui-r-md);
+    box-shadow: 0 14px 34px -14px rgba(18, 22, 14, 0.5);
+    max-width: 23rem;
+    animation: toast-entra 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.toast--erro { border-left-color: var(--c-alerta); }
-.toast--info { border-left-color: var(--c-ambar); }
+.toast--saindo { animation: toast-sai 220ms var(--ui-ease) forwards; }
+.toast-icone {
+    width: 1.6rem; height: 1.6rem;
+    border-radius: var(--ui-r-sm);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent);
+}
+.toast-icone svg { width: 15px; height: 15px; }
+.toast-msg { min-width: 0; }
+.toast--erro .toast-icone { background: var(--ui-danger-soft); color: var(--ui-danger); }
+.toast--info .toast-icone { background: var(--ui-info-soft);   color: var(--ui-info); }
+@keyframes toast-entra {
+    from { opacity: 0; transform: translateY(14px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toast-sai {
+    to { opacity: 0; transform: translateY(6px) scale(0.97); }
+}
 
 
 /* ============================================================
@@ -1076,36 +1101,54 @@
    sombra editorial e filete âmbar lateral.
    ============================================================ */
 
+/* ============================================================
+   POP-SELECT v2 — visual padrao moderno (--ui-* tokens) aplicado
+   GLOBALMENTE a todos os pop-selects do sistema. O pop-select.js
+   adiciona automaticamente a classe .cxd-pop pra qualquer skin
+   adicional, mas o base ja vem moderno mesmo sem ela.
+   ============================================================ */
 .pop-select-trigger {
-    display: inline-flex;
+    /* display: flex (block-level) garante que o width: 100% sempre
+       estique até a borda direita do form. inline-flex respeitava
+       width:100% na maioria dos casos, mas em parents flex/grid o
+       trigger podia ficar shrinkavel. box-sizing: border-box pra que
+       o border 1px nao empurre o trigger pra fora do field. */
+    display: flex;
     width: 100%;
+    box-sizing: border-box;
     align-items: center;
     justify-content: space-between;
     gap: 0.6rem;
-    padding: 0.65rem 0.85rem;
-    background: var(--c-papel);
-    border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-sm);
+    padding: 0.55rem 0.75rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
     font-family: 'Manrope', sans-serif;
-    font-size: 0.95rem;
-    color: var(--c-tinta);
+    font-size: 0.94rem;
+    color: var(--ui-ink);
     cursor: pointer;
     text-align: left;
-    transition: border-color 200ms var(--ease-out),
-                box-shadow 200ms var(--ease-out),
-                background 200ms var(--ease-out);
+    line-height: 1.3;
+    transition: border-color 160ms var(--ui-ease),
+                box-shadow 160ms var(--ui-ease),
+                border-radius 160ms var(--ui-ease),
+                background 160ms var(--ui-ease);
 }
-.pop-select-trigger:hover { border-color: var(--c-tinta-3); }
+.pop-select-trigger:hover { border-color: var(--ui-border-strong); }
 .pop-select-trigger:focus-visible {
     outline: 0;
-    border-color: var(--c-musgo);
-    box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
 }
 .pop-select-trigger[aria-expanded="true"] {
-    border-color: var(--c-musgo);
-    box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+    border-color: var(--ui-ink);
+    box-shadow: none;
+    /* Cantos inferiores retos pra "fundir" com o menu portado abaixo */
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
 }
 .pop-select-trigger:disabled { opacity: 0.55; cursor: not-allowed; }
+
 .pop-select-trigger-texto {
     flex: 1;
     overflow: hidden;
@@ -1114,109 +1157,138 @@
     line-height: 1.3;
 }
 .pop-select-trigger-texto.is-placeholder {
-    color: var(--c-tinta-3);
-    font-style: italic;
+    color: var(--ui-ink-3);
+    font-style: normal;
+    font-weight: 500;
 }
 .pop-select-trigger-caret {
     display: inline-flex;
-    color: var(--c-musgo);
-    transition: transform 220ms var(--ease-spring);
+    color: var(--ui-ink-3);
+    transition: transform 200ms var(--ui-ease), color 160ms var(--ui-ease);
     flex-shrink: 0;
 }
 .pop-select-trigger[aria-expanded="true"] .pop-select-trigger-caret {
     transform: rotate(180deg);
+    color: var(--ui-ink);
 }
 
+/* Menu portado — visual moderno por padrao. Cantos superiores retos
+   pra encostar no trigger expandido (efeito tubo unico). */
 .pop-select-menu {
     z-index: 200;
-    background: var(--c-papel);
-    border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-md);
-    padding: 0.4rem 0.4rem 0.4rem 0.55rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-ink);
+    border-top: 0;
+    border-radius: 0 0 var(--ui-r-sm) var(--ui-r-sm);
+    padding: 0.3rem 0;
     overflow-y: auto;
-    box-shadow: var(--shadow-deep), 0 6px 16px -8px rgba(15, 76, 58, 0.22);
+    box-shadow:
+        0 12px 24px -12px rgba(20, 20, 20, 0.18),
+        0 4px 8px -4px rgba(20, 20, 20, 0.08);
     opacity: 0;
-    transform: translateY(-6px) scale(0.99);
+    transform: translateY(-4px);
     transform-origin: top center;
-    transition: opacity 180ms var(--ease-out),
-                transform 240ms var(--ease-spring);
+    transition: opacity 180ms var(--ui-ease),
+                transform 200ms var(--ui-ease);
     position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-border-strong) transparent;
+    box-sizing: border-box;
 }
-.pop-select-menu--acima { transform-origin: bottom center; }
-.pop-select-menu.is-aberto    { opacity: 1; transform: translateY(0) scale(1); }
-.pop-select-menu.is-fechando  { opacity: 0; transform: translateY(-4px) scale(0.99); }
-.pop-select-menu::before {
-    /* Filete âmbar lateral discreto — assinatura do site */
-    content: '';
-    position: absolute;
-    left: 0; top: 18%; bottom: 18%;
-    width: 2px;
-    background: var(--c-ambar);
-    opacity: 0.42;
-    border-radius: 0 var(--r-pill) var(--r-pill) 0;
+.pop-select-menu::-webkit-scrollbar { width: 6px; }
+.pop-select-menu::-webkit-scrollbar-thumb {
+    background: var(--ui-border-strong);
+    border-radius: 3px;
+}
+.pop-select-menu::-webkit-scrollbar-track { background: transparent; }
+.pop-select-menu.is-aberto    { opacity: 1; transform: translateY(0); }
+.pop-select-menu.is-fechando  { opacity: 0; transform: translateY(-4px); }
+/* Variante "acima" — quando posicionar() detecta menu pra cima */
+.pop-select-menu--acima {
+    transform-origin: bottom center;
+    border-radius: var(--ui-r-sm) var(--ui-r-sm) 0 0;
+    border-top: 1px solid var(--ui-ink);
+    border-bottom: 0;
 }
 
+/* Itens — banda horizontal, cantos retos (fundo unico). Selecionado
+   ganha fundo accent-soft + peso 700, SEM filete lateral. Limpo,
+   alinhado com o padrao de hover do sistema (so muda a cor de fundo
+   pra accent-soft em vez de surface-2). */
 .pop-select-item {
     display: block;
     width: 100%;
-    padding: 0.55rem 0.85rem;
+    padding: 0.55rem 0.75rem;
     background: 0;
     border: 0;
-    border-radius: var(--r-sm);
+    border-radius: 0;
     font-family: 'Manrope', sans-serif;
-    font-size: 0.92rem;
-    color: var(--c-tinta);
+    font-size: 0.9rem;
+    color: var(--ui-ink);
     text-align: left;
     cursor: pointer;
-    transition: background 140ms var(--ease-out), color 140ms var(--ease-out);
+    transition: background 140ms var(--ui-ease), color 140ms var(--ui-ease);
     line-height: 1.35;
 }
 .pop-select-item:hover,
 .pop-select-item.is-foco {
-    background: var(--c-papel-2);
-    color: var(--c-musgo);
+    background: var(--ui-surface-2);
+    color: var(--ui-ink);
 }
 .pop-select-item[aria-selected="true"] {
-    background: var(--c-musgo);
-    color: var(--c-papel);
-    font-weight: 600;
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent-2);
+    font-weight: 700;
 }
 .pop-select-item[aria-selected="true"]:hover,
 .pop-select-item[aria-selected="true"].is-foco {
-    background: var(--c-musgo-2);
-    color: var(--c-papel);
+    background: color-mix(in srgb, var(--ui-accent-soft) 82%, var(--ui-accent));
+    color: var(--ui-accent-2);
 }
 
 
 /* ============================================================
-   Pop-data — calendário mensal custom, slim e editorial.
-   Substitui o popup nativo do <input type="date|datetime-local">.
+   POP-DATA v2 — calendário moderno (--ui-* tokens) aplicado
+   GLOBALMENTE a todos os inputs date/time/datetime-local do sistema.
+   Trigger e popover compartilham a mesma linguagem visual dos
+   pop-selects: branco + borda preta + accent verde, cantos retos
+   no trigger expandido fundindo com o popover abaixo. Manrope
+   puro (sem Fraunces italic) pra coerência total com o sistema v2.
    ============================================================ */
-
 .pop-data-trigger {
-    display: inline-flex;
+    /* display: flex (block-level) — mesma razao do pop-select-trigger:
+       garante estiramento total do field sem depender do contexto. */
+    display: flex;
     width: 100%;
+    box-sizing: border-box;
     align-items: center;
     justify-content: space-between;
     gap: 0.6rem;
-    padding: 0.65rem 0.85rem;
-    background: var(--c-papel);
-    border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-sm);
+    padding: 0.55rem 0.75rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
     font-family: 'Manrope', sans-serif;
-    font-size: 0.95rem;
-    color: var(--c-tinta);
+    font-size: 0.94rem;
+    color: var(--ui-ink);
     cursor: pointer;
     text-align: left;
-    transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+    line-height: 1.3;
     font-variant-numeric: tabular-nums;
+    transition: border-color 160ms var(--ui-ease),
+                box-shadow 160ms var(--ui-ease),
+                border-radius 160ms var(--ui-ease),
+                background 160ms var(--ui-ease);
 }
-.pop-data-trigger:hover { border-color: var(--c-tinta-3); }
-.pop-data-trigger:focus-visible,
-.pop-data-trigger[aria-expanded="true"] {
+.pop-data-trigger:hover { border-color: var(--ui-border-strong); }
+.pop-data-trigger:focus-visible {
     outline: 0;
-    border-color: var(--c-musgo);
-    box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+}
+.pop-data-trigger[aria-expanded="true"] {
+    border-color: var(--ui-ink);
+    box-shadow: none;
 }
 .pop-data-trigger:disabled { opacity: 0.55; cursor: not-allowed; }
 .pop-data-trigger-texto {
@@ -1227,43 +1299,45 @@
     line-height: 1.3;
 }
 .pop-data-trigger-texto.is-placeholder {
-    color: var(--c-tinta-3);
-    font-style: italic;
+    color: var(--ui-ink-3);
+    font-style: normal;
+    font-weight: 500;
 }
 .pop-data-trigger-icone {
     display: inline-flex;
-    color: var(--c-musgo);
+    color: var(--ui-ink-3);
     flex-shrink: 0;
+    transition: color 160ms var(--ui-ease);
+}
+.pop-data-trigger:hover  .pop-data-trigger-icone,
+.pop-data-trigger:focus-visible .pop-data-trigger-icone,
+.pop-data-trigger[aria-expanded="true"] .pop-data-trigger-icone {
+    color: var(--ui-ink);
 }
 
+/* Popover — visual moderno: branco, borda preta sólida, sombra
+   editorial dupla. Sem filete âmbar, sem serifa italica. */
 .pop-data-popover {
     z-index: 200;
     width: 308px;
-    background: var(--c-papel);
-    border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-md);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-ink);
+    border-radius: var(--ui-r-sm);
     padding: 0.95rem 1rem 0.85rem;
-    box-shadow: var(--shadow-deep), 0 6px 16px -8px rgba(15, 76, 58, 0.22);
+    box-shadow:
+        0 18px 36px -16px rgba(20, 20, 20, 0.22),
+        0 6px 12px -6px rgba(20, 20, 20, 0.10);
     opacity: 0;
-    transform: translateY(-6px) scale(0.99);
+    transform: translateY(-4px);
     transform-origin: top center;
-    transition: opacity 180ms var(--ease-out),
-                transform 240ms var(--ease-spring);
+    transition: opacity 180ms var(--ui-ease),
+                transform 200ms var(--ui-ease);
     position: relative;
+    box-sizing: border-box;
 }
 .pop-data-popover--acima { transform-origin: bottom center; }
-.pop-data-popover.is-aberto    { opacity: 1; transform: translateY(0) scale(1); }
-.pop-data-popover.is-fechando  { opacity: 0; transform: translateY(-4px) scale(0.99); }
-.pop-data-popover::before {
-    /* Filete âmbar lateral — assinatura editorial */
-    content: '';
-    position: absolute;
-    left: 0; top: 18%; bottom: 18%;
-    width: 2px;
-    background: var(--c-ambar);
-    opacity: 0.42;
-    border-radius: 0 var(--r-pill) var(--r-pill) 0;
-}
+.pop-data-popover.is-aberto    { opacity: 1; transform: translateY(0); }
+.pop-data-popover.is-fechando  { opacity: 0; transform: translateY(-4px); }
 
 .pop-data-header {
     display: flex;
@@ -1273,37 +1347,46 @@
     margin-bottom: 0.7rem;
 }
 .pop-data-titulo {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-weight: 400;
-    font-size: 1.05rem;
-    color: var(--c-tinta);
-    letter-spacing: -0.01em;
-    line-height: 1;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--ui-ink);
+    letter-spacing: -0.005em;
+    line-height: 1.1;
+    text-transform: capitalize;
 }
 .pop-data-titulo-ano {
-    color: var(--c-tinta-3);
-    font-weight: 300;
-    margin-left: 0.15em;
+    color: var(--ui-ink-3);
+    font-weight: 500;
+    margin-left: 0.3em;
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
 }
 .pop-data-nav {
     background: 0;
-    border: 0;
+    border: 1px solid transparent;
     cursor: pointer;
     width: 28px; height: 28px;
-    border-radius: var(--r-pill);
+    border-radius: var(--ui-r-sm);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--c-musgo);
-    transition: background 160ms var(--ease-out), color 160ms var(--ease-out);
+    color: var(--ui-ink-3);
+    transition: background 140ms var(--ui-ease),
+                color 140ms var(--ui-ease),
+                border-color 140ms var(--ui-ease);
     flex-shrink: 0;
 }
-.pop-data-nav:hover { background: var(--c-papel-2); color: var(--c-musgo-2); }
+.pop-data-nav:hover {
+    background: var(--ui-surface-2);
+    color: var(--ui-ink);
+    border-color: var(--ui-border);
+}
 .pop-data-nav:focus-visible {
-    outline: 2px solid var(--c-musgo);
-    outline-offset: 1px;
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+    color: var(--ui-ink);
 }
 
 .pop-data-semana {
@@ -1311,14 +1394,14 @@
     grid-template-columns: repeat(7, 1fr);
     gap: 2px;
     font-family: 'Manrope', sans-serif;
-    font-size: 0.6rem;
+    font-size: 0.62rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: var(--c-tinta-3);
+    letter-spacing: 0.18em;
+    color: var(--ui-ink-4);
     text-align: center;
-    padding-bottom: 0.45rem;
-    border-bottom: 1px solid var(--c-papel-3);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--ui-border);
     margin-bottom: 0.45rem;
 }
 .pop-data-grid {
@@ -1329,33 +1412,38 @@
 .pop-data-dia {
     background: 0;
     border: 0;
-    border-radius: var(--r-sm);
-    font-family: 'Fraunces', serif;
+    border-radius: var(--ui-r-sm);
+    font-family: 'Manrope', sans-serif;
     font-variant-numeric: tabular-nums;
-    font-size: 0.92rem;
-    color: var(--c-tinta);
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--ui-ink);
     height: 36px;
     cursor: pointer;
-    transition: background 140ms var(--ease-out),
-                color 140ms var(--ease-out),
-                box-shadow 140ms var(--ease-out);
+    transition: background 140ms var(--ui-ease),
+                color 140ms var(--ui-ease),
+                box-shadow 140ms var(--ui-ease);
     line-height: 1;
 }
-.pop-data-dia:hover { background: var(--c-papel-2); color: var(--c-musgo); }
-.pop-data-dia.is-fora { color: var(--c-papel-3); pointer-events: none; }
+.pop-data-dia:hover { background: var(--ui-surface-2); color: var(--ui-ink); }
+.pop-data-dia.is-fora { color: var(--ui-ink-4); opacity: 0.45; pointer-events: none; }
 .pop-data-dia.is-hoje {
-    font-weight: 600;
-    box-shadow: inset 0 0 0 1px var(--c-ambar);
+    font-weight: 700;
+    color: var(--ui-accent-2);
+    box-shadow: inset 0 0 0 1px var(--ui-accent);
 }
 .pop-data-dia.is-sel {
-    background: var(--c-musgo);
-    color: var(--c-papel);
-    font-weight: 500;
+    background: var(--ui-accent);
+    color: #fff;
+    font-weight: 700;
     box-shadow: none;
 }
-.pop-data-dia.is-sel:hover { background: var(--c-musgo-2); color: var(--c-papel); }
+.pop-data-dia.is-sel:hover {
+    background: var(--ui-accent-2);
+    color: #fff;
+}
 .pop-data-dia.is-sel.is-hoje {
-    box-shadow: inset 0 0 0 1px var(--c-ambar);
+    box-shadow: inset 0 0 0 1.5px #fff;
 }
 
 .pop-data-hora {
@@ -1364,37 +1452,41 @@
     gap: 0.5rem;
     padding-top: 0.85rem;
     margin-top: 0.85rem;
-    border-top: 1px dashed var(--c-papel-3);
+    border-top: 1px solid var(--ui-border);
 }
 .pop-data-hora-input {
-    width: 50px;
+    width: 54px;
     padding: 0.4rem 0.5rem;
-    border: 1px solid var(--c-papel-3);
-    border-radius: var(--r-sm);
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 1rem;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    font-family: 'Manrope', sans-serif;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 0.95rem;
     text-align: center;
     font-variant-numeric: tabular-nums;
-    background: var(--c-papel);
-    color: var(--c-tinta);
-    transition: border-color 200ms var(--ease-out);
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    transition: border-color 160ms var(--ui-ease),
+                box-shadow 160ms var(--ui-ease);
 }
+.pop-data-hora-input:hover { border-color: var(--ui-border-strong); }
 .pop-data-hora-input:focus {
     outline: 0;
-    border-color: var(--c-musgo);
-    box-shadow: 0 0 0 2px rgba(15, 76, 58, 0.15);
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
 }
 .pop-data-hora-input::-webkit-outer-spin-button,
 .pop-data-hora-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .pop-data-hora-input { -moz-appearance: textfield; }
 .pop-data-hora-sep {
-    color: var(--c-tinta-3);
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 1.1rem;
+    color: var(--ui-ink-3);
+    font-family: 'Manrope', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 1rem;
     line-height: 1;
-    transform: translateY(-1px);
+    transform: translateY(0);
 }
 
 .pop-data-rodape {
@@ -1404,15 +1496,25 @@
     gap: 0.5rem;
     padding-top: 0.85rem;
     margin-top: 0.85rem;
-    border-top: 1px solid var(--c-papel-3);
+    border-top: 1px solid var(--ui-border);
 }
 .pop-data-rodape .btn-link {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
+    color: var(--ui-ink-3);
 }
+.pop-data-rodape .btn-link:hover { color: var(--ui-ink); }
 .pop-data-rodape .btn-primary {
-    padding: 0.5rem 1rem;
+    padding: 0.45rem 1rem;
     font-size: 0.85rem;
     margin-left: auto;
+    background: var(--ui-ink);
+    border-color: var(--ui-ink);
+    color: var(--ui-surface);
+    border-radius: var(--ui-r-sm);
+}
+.pop-data-rodape .btn-primary:hover {
+    background: var(--ui-accent-2);
+    border-color: var(--ui-accent-2);
 }
 
 
@@ -3559,7 +3661,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     transform: scale(1.04);
 }
 
-/* Wordmark "Caixa Boti" em Fraunces italic — só aparece no expandido.
+/* Wordmark "Ledo" em Manrope — só aparece no expandido.
    Aparece com fade + slide leve da esquerda quando a sidebar abre,
    após delay para esperar a animação de largura terminar. */
 .sidebar-logo-wordmark {
@@ -6547,84 +6649,242 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
    + texto Manrope + ações editorial.
    ============================================================ */
 
+/* ═══════════════════════════════════════════════════════════════
+   TELAS DE ERRO (404, lancamento nao encontrado, etc.)
+   Padrao v2 unificado: fundo --ui-surface-2 com canvas topografico
+   opcional, card branco centralizado com simbolo Ledo + hierarquia
+   editorial (eyebrow accent + titulo grande + texto + acoes).
+   ═══════════════════════════════════════════════════════════════ */
 .erro-shell {
-    min-height: 80vh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink);
+    font-family: 'Manrope', sans-serif;
     display: grid;
-    grid-template-columns: 60px 1fr;
-    gap: 2rem;
-    padding: 3rem 2rem;
-    max-width: 720px;
-    margin: 0 auto;
-    align-items: start;
-    animation: fade-up 600ms var(--ease-out) backwards;
+    place-items: center;
+    padding: 2rem 1rem;
 }
 
-.erro-etiqueta {
-    background: var(--c-ambar);
-    color: var(--c-papel);
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-weight: 500;
-    font-size: 2rem;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    padding: 1.5rem 0.5rem;
-    /* Etiqueta inverte a regra do projeto: aqui é round-LEFT/flat-RIGHT
-       porque a etiqueta "abraça" o conteúdo pela direita. */
-    border-radius: 12px 0 0 12px;
+/* Canvas topografico no fundo (quando .erro-topo-canvas estiver
+   presente). z-index 0 — atras do card. */
+.erro-topo-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    display: block;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Card centralizado com tudo do erro */
+.erro-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 32rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 1.75rem 1.6rem 1.5rem;
+    box-shadow:
+        0 12px 40px -12px rgba(20, 20, 20, 0.12),
+        0 4px 12px -4px rgba(20, 20, 20, 0.08);
+    animation: erro-rise 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes erro-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@media (min-width: 540px) {
+    .erro-card { padding: 2rem 1.9rem 1.7rem; }
+}
+
+/* Cabec — simbolo Ledo + eyebrow do tipo de erro */
+.erro-cabec {
     display: flex;
     align-items: center;
-    justify-content: center;
-    letter-spacing: 0.08em;
-    height: fit-content;
-    min-height: 8rem;
-    box-shadow: 0 8px 24px -16px rgba(199, 122, 63, 0.4);
+    gap: 0.85rem;
+    margin-bottom: 1.4rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.erro-cabec-simbolo {
+    width: 40px; height: 40px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+.erro-cabec-simbolo svg { width: 100%; height: 100%; }
+.erro-cabec-meta { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.erro-cabec-codigo {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ui-accent);
+    line-height: 1;
+}
+.erro-cabec-app {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    letter-spacing: -0.005em;
+    line-height: 1;
 }
 
-.erro-conteudo .h-eyebrow {
-    margin-bottom: 0.4rem;
-}
-
+/* Titulo do erro */
 .erro-titulo {
-    font-family: 'Fraunces', serif;
-    font-weight: 400;
-    font-style: normal;
-    font-variation-settings: "opsz" 144;
-    font-size: clamp(1.85rem, 4vw, 2.6rem);
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 4.5vw, 1.85rem);
     line-height: 1.15;
-    color: var(--c-tinta);
-    margin: 0.5rem 0 1.5rem;
-    letter-spacing: -0.01em;
+    color: var(--ui-ink);
+    margin: 0 0 0.9rem;
+    letter-spacing: -0.025em;
 }
 .erro-titulo em {
     font-style: italic;
-    color: var(--c-musgo);
-    font-weight: 400;
+    font-weight: 500;
+    color: var(--ui-accent);
 }
 
+/* Texto explicativo */
 .erro-texto {
-    font-family: 'Manrope', sans-serif;
-    font-size: 1rem;
-    color: var(--c-tinta-2);
+    font-size: 0.95rem;
     line-height: 1.6;
-    margin-bottom: 2rem;
-    max-width: 480px;
+    color: var(--ui-ink-3);
+    margin: 0 0 1.5rem;
 }
 
+/* Acoes — primaria + secundaria */
 .erro-acoes {
     display: flex;
-    gap: 1.5rem;
+    gap: 0.7rem;
     align-items: center;
     flex-wrap: wrap;
 }
+.erro-acoes .btn-primary {
+    background: var(--ui-accent);
+    color: var(--ui-bg);
+    border: 1px solid var(--ui-accent);
+    border-radius: var(--ui-r-sm);
+    padding: 0.55rem 1.1rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 160ms var(--ui-ease), border-color 160ms var(--ui-ease);
+    line-height: 1.2;
+}
+.erro-acoes .btn-primary:hover {
+    background: var(--ui-accent-2);
+    border-color: var(--ui-accent-2);
+}
+.erro-acoes .btn-link {
+    background: transparent;
+    border: 0;
+    padding: 0.55rem 0.3rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ui-ink-3);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 160ms var(--ui-ease);
+}
+.erro-acoes .btn-link:hover {
+    color: var(--ui-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
 
-@media (max-width: 640px) {
-    .erro-shell { grid-template-columns: 40px 1fr; padding: 2rem 1rem; gap: 1.25rem; }
-    .erro-etiqueta { font-size: 1.4rem; padding: 1rem 0.3rem; min-height: 6rem; }
+/* Texto destacado dentro de .erro-texto — janela operacional, dados
+   importantes. Tonalidade accent verde, sem peso de chip. */
+.erro-texto strong {
+    color: var(--ui-accent-2);
+    font-weight: 700;
+}
+
+/* Footer admin (usado no /fora-do-horario) — sessao + relogio em
+   linhas hairline-separadas. Tipografia minima, info diagnostica. */
+.erro-footer {
+    margin: 1.5rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--ui-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.erro-footer-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+}
+.erro-footer-label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ui-ink-4);
+    min-width: 4rem;
+}
+.erro-footer-val {
+    color: var(--ui-ink-2);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.erro-footer-val em {
+    color: var(--ui-ink-3);
+    font-style: italic;
+    font-weight: 500;
+}
+.erro-footer-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ui-accent);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 160ms ease;
+}
+.erro-footer-btn:hover {
+    color: var(--ui-accent-2);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.erro-footer-pulse {
+    margin-left: auto;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    animation: erro-pulse 2s ease-in-out infinite;
+    align-self: center;
+}
+@keyframes erro-pulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .erro-shell { animation: none; }
+    .erro-card { animation: none; }
+    .erro-footer-pulse { animation: none; }
 }
 
 

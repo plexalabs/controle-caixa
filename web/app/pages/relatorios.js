@@ -522,7 +522,7 @@ async function baixarExcel() {
     const tot = calcularTotais(arr);
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'Caixa Boti';
+    wb.creator = 'Ledo';
     wb.created = new Date();
     const ws = wb.addWorksheet('Relatório', {
       views: [{ state: 'frozen', ySplit: 7 }],
@@ -780,7 +780,7 @@ async function baixarPDF() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(...PDF.ink3);
-      doc.text('Caixa Boti · auditoria de caixa', M, alt - 27);
+      doc.text('Ledo · auditoria de caixa', M, alt - 27);
       doc.text(`Página ${p} de ${totalPgs}`, larg - M, alt - 27, { align: 'right' });
     }
 
@@ -844,7 +844,7 @@ function iso(d) {
 function nomeArquivo(ext) {
   const ini = estado.inicio || iso(new Date());
   const fim = estado.fim    || iso(new Date());
-  return `caixa-boti_${ini}_a_${fim}.${ext}`;
+  return `ledo_${ini}_a_${fim}.${ext}`;
 }
 function baixar(blob, nome) {
   const url = URL.createObjectURL(blob);

@@ -7,7 +7,7 @@
 .dash2 {
     max-width: 78rem;
     margin: 0 auto;
-    padding: 2.25rem 2rem 4rem;
+    padding: 1.5rem 2rem 1.75rem;
     color: var(--ui-ink);
 }
 /* ============================================================
@@ -40,9 +40,8 @@
     .dash2-card-body { padding: 0.65rem 0.95rem 0.9rem; min-height: 0; }
     .dash2-card-title { font-size: 0.95rem; }
 
-    /* Gráficos analíticos não entram no dashboard mobile */
-    #bloco-distribuicao,
-    #bloco-movimento { display: none; }
+    /* Distribuicao do mes sai no mobile (a tabela e pra escritorio) */
+    #bloco-distribuicao { display: none; }
 }
 
 /* ============================================================
@@ -54,7 +53,7 @@
     align-items: flex-end;
     justify-content: space-between;
     gap: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.2rem;
     flex-wrap: wrap;
 }
 .dash2-header-left { min-width: 0; }
@@ -67,7 +66,7 @@
     letter-spacing: 0.01em;
 }
 .dash2-header-title {
-    font-size: 1.85rem;
+    font-size: 1.6rem;
     font-weight: 700;
     letter-spacing: -0.022em;
     color: var(--ui-ink);
@@ -144,25 +143,37 @@
    KPI cards
    ============================================================ */
 
+/* KPIs em grade fixa: 4 colunas no padrao desktop, 5 colunas em telas
+   grandes (>=1280px) — o 5o KPI [data-xl-only] so aparece nesse ponto.
+   Mobile (=<880px) volta pra 2 colunas e o 5o some. */
 .dash2-kpis {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.85rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.2rem;
+}
+.dash2-kpi[data-xl-only] { display: none; }
+@media (min-width: 1280px) {
+    .dash2-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .dash2-kpi[data-xl-only] { display: flex; }
+}
+@media (max-width: 880px) {
+    .dash2-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .dash2-kpi {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.4rem;
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-md);
-    padding: 1rem 1.15rem 1.1rem;
+    padding: 0.85rem 1.05rem 0.95rem;
     text-decoration: none;
     color: inherit;
     transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease), transform 160ms var(--ui-ease);
     cursor: pointer;
+    min-width: 0;
 }
 .dash2-kpi:hover {
     border-color: var(--ui-border-strong);
@@ -179,43 +190,137 @@
     color: var(--ui-ink-3);
     letter-spacing: 0.01em;
 }
+/* Icone como "ficha" — pequeno quadrado com background tingido na cor
+   da identidade do KPI. Cada KPI declara sua cor via data-cor; o
+   fallback (sem data-cor) usa tons neutros do sistema. */
 .dash2-kpi-icon {
-    width: 14px; height: 14px;
+    width: 24px; height: 24px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--ui-ink-4);
+    border-radius: 5px;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-2);
+    flex-shrink: 0;
+    transition: background 160ms var(--ui-ease),
+                color 160ms var(--ui-ease);
 }
+.dash2-kpi-icon svg { width: 14px; height: 14px; }
+
+.dash2-kpi[data-cor="dinheiro"] .dash2-kpi-icon { background: var(--cat-dinheiro-bg); color: var(--cat-dinheiro-border); }
+.dash2-kpi[data-cor="cartao"]   .dash2-kpi-icon { background: var(--cat-cartao-bg);   color: var(--cat-cartao-border); }
+.dash2-kpi[data-cor="pix"]      .dash2-kpi-icon { background: var(--cat-pix-bg);      color: var(--cat-pix-border); }
+.dash2-kpi[data-cor="warn"]     .dash2-kpi-icon { background: var(--ui-warn-soft);    color: var(--ui-warn); }
+.dash2-kpi[data-cor="link"]     .dash2-kpi-icon { background: var(--cat-link-bg);     color: var(--cat-link-border); }
 .dash2-kpi-value {
-    font-size: 1.55rem;
+    font-size: 1.4rem;
     font-weight: 700;
-    letter-spacing: -0.022em;
+    letter-spacing: -0.025em;
     color: var(--ui-ink);
     line-height: 1.1;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.dash2-kpi-sub {
-    font-size: 0.78rem;
-    color: var(--ui-ink-3);
-    line-height: 1.4;
-}
+/* Footer do KPI — delta chip esquerda + sub direita, mesma linha
+   sempre. Quando o sub e maior que o espaco disponivel, o JS adiciona
+   .is-marquee e o conteudo rola horizontal em loop infinito com fade
+   nas bordas. Em qualquer viewport, o layout fica inline e alinhado. */
 .dash2-kpi-foot {
-    display: inline-flex;
+    display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 0.5rem;
-    margin-top: 0.25rem;
-    flex-wrap: wrap;
+    margin-top: 0.15rem;
+    min-width: 0;
+}
+.dash2-kpi-sub {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    justify-content: flex-end; /* texto ancorado no canto direito quando cabe */
+    font-size: 0.74rem;
+    color: var(--ui-ink-4);
+    line-height: 1.25;
+    text-transform: lowercase;
+    letter-spacing: 0.005em;
+}
+/* Quando esta rolando, o track deve comecar pela esquerda pra animar
+   da direita pra esquerda corretamente (translateX 0 -> -50%). */
+.dash2-kpi-sub.is-marquee {
+    justify-content: flex-start;
+}
+/* Mascara de fade — SO quando .is-marquee. Quando o texto cabe, o sub
+   fica totalmente nitido, sem blur fantasma nas bordas. */
+.dash2-kpi-sub.is-marquee {
+    mask-image: linear-gradient(to right,
+        transparent 0,
+        black 8px,
+        black calc(100% - 12px),
+        transparent 100%);
+    -webkit-mask-image: linear-gradient(to right,
+        transparent 0,
+        black 8px,
+        black calc(100% - 12px),
+        transparent 100%);
+}
+.dash2-kpi-sub-track {
+    display: inline-flex;
+    align-items: baseline;
+    width: max-content;
+    white-space: nowrap;
+}
+.dash2-kpi-sub-part {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding-right: 2.5rem; /* gap interno ate a duplicata — vira pausa visual */
+    flex-shrink: 0;
+}
+.dash2-kpi-sub-val {
+    color: var(--ui-ink-2);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    text-transform: none;
+}
+/* Sem overflow: clone escondido, sem animacao (estado padrao) */
+.dash2-kpi-sub:not(.is-marquee) .dash2-kpi-sub-part--clone {
+    display: none;
+}
+.dash2-kpi-sub:not(.is-marquee) .dash2-kpi-sub-part {
+    padding-right: 0;
+}
+/* Com overflow: anima continuamente. Como cada part tem padding-right
+   identico, translateX(-50%) leva o inicio da duplicata pra onde
+   estava o original — loop visualmente perfeito, sem salto. */
+.dash2-kpi-sub.is-marquee .dash2-kpi-sub-track {
+    animation: kpi-marquee 16s linear infinite;
+}
+.dash2-kpi:hover .dash2-kpi-sub.is-marquee .dash2-kpi-sub-track {
+    animation-play-state: paused;
+}
+@keyframes kpi-marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .dash2-kpi-sub.is-marquee .dash2-kpi-sub-track { animation: none; }
 }
 .dash2-kpi-delta {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
-    padding: 0.18rem 0.4rem;
+    padding: 0.2rem 0.45rem;
     border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 .dash2-kpi-delta svg { width: 11px; height: 9px; }
 .dash2-kpi-delta[data-tone="up"]   { color: var(--ui-accent);  background: var(--ui-accent-soft); }
@@ -234,14 +339,15 @@
    ============================================================ */
 
 /* Layout em duas colunas independentes — cada coluna empilha seus
-   cards verticalmente com altura natural. Cards 'desalinhados' entre
-   colunas mas proximos verticalmente na sua propria coluna. */
+   Grade 2x2 com altura uniforme entre as colunas (align-items:stretch).
+   Na coluna esquerda, a Distribuicao estica (flex:1) pra preencher o
+   resto e alinhar seu fim com o fim da coluna direita. */
 .dash2-cols {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    margin-bottom: 1rem;
-    align-items: start;
+    margin-bottom: 0;
+    align-items: stretch;
 }
 .dash2-col {
     display: flex;
@@ -249,12 +355,17 @@
     gap: 1rem;
     min-width: 0;
 }
-/* Cards dentro da coluna nao precisam de margin-bottom (gap gerencia) */
 .dash2-col > .dash2-card { margin-bottom: 0; }
+/* Distribuicao ocupa o espaco restante da coluna esquerda — alinha o
+   rodape com o rodape do "Caixas abertos" na coluna direita. */
+#bloco-distribuicao { flex: 1; }
 
 @media (max-width: 900px) {
     .dash2-cols { grid-template-columns: 1fr; }
 }
+
+/* Pendencias criticas — quando visivel, ganha espaco antes da grid */
+#bloco-criticas:not(.hidden) { margin-bottom: 1rem; }
 
 /* ============================================================
    Cards genericos (avisos, criticas, distribuicao, caixa, movimento)
@@ -295,9 +406,17 @@
     text-transform: lowercase;
 }
 .dash2-card-body {
-    padding: 0.75rem 1.15rem 1rem;
-    min-height: 12rem;
+    padding: 0.85rem 1.15rem 1.05rem;
+    min-height: 0;
 }
+
+/* Min-heights por card. Layout 2x2:
+   Esq: Caixa de hoje (natural ~170px) + Distribuicao (18rem) = ~530px
+   Dir: Avisos (14rem) + Caixas abertos (14rem) = ~540px
+   Alturas equilibradas das duas colunas, sem scroll na viewport grande. */
+#bloco-avisos          .dash2-card-body { min-height: 14rem; }
+#bloco-caixas-abertos  .dash2-card-body { min-height: 14rem; }
+#bloco-distribuicao    .dash2-card-body { min-height: 18rem; }
 
 /* Estado vazio interno */
 .dash2-empty {
@@ -400,15 +519,47 @@
    Distribuicao (barras horizontais simples)
    ============================================================ */
 
+/* Distribuicao do mes — sumario com total no topo + lista de barras
+   horizontais coloridas por categoria. Cada item recebe --cat-color
+   via inline style do JS; o dot e a barra herdam dessa propriedade. */
+.dash2-dist-sumario {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.7rem;
+    padding-bottom: 0.85rem;
+    margin-bottom: 0.95rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+.dash2-dist-sumario-valor {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+.dash2-dist-sumario-label {
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    text-transform: lowercase;
+    letter-spacing: 0.015em;
+    font-weight: 500;
+}
 .dash2-dist {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.95rem;
 }
-.dash2-dist-item { display: flex; flex-direction: column; gap: 0.35rem; }
+.dash2-dist-item {
+    --cat-color: var(--ui-accent);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
 .dash2-dist-head {
     display: flex;
     align-items: baseline;
@@ -416,39 +567,64 @@
     gap: 0.7rem;
 }
 .dash2-dist-label {
-    font-size: 0.83rem;
-    color: var(--ui-ink);
-    font-weight: 500;
-}
-.dash2-dist-meta {
     display: inline-flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    font-variant-numeric: tabular-nums;
-}
-.dash2-dist-pct {
-    font-size: 0.78rem;
-    color: var(--ui-ink-3);
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.84rem;
+    color: var(--ui-ink);
     font-weight: 600;
+    letter-spacing: -0.005em;
+    min-width: 0;
+}
+.dash2-dist-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cat-color);
+    flex-shrink: 0;
 }
 .dash2-dist-value {
-    font-size: 0.85rem;
+    font-size: 0.92rem;
     color: var(--ui-ink);
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.dash2-dist-barra {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
 }
 .dash2-dist-track {
+    flex: 1;
     height: 6px;
     background: var(--ui-surface-2);
     border-radius: 999px;
     overflow: hidden;
+    min-width: 0;
+}
+.dash2-dist-pct {
+    font-size: 0.74rem;
+    color: var(--ui-ink-3);
+    font-weight: 600;
+    text-transform: lowercase;
+    letter-spacing: 0.005em;
+    font-variant-numeric: tabular-nums;
+    min-width: 2.6rem;
+    text-align: right;
+    line-height: 1;
 }
 .dash2-dist-fill {
     display: block;
     height: 100%;
-    background: var(--ui-accent);
+    background: var(--cat-color);
     border-radius: 999px;
-    transition: width 600ms var(--ui-ease);
+    opacity: 0.88;
+    transition: width 600ms var(--ui-ease),
+                opacity 180ms var(--ui-ease);
 }
+.dash2-dist-item:hover .dash2-dist-fill { opacity: 1; }
 
 /* ============================================================
    Pendencias criticas
@@ -568,323 +744,381 @@
     line-height: 1.45;
     max-width: 19rem;
 }
+/* Botão "Abrir caixa" do estado vazio — versão compacta pra não brigar
+   com o resto do cartão. */
 .dash2-caixa-vazio-cta {
     display: inline-flex;
     margin-top: 0.35rem;
+    padding: 0.45rem 0.95rem;
+    font-size: 0.82rem;
+    gap: 0.35rem;
 }
+.dash2-caixa-vazio-cta svg { width: 11px; height: 11px; }
 
+/* Caixa de hoje (com caixa) — composicao editorial: chip de estado em
+   cima, valor protagonista no meio, meta inline embaixo, CTA ao final.
+   Hierarquia clara, respiro generoso, tipografia consistente com o
+   resto do sistema. */
 .dash2-caixa-mini {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 1.5rem;
-}
-@media (max-width: 700px) {
-    .dash2-caixa-mini {
-        grid-template-columns: 1fr;
-        gap: 0.9rem;
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-top: 0.1rem;
 }
 
+/* Chip de estado — vive no body, alinhado com o valor R$ (hero-topo).
+   Pilula compacta com pontinho colorido pelo estado. */
 .dash2-caixa-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.65rem;
+    gap: 0.4rem;
+    padding: 0.28rem 0.7rem 0.28rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 700;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.005em;
     background: var(--ui-surface-2);
     color: var(--ui-ink-2);
+    text-transform: lowercase;
+    line-height: 1.15;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 .dash2-caixa-badge::before {
     content: '';
     width: 7px; height: 7px;
     border-radius: 50%;
     background: currentColor;
-    opacity: 0.85;
+    box-shadow: 0 0 0 0 currentColor;
 }
 .dash2-caixa-badge[data-tone="ok"]      { background: var(--ui-accent-soft); color: var(--ui-accent); }
 .dash2-caixa-badge[data-tone="warn"]    { background: var(--ui-warn-soft);   color: var(--ui-warn); }
 .dash2-caixa-badge[data-tone="neutral"] { background: var(--ui-surface-2);   color: var(--ui-ink-2); }
-
-.dash2-caixa-stats {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
+.dash2-caixa-badge[data-tone="ok"]::before {
+    animation: dash2-badge-pulse 2.2s ease-in-out infinite;
 }
-.dash2-caixa-stats li {
+@keyframes dash2-badge-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
+    50%      { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .dash2-caixa-badge[data-tone="ok"]::before { animation: none; }
+}
+
+/* Hero — valor recebido protagonista. Linha "topo" tem valor a esq +
+   chip de estado a dir, alinhados pelo centro vertical. */
+.dash2-caixa-hero {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
-    min-width: 6rem;
+    gap: 0.05rem;
+    margin: 0.1rem 0 0.2rem;
 }
-.dash2-caixa-stat-label {
-    font-size: 0.72rem;
+.dash2-caixa-hero-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    min-width: 0;
+}
+.dash2-caixa-hero-valor {
+    font-size: clamp(1.65rem, 1.35rem + 1.2vw, 2.05rem);
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.035em;
+    line-height: 1.02;
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
+}
+.dash2-caixa-hero-label {
+    font-size: 0.74rem;
     color: var(--ui-ink-3);
-    font-weight: 600;
+    font-weight: 500;
     text-transform: lowercase;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.015em;
+    margin-top: 0.18rem;
 }
-.dash2-caixa-stat-value {
-    font-size: 1.1rem;
+
+/* Meta inline — lançamentos · pendentes · resolvidas. Encostada no
+   hero, sem regua divisora: o ritmo vertical sozinho organiza. */
+.dash2-caixa-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--ui-ink-3);
+    text-transform: lowercase;
+    letter-spacing: -0.005em;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--ui-border);
+}
+.dash2-caixa-meta-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.32rem;
+}
+.dash2-caixa-meta-num {
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--ui-ink);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.015em;
 }
-.dash2-caixa-stat-value[data-tone="warn"] { color: var(--ui-warn); }
-.dash2-caixa-stat-value[data-tone="ok"]   { color: var(--ui-accent); }
+.dash2-caixa-meta-item[data-tone="warn"] .dash2-caixa-meta-num { color: var(--ui-warn); }
+.dash2-caixa-meta-item[data-tone="ok"]   .dash2-caixa-meta-num { color: var(--ui-accent); }
+.dash2-caixa-meta-sep {
+    color: var(--ui-border-strong);
+    user-select: none;
+    font-weight: 500;
+}
 
-/* Card do bloco caixa-hoje muda visual conforme estado — filete
-   superior sutil + cor do header pra ajudar o operador a perceber
-   o status sem precisar ler o badge. */
-#bloco-caixa-hoje[data-estado] { position: relative; }
-#bloco-caixa-hoje[data-estado]::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: var(--ui-border);
-    z-index: 1;
+/* CTA inline no cabecalho — pilula compacta com seta animada no hover.
+   Tom muda conforme estado do caixa (ok / warn / neutral). Substitui o
+   antigo botao no rodape do card pra ganhar verticalidade e foco. */
+.dash2-cta-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.42rem 0.85rem 0.42rem 0.95rem;
+    border-radius: var(--ui-r-sm);
+    background: var(--ui-ink);
+    color: var(--ui-bg);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: lowercase;
+    letter-spacing: 0.005em;
+    text-decoration: none;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition: background 160ms var(--ui-ease),
+                transform 80ms var(--ui-ease),
+                box-shadow 160ms var(--ui-ease);
+    align-self: center;
 }
-#bloco-caixa-hoje[data-estado="aberto"]::before         { background: var(--ui-accent); }
-#bloco-caixa-hoje[data-estado="em_conferencia"]::before { background: var(--ui-warn); }
-#bloco-caixa-hoje[data-estado="fechado"]::before        { background: var(--ui-ink); }
-#bloco-caixa-hoje[data-estado="arquivado"]::before      { background: var(--ui-ink-3); }
+.dash2-cta-inline:hover { background: #1A2904; }
+.dash2-cta-inline:active { transform: translateY(1px); }
+.dash2-cta-inline:focus-visible {
+    outline: 2px solid var(--ui-accent);
+    outline-offset: 2px;
+}
+.dash2-cta-inline-text { letter-spacing: 0.01em; }
+.dash2-cta-inline-arrow {
+    display: inline-block;
+    font-size: 0.95em;
+    transition: transform 200ms var(--ui-ease);
+    transform: translateX(0);
+}
+.dash2-cta-inline:hover .dash2-cta-inline-arrow { transform: translateX(3px); }
 
-/* Header sutilmente colorido no estado aberto (verde-soft) */
-#bloco-caixa-hoje[data-estado="aberto"] .dash2-card-head {
-    background: linear-gradient(180deg, var(--ui-accent-soft) 0%, transparent 100%);
+.dash2-cta-inline[data-tone="ok"] {
+    background: #16A34A; /* green-600 — verde vivo, mais energetico que o accent */
+    color: var(--ui-bg);
 }
-#bloco-caixa-hoje[data-estado="em_conferencia"] .dash2-card-head {
-    background: linear-gradient(180deg, var(--ui-warn-soft) 0%, transparent 100%);
+.dash2-cta-inline[data-tone="ok"]:hover { background: #15803D; /* green-700 no hover */ }
+
+.dash2-cta-inline[data-tone="warn"] {
+    background: var(--ui-warn);
+    color: var(--ui-bg);
 }
+.dash2-cta-inline[data-tone="warn"]:hover { background: #92410A; }
+
+.dash2-cta-inline[data-tone="ghost"],
+.dash2-cta-inline[data-tone="neutral"] {
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    box-shadow: inset 0 0 0 1px var(--ui-border-strong);
+}
+.dash2-cta-inline[data-tone="ghost"]:hover,
+.dash2-cta-inline[data-tone="neutral"]:hover {
+    background: var(--ui-surface-2);
+    box-shadow: inset 0 0 0 1px var(--ui-ink-3);
+}
+
+@media (max-width: 480px) {
+    .dash2-cta-inline { padding: 0.38rem 0.75rem; font-size: 0.76rem; }
+}
+
+/* Borda completa do card — so colore quando o caixa tem lancamento.
+   A borda inteira circula o card na cor do estado, sinalizando "este
+   caixa esta com movimento" sem precisar de chip ou filete extra.
+   Transicao suave pra quando o estado/atividade muda. */
+#bloco-caixa-hoje {
+    transition: border-color 240ms var(--ui-ease),
+                box-shadow 240ms var(--ui-ease);
+}
+#bloco-caixa-hoje[data-tem-lancamento="1"] {
+    border-color: var(--ui-accent);
+    box-shadow: 0 0 0 3px var(--ui-accent-soft);
+}
+#bloco-caixa-hoje[data-tem-lancamento="1"][data-estado="em_conferencia"] {
+    border-color: var(--ui-warn);
+    box-shadow: 0 0 0 3px var(--ui-warn-soft);
+}
+#bloco-caixa-hoje[data-tem-lancamento="1"][data-estado="fechado"] {
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px var(--ui-surface-2);
+}
+#bloco-caixa-hoje[data-tem-lancamento="1"][data-estado="arquivado"] {
+    border-color: var(--ui-ink-3);
+    box-shadow: 0 0 0 3px var(--ui-surface-2);
+}
+
+/* (Removidos: tarja superior colorida e gradiente no header.
+   O estado e comunicado exclusivamente pelo chip dentro do card —
+   menos ruido visual, mais coesao com os outros widgets.) */
 
 
 /* ============================================================
    Caixas abertos — lista compacta de outros dias em aberto
    ============================================================ */
 
-/* Lista de caixas abertos — visual original (bullet + linha plana),
-   agora organizada em GRID 2-colunas: dois itens por linha (xx/xx | xx/xx). */
+/* Lista de caixas abertos — tiras editoriais coerentes com o resto do
+   sistema. Mesma linguagem do "Caixa de hoje": chip lowercase com
+   pontinho, data destacada, valor + meta inline, hover com borda no
+   tom do estado e uma seta que desliza pra direita. */
 .dash2-abertos {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.4rem 0.55rem;
+    gap: 0.55rem;
 }
 @media (max-width: 600px) {
     .dash2-abertos { grid-template-columns: 1fr; }
 }
 
 .dash2-aberto {
-    display: grid;
-    grid-template-columns: 10px 1fr;
-    gap: 0.6rem;
-    align-items: start;
-    padding: 0.55rem 0.7rem;
-    border: 1px solid transparent;
-    border-radius: var(--ui-r-sm);
-    text-decoration: none;
-    color: inherit;
-    transition: background 140ms var(--ui-ease), border-color 140ms var(--ui-ease);
-}
-.dash2-aberto:hover {
-    background: var(--ui-surface-2);
-    border-color: var(--ui-border);
-}
-
-.dash2-aberto-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--ui-accent);
-    flex-shrink: 0;
-    margin-top: 0.45rem;
-    box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-accent);
-}
-.dash2-aberto[data-tone="warn"] .dash2-aberto-dot {
-    background: var(--ui-warn);
-    box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px var(--ui-warn);
-}
-
-.dash2-aberto-body {
-    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.45rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    background: var(--ui-surface);
+    box-shadow: var(--ui-shadow-sm);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 180ms var(--ui-ease),
+                box-shadow 180ms var(--ui-ease),
+                background 180ms var(--ui-ease);
+}
+.dash2-aberto:hover {
+    background: var(--ui-surface);
+    border-color: var(--ui-accent);
+    box-shadow: var(--ui-shadow-md);
+}
+.dash2-aberto[data-tone="warn"]:hover { border-color: var(--ui-warn); }
+.dash2-aberto:focus-visible {
+    outline: 2px solid var(--ui-accent);
+    outline-offset: 2px;
 }
 
-/* Linha 1 — data+dia esquerda, badge direita */
-.dash2-aberto-head {
+/* Linha 1 — data (esq) + chip de estado (dir), alinhados pelo centro */
+.dash2-aberto-topo {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    line-height: 1.2;
+    gap: 0.6rem;
+    line-height: 1.15;
 }
 .dash2-aberto-data-bloco {
     display: inline-flex;
     align-items: baseline;
-    gap: 0.35rem;
+    gap: 0.4rem;
     min-width: 0;
 }
 .dash2-aberto-data {
-    font-size: 0.86rem;
+    font-size: 0.98rem;
     font-weight: 700;
     color: var(--ui-ink);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.022em;
     font-variant-numeric: tabular-nums;
 }
 .dash2-aberto-dia {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     color: var(--ui-ink-3);
     text-transform: lowercase;
     font-weight: 500;
+    letter-spacing: 0.005em;
 }
-.dash2-aberto-badge {
-    font-size: 0.6rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    padding: 0.1rem 0.45rem;
+
+/* Chip estado — vocabulario unificado com .dash2-caixa-badge,
+   pilula mais espessa pra alinhar visualmente com a data (que e bem
+   mais densa em peso 700). */
+.dash2-aberto-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    padding: 0.26rem 0.65rem 0.26rem 0.55rem;
     border-radius: 999px;
-    background: var(--ui-accent-soft);
-    color: var(--ui-accent);
-    line-height: 1.35;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: lowercase;
+    letter-spacing: 0.005em;
+    line-height: 1.1;
     white-space: nowrap;
+    background: var(--ui-surface-2);
+    color: var(--ui-ink-2);
     flex-shrink: 0;
 }
-.dash2-aberto[data-tone="warn"] .dash2-aberto-badge {
-    background: var(--ui-warn-soft);
-    color: var(--ui-warn);
+.dash2-aberto-chip::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
 }
+.dash2-aberto-chip[data-tone="ok"]   { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.dash2-aberto-chip[data-tone="warn"] { background: var(--ui-warn-soft);   color: var(--ui-warn); }
 
-/* Linha 2 — valor em destaque */
-.dash2-aberto-valor {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--ui-ink);
-    letter-spacing: -0.018em;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.15;
-    margin-top: 0.1rem;
+/* Linha 2 — valor (esq, alinhado com a data) + meta-grupo (dir,
+   alinhado com o chip de estado). Duas colunas espelhando a linha 1. */
+.dash2-aberto-base {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem 0.65rem;
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    text-transform: lowercase;
+    letter-spacing: -0.005em;
 }
-
-/* Linha 3 — meta com numero + label minusculo */
-.dash2-aberto-meta {
+.dash2-aberto-meta-grupo {
     display: inline-flex;
     align-items: baseline;
     gap: 0.4rem;
-    line-height: 1.35;
-    flex-wrap: wrap;
 }
-.dash2-aberto-meta-item {
+.dash2-aberto-valor {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: var(--ui-ink);
+    letter-spacing: -0.022em;
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
+}
+.dash2-aberto-meta {
     display: inline-flex;
     align-items: baseline;
-    gap: 0.22rem;
-    font-variant-numeric: tabular-nums;
+    gap: 0.28rem;
 }
-.dash2-aberto-meta-val {
-    font-size: 0.82rem;
+.dash2-aberto-meta-num {
     font-weight: 700;
-    color: var(--ui-ink-2);
-    letter-spacing: -0.01em;
-}
-.dash2-aberto-meta-lab {
-    font-size: 0.7rem;
-    color: var(--ui-ink-3);
-    text-transform: lowercase;
-    font-weight: 500;
-}
-.dash2-aberto-meta-sep {
-    color: var(--ui-ink-4);
-    font-size: 0.74rem;
-    opacity: 0.7;
-}
-.dash2-aberto-meta-item[data-pend="sim"] .dash2-aberto-meta-val { color: var(--ui-warn); }
-.dash2-aberto-meta-item[data-pend="sim"] .dash2-aberto-meta-lab { color: var(--ui-warn); opacity: 0.85; }
-
-
-/* ============================================================
-   Movimento do mes — chart de barras dos dias
-   ============================================================ */
-
-.dash2-mov {
-    display: grid;
-    grid-template-columns: repeat(var(--mov-cols, 30), 1fr);
-    gap: 4px;
-    align-items: stretch;
-    height: 11rem;
-    padding-top: 0.5rem;
-}
-
-.dash2-mov-col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.35rem;
-    cursor: pointer;
-    text-decoration: none;
-    color: inherit;
-    min-width: 0;
-}
-.dash2-mov-col.is-futuro { cursor: default; opacity: 0.45; }
-.dash2-mov-col:not(.is-futuro):hover .dash2-mov-fill { background: var(--ui-accent-2); }
-.dash2-mov-col:not(.is-futuro):hover .dash2-mov-num  { color: var(--ui-ink); font-weight: 700; }
-
-.dash2-mov-track {
-    flex: 1;
-    width: 100%;
-    background: var(--ui-surface-2);
-    border-radius: 3px 3px 0 0;
-    display: flex;
-    align-items: flex-end;
-    overflow: hidden;
-    min-height: 4px;
-}
-.dash2-mov-fill {
-    width: 100%;
-    background: var(--ui-accent);
-    border-radius: 3px 3px 0 0;
-    min-height: 2px;
-    transition: background 160ms var(--ui-ease), height 600ms var(--ui-ease);
-}
-.dash2-mov-col.is-hoje .dash2-mov-fill {
-    background: var(--ui-ink);
-    box-shadow: 0 0 0 2px var(--ui-bg), 0 0 0 3px var(--ui-ink);
-}
-.dash2-mov-col.is-feriado .dash2-mov-track {
-    background: repeating-linear-gradient(
-        45deg,
-        var(--ui-surface-2),
-        var(--ui-surface-2) 3px,
-        var(--ui-surface-3) 3px,
-        var(--ui-surface-3) 6px
-    );
-}
-.dash2-mov-col.is-feriado .dash2-mov-fill { display: none; }
-
-.dash2-mov-num {
-    font-size: 0.66rem;
-    color: var(--ui-ink-3);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    transition: color 160ms var(--ui-ease);
-}
-.dash2-mov-col.is-hoje .dash2-mov-num {
     color: var(--ui-ink);
-    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.015em;
+}
+.dash2-aberto-meta[data-pend="sim"]                  { color: var(--ui-warn); }
+.dash2-aberto-meta[data-pend="sim"] .dash2-aberto-meta-num { color: var(--ui-warn); }
+.dash2-aberto-sep {
+    color: var(--ui-border-strong);
+    font-weight: 500;
+    user-select: none;
 }
 
-@media (max-width: 600px) {
-    .dash2-mov { height: 8rem; gap: 2px; }
-    .dash2-mov-num { font-size: 0.6rem; }
-}
+
+
+/* (Card "Movimento do mes" removido — pouco util na dashboard.
+   Espaco verticalmente reservado pros cards principais.) */

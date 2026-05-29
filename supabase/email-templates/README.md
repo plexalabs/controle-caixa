@@ -1,4 +1,4 @@
-# Templates de email — Caixa Boti
+# Templates de email — Ledo
 
 Fonte da verdade dos 3 emails de auth do projeto. Versionados no git;
 **aplicados manualmente no Dashboard Supabase** porque o MCP/Management
@@ -51,14 +51,14 @@ o operador recebe link em vez de código.
 
 | Template | Subject |
 |---|---|
-| Confirm signup | `Caixa Boti · Bem-vindo ao caderno` |
-| Reset Password | `Caixa Boti · Vamos refazer sua senha` |
-| Magic Link | `Caixa Boti · Sua chave de confirmação` |
+| Confirm signup | `Ledo · Bem-vindo ao caderno` |
+| Reset Password | `Ledo · Vamos refazer sua senha` |
+| Magic Link | `Ledo · Sua chave de confirmação` |
 
 ### Sender (já configurado em Auth → SMTP Settings)
 
 - **From email**: `noreply@plexalabs.com`
-- **From name**: `Caixa Boti`
+- **From name**: `Ledo`
 
 (Setup completo em `docs/SETUP_RESEND_SMTP.md`.)
 
@@ -68,19 +68,19 @@ o operador recebe link em vez de código.
 
 O logo real (`web/public/assets/logo.svg`, ~18 KB) está embutido inline
 nos 3 templates, no topo-esquerdo do card, com `fill="#2A3D2C"` (musgo) e
-tamanho 42×42 px. Ao lado, o wordmark "Caixa Boti" em Fraunces italic
+tamanho 42×42 px. Ao lado, o wordmark "Ledo" em Fraunces italic
 24px. Layout em tabela 2-col (cell logo | cell wordmark) com `vertical-align: middle`.
 
 **Compatibilidade:** SVG inline funciona em Apple Mail (iOS/macOS), Gmail
 (web/Android), Yahoo, ProtonMail, Thunderbird. **Outlook desktop 2016/2019
 strippa SVG inline** — nesses clientes o espaço fica vazio, mas o wordmark
 Fraunces ao lado mantém a marca legível. Aceitável: público corporativo do
-Caixa Boti usa Gmail web/Outlook web (não desktop legado).
+Ledo usa Gmail web/Outlook web (não desktop legado).
 
 Tamanho final por email: ~21 KB (3 KB de markup + 18 KB do SVG). Bem dentro
 do limite Gmail de 102 KB. Se precisar reduzir no futuro, alternativa é
 hospedar PNG monocromático em `https://caixa-boti.plexalabs.com/assets/logo-email.png`
-e usar `<img src>` com fallback `alt="Caixa Boti"`.
+e usar `<img src>` com fallback `alt="Ledo"`.
 
 ### Por que tabelas e inline styles
 

@@ -1,0 +1,154 @@
+/* demo-topo.css — Sandbox /demo-topo
+   Fundo topografico animado em Canvas 2D (Simplex 3D + marching
+   squares). Cores do sistema: superficie clara, linhas finas em
+   --ui-ink-3 com alpha. Overlay editorial em cima com badge,
+   titulo, descricao e sliders de controle. */
+
+.topo-fundo {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--ui-surface-2);
+    overflow: hidden;
+    font-family: 'Manrope', sans-serif;
+    color: var(--ui-ink);
+}
+
+/* Canvas ocupa tela inteira — atras de tudo */
+.topo-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Overlay com info + sliders, vertical-center a esquerda, com
+   max-width pra nao competir com o desenho */
+.topo-overlay {
+    position: absolute;
+    left: clamp(1.2rem, 5vw, 4rem);
+    top: 50%;
+    transform: translateY(-50%);
+    max-width: 28rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    pointer-events: none;  /* deixa o canvas receber eventos */
+    z-index: 2;
+}
+.topo-overlay > * { pointer-events: auto; }
+
+.topo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ui-ink-3);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    width: max-content;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.topo-badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    animation: topo-pulse 1.8s ease-in-out infinite;
+}
+@keyframes topo-pulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 1; }
+}
+
+.topo-titulo {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.05;
+    color: var(--ui-ink);
+    margin: 0;
+    letter-spacing: -0.03em;
+}
+.topo-titulo em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--ui-accent);
+}
+
+.topo-corpo {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--ui-ink-2);
+    margin: 0;
+    max-width: 26rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.85rem 1rem;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+/* Sliders de controle — escala, velocidade, niveis */
+.topo-controles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-md);
+    padding: 0.85rem 1rem;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.topo-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-size: 0.78rem;
+    color: var(--ui-ink-2);
+    font-weight: 600;
+}
+.topo-ctrl > span {
+    width: 5rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ui-ink-3);
+    flex-shrink: 0;
+}
+.topo-ctrl input[type="range"] {
+    flex: 1;
+    accent-color: var(--ui-accent);
+    cursor: pointer;
+}
+
+/* Mobile — overlay vira topo, controles ficam compactos */
+@media (max-width: 720px) {
+    .topo-overlay {
+        left: 1rem;
+        right: 1rem;
+        top: 1rem;
+        transform: none;
+        max-width: none;
+        gap: 0.7rem;
+    }
+    .topo-titulo { font-size: clamp(1.5rem, 7vw, 2rem); }
+    .topo-corpo  { font-size: 0.86rem; padding: 0.7rem 0.85rem; }
+    .topo-controles { padding: 0.7rem 0.85rem; gap: 0.5rem; }
+    .topo-ctrl > span { width: 4.5rem; font-size: 0.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .topo-badge-dot { animation: none; }
+}

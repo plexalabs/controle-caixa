@@ -45,11 +45,11 @@ export async function renderSidebar(rotaAtiva) {
   return `
     <aside class="sb" data-mobile="fechado" role="navigation" aria-label="Menu principal">
       <div class="sb-brand">
-        <a href="/dashboard" data-link class="sb-brand-link" aria-label="Caixa Boti — início">
+        <a href="/dashboard" data-link class="sb-brand-link" aria-label="Ledo — início">
           <span class="sb-brand-mark" aria-hidden="true">${svgMarca()}</span>
           <span class="sb-brand-meta">
-            <span class="sb-brand-name">Caixa Boti</span>
-            <span class="sb-brand-tag">Auditoria diária</span>
+            <span class="sb-brand-name">Ledo</span>
+            <span class="sb-brand-tag">auditoria diária de caixa</span>
           </span>
         </a>
       </div>
@@ -280,7 +280,15 @@ const SVG_ATTRS = `viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-
 
 // Marca do sistema — "A registradora": a caixa com a moeda entrando.
 function svgMarca() {
-  return `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="22" height="16" rx="3"/><path d="M5 17.4H27"/><path d="M12.7 22.2h6.6"/><circle cx="16" cy="7.4" r="3.3"/></svg>`;
+  // Símbolo Ledo — pétala dupla (BRAND_GUIDE secao 4).
+  // Cores FIXAS musgo+pálido — a sidebar tem fundo --ui-surface
+  // (branco/papel) sempre, independente do prefers-color-scheme do
+  // navegador. Adaptar pelo tema do browser inverteria as cores
+  // sobre o branco constante e ficaria errado.
+  return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">` +
+    `<path fill="#2D4A2E" d="M128,40 L180,40 C180,40 210,70 210,130 C210,190 180,220 128,220 L76,220 C76,220 50,190 50,130 C50,70 80,40 128,40 Z"/>` +
+    `<path fill="#E8F0E5" d="M128,40 L160,40 C160,40 175,55 175,85 C175,115 160,130 128,130 C100,130 85,115 85,85 C85,55 100,40 128,40 Z"/>` +
+    `</svg>`;
 }
 function svgPainel() {
   return `<svg ${SVG_ATTRS}><rect x="2" y="2" width="5.5" height="6" rx="1"/><rect x="2" y="9.5" width="5.5" height="4.5" rx="1"/><rect x="8.5" y="2" width="5.5" height="4.5" rx="1"/><rect x="8.5" y="8" width="5.5" height="6" rx="1"/></svg>`;

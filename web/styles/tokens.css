@@ -1,4 +1,4 @@
-/* tokens.css — variáveis de design do Caixa Boti.
+/* tokens.css — variáveis de design do Ledo.
    Identidade editorial sóbria: papel quente + verde-petróleo + âmbar.
    Cores das categorias virão no CP3 (não usadas no login). */
 
@@ -151,6 +151,10 @@
 /* Reset cirúrgico, sem normalizes pesados */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* Reserva espaço para a scrollbar vertical SEMPRE — assim abrir um
+   dropdown / popover (que altere o overflow do body) não causa shift
+   horizontal de toda a UI. Funciona em todos os browsers modernos. */
+html { scrollbar-gutter: stable; }
 body {
     font-feature-settings: "ss01", "cv11";  /* refinamentos do Manrope */
     -webkit-font-smoothing: antialiased;

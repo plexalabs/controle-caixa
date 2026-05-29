@@ -19,7 +19,7 @@ export function renderRecuperar() {
       <main class="auth-card" aria-labelledby="auth-titulo">
         <header class="auth-marca">
           <span class="auth-marca-simbolo" aria-hidden="true"></span>
-          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+          <h1 class="auth-marca-wordmark">Ledo</h1>
         </header>
         <h2 id="auth-titulo" class="auth-titulo">Recuperar senha</h2>
         <p class="auth-subtitulo">
@@ -55,7 +55,7 @@ export function renderRecuperar() {
         </p>
       </main>
 
-      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Caixa Boti</footer>
+      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Ledo</footer>
     </div>
   `;
 

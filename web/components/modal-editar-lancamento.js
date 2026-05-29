@@ -22,7 +22,7 @@ import { abrirModal, fecharModal } from './modal.js';
 import { CATEGORIAS, BANDEIRAS, MODALIDADES, STATUS_LINK, TIPOS_OBS,
          LABEL_CATEGORIA } from '../app/dominio.js';
 import { mostrarToast } from '../app/notifications.js';
-import { debounce } from '../app/utils.js';
+import { debounce, soDigitos, formatarNumeroNF, formatarCodigoPedido, formatarNomeCliente, instalarMascarasFormulario } from '../app/utils.js';
 import { instalarPopSelectsEm } from './pop-select.js';
 import { instalarPopDatasEm }   from './pop-data.js';
 import { temPermissaoSync }     from '../app/papeis.js';
@@ -93,20 +93,22 @@ function abrirModoCategorizar() {
 
   abrirModal({
     lateral: false,
+    amplo: true,           // shell .modal-card--amplo (53rem) com :has(.man2)
     origemEvento: estado.origemEvento,
-    eyebrow: l ? `NF ${l.numero_nf} · em análise` : `Novo lançamento · ${formatarDataPt(estado.dataCaixa)}`,
+    eyebrow: l ? `NF ${formatarNumeroNF(l.numero_nf)} · em análise` : `Novo lançamento · ${formatarDataPt(estado.dataCaixa)}`,
     titulo:  l ? 'Categorizar lançamento.' : 'Adicionar uma página ao caixa.',
     conteudo: corpoFormCategorizar(),
     rodape: `
-      <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.85rem"></div>
-      ${(podeEditar || podeExcluir) ? `
+      <div id="erro-form" role="alert" aria-live="polite" class="hidden alert" style="margin-bottom:0.7rem"></div>
+      <div class="painel-rodape-acoes painel-rodape-acoes--unica">
         <div class="painel-acoes-secundarias">
-          ${podeEditar  ? `<button type="button" id="btn-editar"  class="btn-link">✎ Editar sem categorizar</button>` : ''}
-          ${podeExcluir ? `<button type="button" id="btn-excluir" class="btn-link" style="color:var(--c-alerta);text-decoration-color:rgba(154,42,31,0.4)">Excluir lançamento</button>` : ''}
-        </div>` : ''}
-      <div class="painel-rodape-acoes">
-        <button type="button" id="btn-cancel" class="btn-link">Cancelar</button>
-        <button type="submit" form="form-lanc" id="btn-salvar" class="btn-primary" disabled>Salvar categorização</button>
+          ${podeEditar  ? `<button type="button" id="btn-editar"  class="btn-link btn-link--sec">✎ Editar sem categorizar</button>` : ''}
+          ${podeExcluir ? `<button type="button" id="btn-excluir" class="btn-link btn-link--danger">Excluir lançamento</button>` : ''}
+        </div>
+        <div class="painel-acoes-primarias">
+          <button type="button" id="btn-cancel" class="btn-link">Cancelar</button>
+          <button type="submit" form="form-lanc" id="btn-salvar" class="btn-primary" disabled>Salvar categorização</button>
+        </div>
       </div>`,
     onConfirmarFechar: () => {
       if (!estado?.sujo) return true;
@@ -126,58 +128,83 @@ function corpoFormCategorizar() {
   const l = estado.lancamento;
   const nfReadOnly = !!l;
   return `
-    ${l ? `
-      <p class="text-body" style="font-size:0.9rem;color:var(--c-tinta-3);margin-bottom:1.4rem;line-height:1.5">
-        Você anotou a NF <strong style="color:var(--c-tinta)">${esc(l.numero_nf)}</strong>
-        com valor de <strong style="color:var(--c-tinta)">${formatBRL(l.valor_nf)}</strong>.
-        Agora defina como o pagamento foi feito.
-      </p>` : ''}
+    <div class="man2 man2--categorizar">
+      <div class="man2-split">
+        <aside class="man2-esq" aria-label="Como funciona">
+          <h3 class="man2-esq-headline">
+            ${l ? 'Como o dinheiro entrou?' : 'Só o essencial.'}
+            <span class="man2-esq-headline-accent">${l ? 'É o último passo.' : 'O resto vem depois.'}</span>
+          </h3>
 
-    <form id="form-lanc" novalidate>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="numero_nf">Número da NF</label>
-          <input id="numero_nf" name="numero_nf" required maxlength="15" class="field-input"
-                 ${nfReadOnly ? 'readonly' : ''}
-                 value="${esc(l?.numero_nf || '')}" />
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="codigo_pedido">Código do pedido</label>
-          <input id="codigo_pedido" name="codigo_pedido" required maxlength="20" class="field-input"
-                 value="${esc(l?.codigo_pedido || '')}" />
-        </div>
+          <p class="man2-esq-texto">
+            ${l
+              ? 'Escolha a forma de pagamento — cada uma pede os campos específicos pra fechar o lançamento.'
+              : 'Pedido e valor já bastam. NF entra quando faturar, categoria quando o pagamento ficar claro.'}
+          </p>
+
+          <ul class="man2-esq-dicas">
+            ${l ? `
+              <li><strong>Cartão</strong> e <strong>Link</strong> pedem bandeira e modalidade</li>
+              <li><strong>Pix</strong>, <strong>Dinheiro</strong> e <strong>Observação</strong> têm campos específicos próprios</li>
+            ` : `
+              <li>Pedido <strong>preenche</strong> cliente e valor pra você</li>
+              <li>Tudo <strong>editável</strong> enquanto o caixa estiver aberto</li>
+            `}
+          </ul>
+        </aside>
+
+        <form id="form-lanc" class="man2-dir" novalidate>
+          <div class="man2-grid">
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label" for="codigo_pedido">Código do pedido *</label>
+              <input id="codigo_pedido" name="codigo_pedido" required maxlength="11" class="field-input"
+                     autocomplete="off" inputmode="numeric"
+                     placeholder="123.456.789"
+                     value="${esc(l?.codigo_pedido || '')}" />
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label" for="valor_nf">Valor (R$) *</label>
+              <input id="valor_nf" name="valor_nf" type="number" step="0.01" min="0.01" required
+                     class="field-input" inputmode="decimal"
+                     value="${esc(l?.valor_nf ?? '')}" />
+            </div>
+          </div>
+
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="numero_nf">Número da NF${nfReadOnly ? '' : ''}</label>
+            <input id="numero_nf" name="numero_nf" ${nfReadOnly ? 'readonly' : ''} maxlength="6" class="field-input"
+                   autocomplete="off" inputmode="numeric"
+                   placeholder="12.345"
+                   value="${esc(l?.numero_nf ? formatarNumeroNF(l.numero_nf) : '')}" />
+          </div>
+
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="cliente_nome">Cliente</label>
+            <input id="cliente_nome" name="cliente_nome" required maxlength="120" class="field-input"
+                   autocomplete="off" autocapitalize="words"
+                   placeholder="Nome do cliente"
+                   value="${esc(l?.cliente_nome || '')}" />
+          </div>
+
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="categoria">Forma de pagamento *</label>
+            <select id="categoria" name="categoria" required class="field-input"
+                    data-pop-class="cxd-pop">
+              <option value="">— escolher —</option>
+              ${CATEGORIAS.map(c => `<option value="${c.valor}">${c.rotulo}</option>`).join('')}
+            </select>
+          </div>
+
+          <fieldset id="bloco-cat" class="man2-bloco-cat">
+            <legend class="man2-bloco-cat-titulo">Detalhes da categoria</legend>
+            <p id="bloco-cat-vazio" class="man2-bloco-cat-vazio">
+              Escolha uma forma de pagamento acima para preencher os campos correspondentes.
+            </p>
+            <div id="bloco-cat-campos"></div>
+          </fieldset>
+        </form>
       </div>
-
-      <div class="field mt-5">
-        <label class="field-label" for="cliente_nome">Cliente</label>
-        <input id="cliente_nome" name="cliente_nome" required maxlength="120" class="field-input"
-               value="${esc(l?.cliente_nome || '')}" />
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="valor_nf">Valor (R$)</label>
-          <input id="valor_nf" name="valor_nf" type="number" step="0.01" min="0.01" required
-                 class="field-input" inputmode="decimal"
-                 value="${esc(l?.valor_nf ?? '')}" />
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label class="field-label" for="categoria">Forma de pagamento *</label>
-          <select id="categoria" name="categoria" required class="field-input">
-            <option value="">— escolher —</option>
-            ${CATEGORIAS.map(c => `<option value="${c.valor}">${c.rotulo}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-
-      <fieldset id="bloco-cat" class="mt-7 pt-6 border-t" style="border-color:var(--c-papel-3)">
-        <legend class="h-eyebrow" style="padding:0">Detalhes da categoria</legend>
-        <p id="bloco-cat-vazio" class="text-body text-sm mt-3" style="color:var(--c-tinta-3)">
-          Escolha uma forma de pagamento acima para preencher os campos correspondentes.
-        </p>
-        <div id="bloco-cat-campos"></div>
-      </fieldset>
-    </form>
+    </div>
   `;
 }
 
@@ -206,14 +233,27 @@ function ligarCategorizar() {
 
   f('btn-cancel').addEventListener('click', () => fecharModal(false));
 
+  // Mascaras NF (XX.XXX), pedido (XXX.XXX.XXX), cliente (title-case
+  // no blur). Mesma helper usada nos modais de edicao — garante que
+  // formatacao, cursor e blur funcionam identico em todo o sistema.
+  instalarMascarasFormulario(form, {
+    idNF: 'numero_nf',
+    idPedido: 'codigo_pedido',
+    idCliente: 'cliente_nome',
+  });
+
+  // Busca cliente_cache pelo codigo cru (sem pontos)
   const buscar = debounce(async () => {
-    const codigo = f('codigo_pedido').value.trim();
+    const codigo = soDigitos(f('codigo_pedido').value);
     if (!codigo) return;
     const { data } = await supabase
       .from('cliente_cache').select('cliente_nome, valor_nf_ultimo')
       .eq('codigo_pedido', codigo).maybeSingle();
     if (!data) return;
-    if (!f('cliente_nome').value) f('cliente_nome').value = data.cliente_nome;
+    if (!f('cliente_nome').value && data.cliente_nome) {
+      const nome = data.cliente_nome;
+      f('cliente_nome').value = (nome === nome.toUpperCase()) ? formatarNomeCliente(nome) : nome;
+    }
     if (!f('valor_nf').value && data.valor_nf_ultimo)
       f('valor_nf').value = Number(data.valor_nf_ultimo).toFixed(2);
     revalidar();
@@ -424,6 +464,13 @@ async function renderCamposCategoria(cat) {
     el.addEventListener('input', () => { estado.sujo = true; revalidar(); });
   });
 
+  // Aplica skin cxd-pop a todos os selects dinamicos (bandeira,
+  // modalidade, vendedora, status_link, tipo_obs etc.) — assim eles
+  // pegam o look moderno do man2-dir em vez do legado papel/musgo.
+  container.querySelectorAll('select.field-input').forEach(s => {
+    if (!s.dataset.popClass) s.dataset.popClass = 'cxd-pop';
+  });
+
   // Re-instala pop-selects e pop-datas nos novos campos dinamicos
   // (bandeira, modalidade, vendedora, status_link, tipo_obs +
   //  data_hora_pix, data_cancelamento, data_envio_link).
@@ -514,11 +561,19 @@ function construirPayload(form) {
     if (v) dadosCategoria.vendedora_nome_cache = v.nome;
   }
 
+  // Normaliza valores antes de enviar (mesmas regras do modal-adicionar-nf):
+  // NF e pedido vao SEM pontos (banco armazena digitos puros), cliente
+  // ganha title case se vier tudo em caps.
+  const numeroNF     = soDigitos(form.numero_nf.value);
+  const codigoPedido = soDigitos(form.codigo_pedido.value);
+  const nomeCliente  = formatarNomeCliente(form.cliente_nome.value);
+  if (form.cliente_nome.value !== nomeCliente) form.cliente_nome.value = nomeCliente;
+
   return {
     p_data_caixa:     estado.dataCaixa,
-    p_numero_nf:      form.numero_nf.value.trim(),
-    p_codigo_pedido:  form.codigo_pedido.value.trim(),
-    p_cliente_nome:   form.cliente_nome.value.trim(),
+    p_numero_nf:      numeroNF || '—',
+    p_codigo_pedido:  codigoPedido || '—',
+    p_cliente_nome:   nomeCliente || '— sem cliente —',
     p_valor_nf:       Number(form.valor_nf.value),
     p_categoria:      form.categoria.value,
     p_estado:         form.categoria.value === 'cancelado' ? 'cancelado' : 'completo',
@@ -579,8 +634,8 @@ function abrirModoGerenciarOuFinalizado() {
     lateral: false,
     amplo: true,
     origemEvento: estado.origemEvento,
-    eyebrow: `Nota fiscal · ${l.numero_nf}`,
-    titulo:  l.cliente_nome || '— sem cliente —',
+    eyebrow: `Nota fiscal · ${formatarNumeroNF(l.numero_nf)}`,
+    titulo:  formatarNomeCliente(l.cliente_nome) || '— sem cliente —',
     headerBadge: badgeEstado(l.estado),
     conteudo: corpoGerenciar(),
     rodape:   rodapeGerenciar(),
@@ -617,40 +672,78 @@ function corpoGerenciar() {
   const detalhes = dadosCategoriaLeitura(l);
 
   return `
-    <div class="mel2" id="mel2" data-modo="leitura" data-filtro="tudo">
+    <div class="mel2" id="mel2" data-modo="leitura" data-filtro="tudo" data-aba="detalhes">
+      <!-- Tabs SO no mobile (CSS controla visibilidade) — alterna
+           entre painel de Detalhes e painel de Historico ja que no
+           celular nao cabem os 2 lado a lado. Default: Detalhes. -->
+      <nav class="mel2-tabs" role="tablist" aria-label="Visualização">
+        <span class="mel2-tabs-ind" aria-hidden="true"></span>
+        <button type="button" class="mel2-tab" data-aba="detalhes"  aria-selected="true"  role="tab">Detalhes</button>
+        <button type="button" class="mel2-tab" data-aba="historico" aria-selected="false" role="tab">Histórico</button>
+      </nav>
       <div class="mel2-split">
+        <!-- ESQUERDA (1fr — menor): HISTORICO. Log de eventos +
+             anotacoes com composer fixo no fundo. -->
         <aside class="mel2-esq">
-          <div class="mel2-resumo">
-            <span class="mel2-resumo-cat" style="background:${corBgCat(l.categoria)};color:${corTextoCat(l.categoria)}">
-              ${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}
-            </span>
-            <span class="mel2-resumo-valor">${formatBRL(l.valor_nf)}</span>
-            <span class="mel2-resumo-ped">Pedido ${esc(l.codigo_pedido)} · NF ${esc(l.numero_nf)}</span>
-          </div>
-
-          <div class="mel2-hist">
+          <div class="mel2-esq-barra">
             <div class="mel2-filtro" role="group" aria-label="Filtrar histórico">
               <span class="mel2-filtro-ind" aria-hidden="true"></span>
               <button type="button" class="mel2-fbtn" data-f="tudo"  aria-selected="true">Tudo</button>
-              <button type="button" class="mel2-fbtn" data-f="tempo" aria-selected="false">Linha do tempo</button>
+              <button type="button" class="mel2-fbtn" data-f="tempo" aria-selected="false">Eventos</button>
               <button type="button" class="mel2-fbtn" data-f="anot"  aria-selected="false">Anotações</button>
             </div>
+          </div>
+
+          <div class="mel2-hist">
             <div data-grupo="tempo">
-              <p class="mel2-sub">Linha do tempo</p>
               <ul class="mel2-tl" id="mel2-timeline">
                 <li class="mel2-vazio">Carregando…</li>
               </ul>
             </div>
             <div data-grupo="anot">
-              <p class="mel2-sub">Anotações</p>
               <ul class="mel2-anot" id="mel2-anotacoes">
                 <li class="mel2-vazio">Carregando…</li>
               </ul>
             </div>
           </div>
+
+          <div class="mel2-composer">
+            <textarea id="nova-obs" rows="1" maxlength="2000"
+                      placeholder="Escreva uma anotação sobre este pedido…"></textarea>
+            <button type="button" id="btn-add-obs" class="mel2-composer-btn" disabled aria-label="Anotar">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 8 L14 2 L10 14 L8.5 9 L2 8z"/>
+              </svg>
+              <span>Anotar</span>
+            </button>
+          </div>
         </aside>
 
+        <!-- DIREITA (2fr — maior): PEDIDO. Resumo + detalhes do
+             pagamento OU form de edicao. Quando entra em edicao,
+             essa coluna engole a esquerda pra ter espaco do form. -->
         <section class="mel2-dir">
+          <div class="mel2-resumo">
+            <span class="mel2-resumo-cat" style="background:${corBgCat(l.categoria)};color:${corTextoCat(l.categoria)}">
+              ${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}
+            </span>
+            <div class="mel2-resumo-valor-bloco">
+              <span class="mel2-resumo-eyebrow">Valor</span>
+              <span class="mel2-resumo-valor">${formatBRL(l.valor_nf)}</span>
+            </div>
+            <dl class="mel2-resumo-meta">
+              <div class="mel2-resumo-meta-item">
+                <dt>NF</dt>
+                <dd>${esc(formatarNumeroNF(l.numero_nf))}</dd>
+              </div>
+              <div class="mel2-resumo-meta-item">
+                <dt>Pedido</dt>
+                <dd>${esc(formatarCodigoPedido(l.codigo_pedido))}</dd>
+              </div>
+            </dl>
+            ${l.criado_em ? `<p class="mel2-resumo-tempo">Aberto ${esc(tempoRelativoCurto(l.criado_em))}</p>` : ''}
+          </div>
+
           <div class="mel2-dir-barra">
             <span class="mel2-dir-label" data-leitura>Detalhes do pagamento</span>
             <span class="mel2-dir-label" data-edicao hidden>Editar lançamento</span>
@@ -663,12 +756,6 @@ function corpoGerenciar() {
           <div data-leitura>
             ${finalizadoOuCancelado ? bannerFinal(ehCancelado, tsFinal) : ''}
             ${detalhes || `<p class="mel2-sem-detalhe">Sem detalhes de pagamento registrados para esta categoria.</p>`}
-            <div class="mel2-anot-add">
-              <p class="mel2-anot-add-titulo">Adicionar anotação</p>
-              <textarea id="nova-obs" rows="2" maxlength="2000"
-                        placeholder="ex.: avisei o cliente em 02/05, vence dia 05/05"></textarea>
-              <button type="button" id="btn-add-obs" class="mel2-btn-anotar" disabled>Anotar</button>
-            </div>
           </div>
 
           <div data-edicao hidden>
@@ -680,65 +767,124 @@ function corpoGerenciar() {
   `;
 }
 
-// Formulário de edição renderizado in-place na direita do modal amplo.
-// Espelha o mockup /demo-modal (.dmm-form): campos básicos (NF, pedido,
-// cliente, categoria, valor) sempre editáveis no topo; separador; o
-// 'Motivo da edição'; e por fim o bloco de detalhes da categoria, que
-// fica bloqueado até o motivo ter 10+ caracteres.
+// Formulário de edição in-place. Layout em 3 zonas:
+//   1) Motivo (no TOPO) — destacado warn, mínimo 10 chars. E o gate
+//      que destrava o resto da edicao.
+//   2) Campos basicos (NF, pedido, cliente, categoria, valor) — sempre
+//      editaveis mesmo sem motivo, mas o submit so libera com motivo OK.
+//   3) Detalhes da categoria — bloqueados ate motivo ter 10+ chars.
+//      Visual claro de "locked" com overlay e cadeado.
 function formEditarInline(l) {
   const podeEditarCategoria = temPermissaoSync('lancamento.editar_categoria');
+  // Dados originais ficam num data-attr de cada campo. Um listener
+  // global de input compara value vs data-original e adiciona/remove
+  // a classe is-alterado no label — o operador ve exatamente o que
+  // foi mudado antes de salvar.
+  const ori = (s) => esc(String(s ?? ''));
+  const oriNF      = ori(formatarNumeroNF(l.numero_nf || ''));
+  const oriPed     = ori(formatarCodigoPedido(l.codigo_pedido || ''));
+  const oriCli     = ori(formatarNomeCliente(l.cliente_nome || ''));
+  const oriValor   = ori(l.valor_nf ?? '');
+  const oriCat     = ori(l.categoria || '');
   return `
     <form id="form-editar" novalidate class="mel2-form">
-      <div class="mel2-grid2">
-        <label class="mel2-campo">
-          <span class="mel2-campo-label">Número da NF</span>
-          <input id="ed-numero_nf" name="numero_nf" maxlength="15" value="${esc(l.numero_nf || '')}" />
-        </label>
-        <label class="mel2-campo">
-          <span class="mel2-campo-label">Código do pedido</span>
-          <input id="ed-codigo_pedido" name="codigo_pedido" maxlength="20" value="${esc(l.codigo_pedido || '')}" />
-        </label>
-      </div>
-      <label class="mel2-campo">
-        <span class="mel2-campo-label">Cliente</span>
-        <input id="ed-cliente_nome" name="cliente_nome" maxlength="120" value="${esc(l.cliente_nome || '')}" />
-      </label>
-
-      <div class="mel2-form-sep"></div>
-
-      <div class="mel2-grid2">
-        ${podeEditarCategoria ? `
-          <label class="mel2-campo">
-            <span class="mel2-campo-label">Categoria</span>
-            <select id="ed-categoria" name="categoria">
-              ${CATEGORIAS.map(c => `<option value="${c.valor}" ${c.valor === l.categoria ? 'selected' : ''}>${c.rotulo}</option>`).join('')}
-            </select>
-          </label>` : `
-          <label class="mel2-campo">
-            <span class="mel2-campo-label">Categoria</span>
-            <input value="${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}" readonly />
-          </label>`}
-        <label class="mel2-campo">
-          <span class="mel2-campo-label">Valor (R$)</span>
-          <input id="ed-valor_nf" name="valor_nf" type="number" step="0.01" min="0.01"
-                 inputmode="decimal" value="${esc(l.valor_nf ?? '')}" />
-        </label>
-      </div>
-
-      <label class="mel2-campo mel2-campo--motivo">
-        <span class="mel2-campo-label">Motivo da edição <em class="mel2-req">*</em></span>
+      <!-- PASSO 1 — Motivo (gate) -->
+      <section class="mel2-passo mel2-passo--motivo" data-passo="1">
+        <header class="mel2-passo-head">
+          <span class="mel2-passo-num">1</span>
+          <div class="mel2-passo-meta">
+            <h3 class="mel2-passo-titulo">Por que esta edição?</h3>
+            <p class="mel2-passo-sub">Explique o motivo — ele aparece na linha do tempo do pedido.</p>
+          </div>
+          <span class="mel2-motivo-cont" id="mel2-motivo-cont" data-ok="false" aria-live="polite">
+            <span id="mel2-motivo-num">0</span>/10
+          </span>
+        </header>
         <textarea id="ed-motivo" name="motivo" rows="2" minlength="10" maxlength="500" required
-                  placeholder="Explique a edição — mínimo 10 caracteres"></textarea>
-      </label>
+                  placeholder="Ex.: cliente informou valor correto após emissão da nota"></textarea>
+      </section>
 
-      <div class="mel2-edit-campos" id="mel2-edit-campos" data-bloqueado="true">
-        <div class="mel2-edit-aviso">
-          ${ICON_ALERTA}<span>Preencha o motivo da edição acima para liberar os detalhes da categoria.</span>
+      <!-- PASSO 2 — Identificação (campos básicos) -->
+      <section class="mel2-passo" data-passo="2">
+        <header class="mel2-passo-head">
+          <span class="mel2-passo-num">2</span>
+          <div class="mel2-passo-meta">
+            <h3 class="mel2-passo-titulo">O que vai mudar?</h3>
+            <p class="mel2-passo-sub">Edite os campos que precisam ser corrigidos — os que ficarem iguais não geram histórico.</p>
+          </div>
+        </header>
+        <div class="mel2-passo-corpo">
+          <div class="mel2-grid2">
+            <label class="mel2-campo">
+              <span class="mel2-campo-label">Número da NF</span>
+              <input id="ed-numero_nf" name="numero_nf" maxlength="6"
+                     inputmode="numeric" autocomplete="off"
+                     data-original="${oriNF}"
+                     value="${oriNF}" />
+            </label>
+            <label class="mel2-campo">
+              <span class="mel2-campo-label">Código do pedido</span>
+              <input id="ed-codigo_pedido" name="codigo_pedido" maxlength="11"
+                     inputmode="numeric" autocomplete="off"
+                     data-original="${oriPed}"
+                     value="${oriPed}" />
+            </label>
+          </div>
+          <label class="mel2-campo">
+            <span class="mel2-campo-label">Cliente</span>
+            <input id="ed-cliente_nome" name="cliente_nome" maxlength="120"
+                   autocomplete="off"
+                   data-original="${oriCli}"
+                   value="${oriCli}" />
+          </label>
+          <div class="mel2-grid2">
+            ${podeEditarCategoria ? `
+              <label class="mel2-campo">
+                <span class="mel2-campo-label">Categoria</span>
+                <select id="ed-categoria" name="categoria" class="field-input" data-original="${oriCat}">
+                  ${CATEGORIAS.map(c => `<option value="${c.valor}" ${c.valor === l.categoria ? 'selected' : ''}>${c.rotulo}</option>`).join('')}
+                </select>
+              </label>` : `
+              <label class="mel2-campo">
+                <span class="mel2-campo-label">Categoria</span>
+                <input value="${esc(LABEL_CATEGORIA[l.categoria] || l.categoria)}" readonly />
+              </label>`}
+            <label class="mel2-campo">
+              <span class="mel2-campo-label">Valor (R$)</span>
+              <input id="ed-valor_nf" name="valor_nf" type="number" step="0.01" min="0.01"
+                     inputmode="decimal"
+                     data-original="${oriValor}"
+                     value="${oriValor}" />
+            </label>
+          </div>
         </div>
-        <div class="mel2-edit-form" id="mel2-edit-detalhes">
+      </section>
+
+      <!-- PASSO 3 — Detalhes da categoria (bloqueado até motivo OK) -->
+      <section class="mel2-passo mel2-edit-campos" id="mel2-edit-campos" data-passo="3" data-bloqueado="true">
+        <header class="mel2-passo-head">
+          <span class="mel2-passo-num">3</span>
+          <div class="mel2-passo-meta">
+            <h3 class="mel2-passo-titulo">Detalhes do pagamento</h3>
+            <p class="mel2-passo-sub">Dados específicos da categoria — só editáveis depois do motivo.</p>
+          </div>
+          <span class="mel2-lock" aria-hidden="true">
+            <svg class="mel2-lock-bloq" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="7" width="10" height="7" rx="1.5"/>
+              <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>
+            </svg>
+            <svg class="mel2-lock-ok" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 8.5 L6.5 12 L13 4.5"/>
+            </svg>
+            <span class="mel2-lock-txt-bloq">Aguardando motivo</span>
+            <span class="mel2-lock-txt-ok">Liberado</span>
+          </span>
+        </header>
+        <div class="mel2-passo-corpo mel2-edit-form" id="mel2-edit-detalhes">
           ${camposDetalheEdicao(l, podeEditarCategoria)}
         </div>
-      </div>
+      </section>
+
       <div id="erro-edit" role="alert" aria-live="polite" class="mel2-erro hidden"></div>
     </form>
   `;
@@ -766,7 +912,7 @@ function camposDetalheEdicao(l, editavel) {
   const sel = (name, label, valor, opcoes) => `
     <label class="mel2-campo">
       <span class="mel2-campo-label">${esc(label)}</span>
-      <select id="ed-cd-${name}" data-cd="${name}" ${roSel}>
+      <select id="ed-cd-${name}" name="${name}" data-cd="${name}" class="field-input" ${roSel}>
         <option value="">— selecionar —</option>
         ${opcoes.map(o => `<option value="${esc(o)}" ${String(o) === String(valor ?? '') ? 'selected' : ''}>${esc(o)}</option>`).join('')}
       </select>
@@ -794,7 +940,7 @@ function camposDetalheEdicao(l, editavel) {
       return `
         <label class="mel2-campo">
           <span class="mel2-campo-label">Vendedora que recebeu</span>
-          <select id="ed-cd-vendedora_id" data-cd="vendedora_id" ${roSel}>
+          <select id="ed-cd-vendedora_id" name="vendedora_id" data-cd="vendedora_id" class="field-input" ${roSel}>
             <option value="${esc(d.vendedora_id || '')}" selected>${esc(d.vendedora_nome_cache || '— selecionar —')}</option>
           </select>
         </label>`
@@ -1024,7 +1170,7 @@ function renderHistorico() {
   if (l.criado_em) {
     eventos.push({
       tipo: 'Criação', tone: 'criacao', criado_em: l.criado_em,
-      texto: `NF ${l.numero_nf} registrada — ${formatBRL(l.valor_nf)}`,
+      texto: `NF ${formatarNumeroNF(l.numero_nf)} registrada — ${formatBRL(l.valor_nf)}`,
       autor: l.criado_por,
     });
   }
@@ -1094,6 +1240,8 @@ function ligarGerenciar() {
 
   // Filtro Tudo / Linha do tempo / Anotações (pílula deslizante).
   ligarFiltroHistorico();
+  // Abas Detalhes / Histórico (somente visiveis no mobile).
+  ligarAbasMobile();
 
   // Adicionar anotação.
   const tx = document.querySelector('#nova-obs');
@@ -1153,6 +1301,14 @@ function ligarGerenciar() {
 // ─── Alternância leitura ⇄ edição (in-place na direita) ──────────────
 function entrarModoEdicao(mel2) {
   mel2.dataset.modo = 'edicao';
+  // No mobile: garante que a aba "detalhes" esta ativa (caso o user
+  // estivesse no "historico" e algum atalho disparasse a edicao).
+  // CSS esconde as tabs em modo edicao — mas o data-aba precisa estar
+  // certo pra que .mel2-dir continue visivel via display:flex herdado.
+  mel2.dataset.aba = 'detalhes';
+  document.querySelectorAll('.mel2-tab').forEach(t => {
+    t.setAttribute('aria-selected', String(t.dataset.aba === 'detalhes'));
+  });
   mel2.querySelectorAll('[data-leitura]').forEach(el => { el.hidden = true; });
   mel2.querySelectorAll('[data-edicao]').forEach(el => { el.hidden = false; });
   document.querySelector('#mel2-rodape-leitura')?.setAttribute('hidden', '');
@@ -1167,6 +1323,17 @@ function sairModoEdicao(mel2) {
   document.querySelector('#mel2-rodape-edicao')?.setAttribute('hidden', '');
   document.querySelector('#mel2-rodape-leitura')?.removeAttribute('hidden');
   document.querySelector('#mel2-btn-editar')?.classList.remove('is-ativo');
+  // Reposiciona o indicador da tab ativa apos as tabs voltarem a ser
+  // visiveis (display:flex). Sem isso o indicador fica com left:0 width:0.
+  const tabs = document.querySelector('.mel2-tabs');
+  const ind  = tabs?.querySelector('.mel2-tabs-ind');
+  const ativa = tabs?.querySelector('.mel2-tab[aria-selected="true"]');
+  if (ind && ativa) {
+    requestAnimationFrame(() => {
+      ind.style.width = `${ativa.offsetWidth}px`;
+      ind.style.left  = `${ativa.offsetLeft}px`;
+    });
+  }
 }
 
 // ─── Filtro do histórico com indicador deslizante ────────────────────
@@ -1195,12 +1362,75 @@ function ligarFiltroHistorico() {
   });
 }
 
+// ─── Abas mobile Detalhes / Histórico ────────────────────────────────
+// So aparece visualmente no mobile (CSS controla via @media). Default
+// e "detalhes" (state inicial no data-aba do .mel2). Indicador
+// deslizante anima entre as 2 abas.
+function ligarAbasMobile() {
+  const tabs = document.querySelector('.mel2-tabs');
+  const mel2 = document.querySelector('#mel2');
+  if (!tabs || !mel2) return;
+  const ind = tabs.querySelector('.mel2-tabs-ind');
+  const botoes = [...tabs.querySelectorAll('.mel2-tab')];
+
+  const mover = (btn) => {
+    if (!ind) return;
+    ind.style.width = `${btn.offsetWidth}px`;
+    ind.style.left  = `${btn.offsetLeft}px`;
+  };
+  requestAnimationFrame(() => {
+    mover(tabs.querySelector('.mel2-tab[aria-selected="true"]') || botoes[0]);
+  });
+
+  botoes.forEach(b => {
+    b.addEventListener('click', () => {
+      const aba = b.dataset.aba;
+      botoes.forEach(x => x.setAttribute('aria-selected', String(x.dataset.aba === aba)));
+      mover(b);
+      mel2.dataset.aba = aba;
+    });
+  });
+
+  // Reposiciona o indicador se viewport redimensionar (rotacao do
+  // celular, por exemplo). Sem isso o indicador fica fora de lugar.
+  window.addEventListener('resize', () => {
+    const ativa = tabs.querySelector('.mel2-tab[aria-selected="true"]');
+    if (ativa) mover(ativa);
+  });
+}
+
 // ─── Formulário de edição in-place ───────────────────────────────────
 // O motivo destrava o bloco de detalhes da categoria (10+ chars). Os
 // campos básicos ficam sempre editáveis. Submit usa editar_lancamento.
 function ligarEdicaoInline() {
   const form = document.querySelector('#form-editar');
   if (!form) return;
+  // Mascaras NF (XX.XXX), pedido (XXX.XXX.XXX), cliente (title case
+  // no blur) — mesmo comportamento da tela de novo lancamento.
+  instalarMascarasFormulario(form, {
+    idNF: 'ed-numero_nf',
+    idPedido: 'ed-codigo_pedido',
+    idCliente: 'ed-cliente_nome',
+  });
+  // Pop-select v2 nos selects do form (categoria + selects de detalhes
+  // de categoria) — consistencia com o resto do sistema.
+  instalarPopSelectsEm(form);
+
+  // Marca .is-alterado no .mel2-campo quando o valor difere do
+  // original (data-original no input/select). Da feedback visual
+  // imediato do que foi mudado — operador valida antes de salvar.
+  const marcarAlterados = () => {
+    form.querySelectorAll('[data-original]').forEach(el => {
+      const campo = el.closest('.mel2-campo');
+      if (!campo) return;
+      const ori = el.dataset.original || '';
+      const atual = String(el.value ?? '');
+      campo.classList.toggle('is-alterado', ori !== atual);
+    });
+  };
+  form.addEventListener('input', marcarAlterados);
+  form.addEventListener('change', marcarAlterados);
+
   const l = estado.lancamento;
   const podeEditarCategoria = temPermissaoSync('lancamento.editar_categoria');
   const motivoEl   = document.querySelector('#ed-motivo');
@@ -1215,8 +1445,15 @@ function ligarEdicaoInline() {
   // categoria são preenchidos depois, na tela completa do lançamento.
   let catDetalhe = l.categoria;
 
+  const contNum = document.querySelector('#mel2-motivo-num');
+  const contEl  = document.querySelector('#mel2-motivo-cont');
   const sincronizar = () => {
-    const motivoOk = (motivoEl.value || '').trim().length >= 10;
+    const chars = (motivoEl.value || '').trim().length;
+    const motivoOk = chars >= 10;
+    // Contador "X/10" — verde quando OK, neutro caindo a vermelho
+    // quando vazio. Trava em "10/10" exibido como check.
+    if (contNum) contNum.textContent = String(Math.min(chars, 10));
+    if (contEl) contEl.dataset.ok = motivoOk ? 'true' : 'false';
     campos.dataset.bloqueado = motivoOk ? 'false' : 'true';
     detalhesEl.querySelectorAll('input:not([readonly]), select:not([disabled]), textarea:not([readonly])')
       .forEach(c => { c.disabled = !motivoOk; });
@@ -1224,6 +1461,8 @@ function ligarEdicaoInline() {
   };
 
   // Popula o select de vendedora (categoria dinheiro) de forma assíncrona.
+  // Apos popular, dispara change pra que o pop-select custom (se ja
+  // instalado) atualize o texto do trigger com o nome correto.
   const popularVendedoras = () => {
     const vsel = detalhesEl.querySelector('#ed-cd-vendedora_id');
     if (!vsel) return;
@@ -1235,6 +1474,7 @@ function ligarEdicaoInline() {
         vsel.innerHTML = `<option value="">— selecionar —</option>`
           + data.map(v => `<option value="${esc(v.id)}" ${v.id === atual ? 'selected' : ''}>${esc(v.nome)}</option>`).join('');
         vsel.disabled = estavaDesabilitado;
+        vsel.dispatchEvent(new Event('change', { bubbles: true }));
       });
   };
 
@@ -1248,6 +1488,9 @@ function ligarEdicaoInline() {
     if (catSel.value === l.categoria) {
       catDetalhe = l.categoria;
       detalhesEl.innerHTML = camposDetalheEdicao(l, podeEditarCategoria);
+      // Reinstala pop-selects nos selects novos (renderizados pelo
+      // innerHTML acima). Helper e idempotente (data-pop-installed=1).
+      instalarPopSelectsEm(detalhesEl);
       if (l.categoria === 'dinheiro' && podeEditarCategoria) popularVendedoras();
     } else {
       catDetalhe = null;
@@ -1264,17 +1507,21 @@ function ligarEdicaoInline() {
 
     const f = (id) => document.querySelector(`#${id}`);
     const dados = {};
-    const novoNumero  = f('ed-numero_nf')?.value.trim();
-    const novoCodigo  = f('ed-codigo_pedido')?.value.trim();
-    const novoCliente = f('ed-cliente_nome')?.value.trim();
+    // Normaliza antes de comparar/salvar: NF e pedido viram digitos
+    // crus (banco guarda sem pontos), cliente vira title case se veio
+    // tudo em caps. Compara contra o valor cru atual de l pra detectar
+    // mudancas reais (digitar "12.345" sobre "12345" nao deve disparar).
+    const novoNumero  = soDigitos(f('ed-numero_nf')?.value);
+    const novoCodigo  = soDigitos(f('ed-codigo_pedido')?.value);
+    const novoCliente = formatarNomeCliente(f('ed-cliente_nome')?.value.trim() || '');
     const novoValor   = Number(f('ed-valor_nf')?.value);
     const novaCat     = f('ed-categoria')?.value || null;
 
-    if (novoNumero  && novoNumero  !== (l.numero_nf || ''))     dados.numero_nf     = novoNumero;
-    if (novoCodigo  && novoCodigo  !== (l.codigo_pedido || '')) dados.codigo_pedido = novoCodigo;
-    if (novoCliente && novoCliente !== (l.cliente_nome || ''))  dados.cliente_nome  = novoCliente;
-    if (novoValor   && novoValor   !== Number(l.valor_nf))      dados.valor_nf      = novoValor;
-    if (novaCat     && novaCat     !== l.categoria)             dados.categoria     = novaCat;
+    if (novoNumero  && novoNumero  !== soDigitos(l.numero_nf || ''))    dados.numero_nf     = novoNumero;
+    if (novoCodigo  && novoCodigo  !== soDigitos(l.codigo_pedido || '')) dados.codigo_pedido = novoCodigo;
+    if (novoCliente && novoCliente !== (l.cliente_nome || ''))           dados.cliente_nome  = novoCliente;
+    if (novoValor   && novoValor   !== Number(l.valor_nf))               dados.valor_nf      = novoValor;
+    if (novaCat     && novaCat     !== l.categoria)                      dados.categoria     = novaCat;
 
     // Detalhes da categoria → dados_categoria. A RPC editar_lancamento
     // substitui o jsonb inteiro, então mandamos o objeto completo
@@ -1368,7 +1615,7 @@ function abrirSubModoEditar() {
   abrirModal({
     lateral: false,
     origemEvento: estado.origemEvento,
-    eyebrow: `NF ${l.numero_nf} · editar`,
+    eyebrow: `NF ${formatarNumeroNF(l.numero_nf)} · editar`,
     titulo:  'Editar lançamento.',
     conteudo: `
       <p class="text-body" style="font-size:0.9rem;color:var(--c-tinta-3);margin-bottom:1.2rem;line-height:1.5">
@@ -1380,19 +1627,22 @@ function abrirSubModoEditar() {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="field" style="margin-bottom:0">
             <label class="field-label" for="ed-numero_nf">Número da NF</label>
-            <input id="ed-numero_nf" name="numero_nf" maxlength="15" class="field-input"
-                   value="${esc(l.numero_nf || '')}" />
+            <input id="ed-numero_nf" name="numero_nf" maxlength="6" class="field-input"
+                   inputmode="numeric" autocomplete="off"
+                   value="${esc(formatarNumeroNF(l.numero_nf || ''))}" />
           </div>
           <div class="field" style="margin-bottom:0">
             <label class="field-label" for="ed-codigo_pedido">Código do pedido</label>
-            <input id="ed-codigo_pedido" name="codigo_pedido" maxlength="20" class="field-input"
-                   value="${esc(l.codigo_pedido || '')}" />
+            <input id="ed-codigo_pedido" name="codigo_pedido" maxlength="11" class="field-input"
+                   inputmode="numeric" autocomplete="off"
+                   value="${esc(formatarCodigoPedido(l.codigo_pedido || ''))}" />
           </div>
         </div>
         <div class="field mt-5">
           <label class="field-label" for="ed-cliente_nome">Cliente</label>
           <input id="ed-cliente_nome" name="cliente_nome" maxlength="120" class="field-input"
-                 value="${esc(l.cliente_nome || '')}" />
+                 autocomplete="off"
+                 value="${esc(formatarNomeCliente(l.cliente_nome || ''))}" />
         </div>
         <div class="field mt-5">
           <label class="field-label" for="ed-valor_nf">Valor (R$)</label>
@@ -1454,6 +1704,11 @@ function ligarSubModoEditar(podeEditarCategoria) {
   const form = document.querySelector('#form-editar');
   if (!form) return;
   instalarPopSelectsEm(form);
+  instalarMascarasFormulario(form, {
+    idNF: 'ed-numero_nf',
+    idPedido: 'ed-codigo_pedido',
+    idCliente: 'ed-cliente_nome',
+  });
 
   const l = estado.lancamento;
   const f = (id) => document.querySelector(`#${id}`);
@@ -1477,17 +1732,19 @@ function ligarSubModoEditar(podeEditarCategoria) {
     erroEl.classList.add('hidden');
 
     const dados = {};
-    const novoNumero  = f('ed-numero_nf').value.trim();
-    const novoCodigo  = f('ed-codigo_pedido').value.trim();
-    const novoCliente = f('ed-cliente_nome').value.trim();
+    // Normaliza antes de comparar/salvar (mesma logica do submit
+    // inline acima): banco recebe digitos crus, nome title-cased.
+    const novoNumero  = soDigitos(f('ed-numero_nf').value);
+    const novoCodigo  = soDigitos(f('ed-codigo_pedido').value);
+    const novoCliente = formatarNomeCliente(f('ed-cliente_nome').value.trim());
     const novoValor   = Number(f('ed-valor_nf').value);
     const novaCat     = podeEditarCategoria ? f('ed-categoria')?.value : null;
 
-    if (novoNumero  && novoNumero  !== (l.numero_nf || ''))     dados.numero_nf     = novoNumero;
-    if (novoCodigo  && novoCodigo  !== (l.codigo_pedido || '')) dados.codigo_pedido = novoCodigo;
-    if (novoCliente && novoCliente !== (l.cliente_nome || ''))  dados.cliente_nome  = novoCliente;
-    if (novoValor   && novoValor   !== Number(l.valor_nf))      dados.valor_nf      = novoValor;
-    if (novaCat     && novaCat     !== l.categoria)             dados.categoria     = novaCat;
+    if (novoNumero  && novoNumero  !== soDigitos(l.numero_nf || ''))     dados.numero_nf     = novoNumero;
+    if (novoCodigo  && novoCodigo  !== soDigitos(l.codigo_pedido || '')) dados.codigo_pedido = novoCodigo;
+    if (novoCliente && novoCliente !== (l.cliente_nome || ''))           dados.cliente_nome  = novoCliente;
+    if (novoValor   && novoValor   !== Number(l.valor_nf))               dados.valor_nf      = novoValor;
+    if (novaCat     && novaCat     !== l.categoria)                      dados.categoria     = novaCat;
 
     if (Object.keys(dados).length === 0) {
       erroEl.classList.remove('hidden');
@@ -1528,7 +1785,7 @@ function abrirSubModoExcluir() {
   abrirModal({
     lateral: false,
     origemEvento: estado.origemEvento,
-    eyebrow: `NF ${l.numero_nf} · excluir`,
+    eyebrow: `NF ${formatarNumeroNF(l.numero_nf)} · excluir`,
     titulo:  'Excluir lançamento.',
     conteudo: `
       <div class="alert" style="margin-bottom:1.1rem;background:var(--c-alerta-bg);border-left:3px solid var(--c-alerta);color:var(--c-alerta);padding:0.85rem 1rem;border-radius:var(--r-sm)">
@@ -1634,7 +1891,7 @@ function abrirSubModoResolverObs() {
   abrirModal({
     lateral: false,
     origemEvento: estado.origemEvento,
-    eyebrow: `NF ${l.numero_nf} · resolver OBS`,
+    eyebrow: `NF ${formatarNumeroNF(l.numero_nf)} · resolver OBS`,
     titulo:  'Resolver categoria.',
     conteudo: `
       <div class="alert alert--info" style="margin-bottom:1.2rem;display:flex;gap:0.7rem;align-items:flex-start;padding:0.85rem 1rem;border-radius:0 var(--r-md) var(--r-md) 0">
@@ -1867,4 +2124,21 @@ function formatarTs(iso) {
   const hh  = String(d.getHours()).padStart(2, '0');
   const mm  = String(d.getMinutes()).padStart(2, '0');
   return `${dia}/${mes} ${hh}:${mm}`;
+}
+
+// Tempo relativo curto pra "aberto X" no resumo do modal gerenciar.
+// Sempre arredonda pra baixo na unidade maior cabivel.
+function tempoRelativoCurto(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1)  return 'agora mesmo';
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24)   return `há ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 30)   return `há ${d} dia${d > 1 ? 's' : ''}`;
+  const meses = Math.floor(d / 30);
+  if (meses < 12) return `há ${meses} ${meses > 1 ? 'meses' : 'mês'}`;
+  return 'há +1 ano';
 }

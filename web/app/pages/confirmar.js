@@ -28,7 +28,7 @@ export function renderConfirmar() {
       <main class="auth-card auth-card--lg" aria-labelledby="auth-titulo">
         <header class="auth-marca">
           <span class="auth-marca-simbolo" aria-hidden="true"></span>
-          <h1 class="auth-marca-wordmark">Caixa Boti</h1>
+          <h1 class="auth-marca-wordmark">Ledo</h1>
         </header>
         <h2 id="auth-titulo" class="auth-titulo">Confirme seu email</h2>
         <p class="auth-subtitulo">
@@ -60,7 +60,7 @@ export function renderConfirmar() {
         </p>
       </main>
 
-      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Caixa Boti</footer>
+      <footer class="auth-footer">© ${new Date().getFullYear()} Plexa Lab&apos;s · Ledo</footer>
     </div>
   `;
 

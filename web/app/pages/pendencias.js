@@ -7,7 +7,7 @@ import { supabase } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { abrirModalEditarLancamento } from '../../components/modal-editar-lancamento.js';
 import { LABEL_CATEGORIA, dataLonga, CATEGORIAS } from '../dominio.js';
-import { formatBRL } from '../utils.js';
+import { formatBRL, formatarNumeroNF, formatarNomeCliente } from '../utils.js';
 import { debounce } from '../utils.js';
 
 let canalPend = null;
@@ -298,8 +298,8 @@ function itemPendencia(p, i, sev) {
         </div>
         <div class="pnd-item-corpo">
           <div class="pnd-item-head">
-            <span class="pnd-item-nf">NF ${esc(p.numero_nf)}</span>
-            <span class="pnd-item-cliente">${esc(p.cliente_nome || '— sem cliente —')}</span>
+            <span class="pnd-item-nf">NF ${esc(formatarNumeroNF(p.numero_nf))}</span>
+            <span class="pnd-item-cliente">${esc(formatarNomeCliente(p.cliente_nome) || '— sem cliente —')}</span>
           </div>
           <div class="pnd-item-meta">
             <span>${esc(dataLonga(dataCx))}</span>

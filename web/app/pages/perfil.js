@@ -232,7 +232,7 @@ function abrirEditarPerfil({ nome, sobrenome }) {
     titulo:  'Editar perfil.',
     conteudo: `
       <p class="text-body" style="font-size:0.9rem;color:var(--ui-ink-3);margin-bottom:1.3rem;line-height:1.55">
-        Como você aparece no Caixa Boti — o nome vai na saudação do painel
+        Como você aparece no Ledo — o nome vai na saudação do painel
         e aqui no seu perfil.
       </p>
       <form id="form-perfil" novalidate>

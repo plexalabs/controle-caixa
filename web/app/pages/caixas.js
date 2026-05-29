@@ -9,7 +9,7 @@
 import { supabase } from '../supabase.js';
 import { renderShell, ligarShell } from '../shell.js';
 import { ESTADO_CAIXA } from '../dominio.js';
-import { formatBRL } from '../utils.js';
+import { formatBRL, formatarNumeroNF, formatarNomeCliente } from '../utils.js';
 import { navegar } from '../router.js';
 
 // Estado do filtro (so este modulo)
@@ -262,11 +262,12 @@ function itemCaixa(c, idx) {
   const diaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(data).replace('.', '').toLowerCase();
   const ehHoje = isoHoje() === c.data;
 
+  // "Em conferência" e' longo; abreviamos no badge pra nao espremer o resto.
   const estadoCfg = {
-    aberto:         { rotulo: 'Aberto',         tone: 'ok' },
-    em_conferencia: { rotulo: 'Em conferência', tone: 'warn' },
-    fechado:        { rotulo: 'Fechado',        tone: 'neutral' },
-    arquivado:      { rotulo: 'Arquivado',      tone: 'muted' },
+    aberto:         { rotulo: 'Aberto',      tone: 'ok' },
+    em_conferencia: { rotulo: 'Conferência', tone: 'warn' },
+    fechado:        { rotulo: 'Fechado',     tone: 'neutral' },
+    arquivado:      { rotulo: 'Arquivado',   tone: 'muted' },
   };
   const e = estadoCfg[c.estado] || { rotulo: c.estado, tone: 'neutral' };
   const delay = `style="animation-delay:${Math.min(idx * 35, 280)}ms"`;
@@ -277,7 +278,6 @@ function itemCaixa(c, idx) {
     disponivel_retirada: 'Retirar', obs: 'OBS',
   };
 
-  // Chips de top-3 categorias (so se houver lancamentos)
   const chipsCat = c._topCats.map(t => `
     <span class="cx2-item-cat-chip" data-cat="${esc(t.cat)}">
       <span class="cx2-item-cat-rotulo">${esc(rotuloCat[t.cat] || t.cat)}</span>
@@ -285,55 +285,47 @@ function itemCaixa(c, idx) {
     </span>
   `).join('');
 
-  // Detecta "alerta" — caixa com pendencia urgente OU muito acumulo
-  // de pendentes (> 5). Forca destaque vermelho.
+  // Stats inline: cada metrica em <strong>N</strong> rotulo, com ·
+  // como separador. Aceita wrap natural sem embolar.
+  const statsInline = [
+    `<span class="cx2-item-stat"><strong>${total}</strong> lanç.</span>`,
+    `<span class="cx2-item-stat" data-pend="${pend > 0 ? 'sim' : 'nao'}"><strong>${pend}</strong> pend.</span>`,
+    c._resolvidos > 0
+      ? `<span class="cx2-item-stat"><strong>${c._resolvidos}</strong> resolv.</span>`
+      : '',
+  ].filter(Boolean).join('<span class="cx2-item-stat-sep" aria-hidden="true">·</span>');
+
   const alerta = (c._criticas > 0 || (pend ?? 0) >= 5) ? 'critica' : '';
 
   return `
     <li>
       <a href="/caixa/${c.data}" data-link class="cx2-item"
-         data-estado="${c.estado}" data-alerta="${alerta}" ${delay}>
-        <div class="cx2-item-topo">
-          <div class="cx2-item-data">
-            <div class="cx2-item-dia">${dia}</div>
-            <div class="cx2-item-mes">/${mes}</div>
-            <div class="cx2-item-semana">${esc(diaSemana)}</div>
-            ${ehHoje ? '<div class="cx2-item-marca">hoje</div>' : ''}
-          </div>
+         data-estado="${c.estado}" data-alerta="${alerta}" ${ehHoje ? 'data-hoje="sim"' : ''} ${delay}>
+        <header class="cx2-item-head">
+          <span class="cx2-item-data" aria-label="dia ${dia} do mês ${mes}">
+            <span class="cx2-item-dia">${dia}</span><span class="cx2-item-mes">/${mes}</span>
+          </span>
+          <span class="cx2-item-semana">
+            ${esc(diaSemana)}
+            ${ehHoje ? '<span class="cx2-item-hoje">hoje</span>' : ''}
+          </span>
+          <span class="cx2-item-badge" data-tone="${e.tone}">${esc(e.rotulo)}</span>
+        </header>
 
-          <div class="cx2-item-meio">
-            <div class="cx2-item-stats">
-              <span class="cx2-item-stat">
-                <span class="cx2-item-stat-val">${total}</span>
-                <span class="cx2-item-stat-lab">lanç.</span>
-              </span>
-              <span class="cx2-item-stat" data-pend="${pend > 0 ? 'sim' : 'nao'}">
-                <span class="cx2-item-stat-val">${pend}</span>
-                <span class="cx2-item-stat-lab">pend.</span>
-              </span>
-              ${c._resolvidos > 0 ? `
-                <span class="cx2-item-stat">
-                  <span class="cx2-item-stat-val">${c._resolvidos}</span>
-                  <span class="cx2-item-stat-lab">resolv.</span>
-                </span>` : ''}
-            </div>
-          </div>
-
-          <div class="cx2-item-direita">
-            <span class="cx2-item-badge" data-tone="${e.tone}">${esc(e.rotulo)}</span>
-            <span class="cx2-item-valor">${formatBRL(valor)}</span>
-          </div>
+        <div class="cx2-item-body">
+          <span class="cx2-item-valor">${formatBRL(valor)}</span>
+          <span class="cx2-item-stats">${statsInline}</span>
         </div>
 
-        ${(chipsCat || c._criticas > 0) ? `
-          <div class="cx2-item-resumo">
-            ${chipsCat ? `<div class="cx2-item-cats">${chipsCat}</div>` : '<span></span>'}
-            ${c._criticas > 0 ? `
-              <span class="cx2-item-alerta" title="${c._criticas} pendência${c._criticas > 1 ? 's' : ''} crítica${c._criticas > 1 ? 's' : ''}">
-                ${svgAlerta()} ${c._criticas} crítica${c._criticas > 1 ? 's' : ''}
-              </span>` : ''}
-          </div>
-        ` : ''}
+        <footer class="cx2-item-resumo">
+          ${chipsCat
+            ? `<div class="cx2-item-cats">${chipsCat}</div>`
+            : `<span class="cx2-item-vazio-tag">Sem lançamentos</span>`}
+          ${c._criticas > 0 ? `
+            <span class="cx2-item-alerta" title="${c._criticas} pendência${c._criticas > 1 ? 's' : ''} crítica${c._criticas > 1 ? 's' : ''}">
+              ${svgAlerta()} ${c._criticas} crítica${c._criticas > 1 ? 's' : ''}
+            </span>` : ''}
+        </footer>
       </a>
     </li>`;
 }
@@ -427,9 +419,13 @@ function bucketHtml({ tone, rotulo, count, valor, nota }) {
   return `
     <div class="cx2-bucket" data-tone="${tone}" data-zero="${count === 0}">
       <span class="cx2-bucket-num">${count}</span>
-      <span class="cx2-bucket-rotulo">${esc(rotulo)}</span>
-      <span class="cx2-bucket-nota">${esc(nota)}</span>
-      ${valor > 0 ? `<span class="cx2-bucket-valor">${formatBRL(valor)}</span>` : ''}
+      <div class="cx2-bucket-corpo">
+        <span class="cx2-bucket-rotulo">${esc(rotulo)}</span>
+        <span class="cx2-bucket-meta">
+          <span>${esc(nota)}</span>
+          ${valor > 0 ? `<span class="cx2-bucket-sep" aria-hidden="true">·</span><span class="cx2-bucket-valor">${formatBRL(valor)}</span>` : ''}
+        </span>
+      </div>
     </div>`;
 }
 
@@ -438,9 +434,15 @@ function itemPendencia(p) {
   return `
     <li>
       <a href="/caixa/${p.data_caixa}" data-link class="cx2-pend">
-        <span class="cx2-pend-nf">NF ${esc(p.numero_nf)}</span>
-        <span class="cx2-pend-cliente">${esc(p.cliente_nome)}</span>
-        <span class="cx2-pend-idade">${p.idade_dias_uteis}d · ${dataCurta}</span>
+        <div class="cx2-pend-head">
+          <span class="cx2-pend-nf">NF ${esc(formatarNumeroNF(p.numero_nf))}</span>
+          <span class="cx2-pend-cliente">${esc(formatarNomeCliente(p.cliente_nome))}</span>
+        </div>
+        <div class="cx2-pend-meta">
+          <span class="cx2-pend-idade">${p.idade_dias_uteis}d</span>
+          <span class="cx2-pend-sep" aria-hidden="true">·</span>
+          <span>${dataCurta}</span>
+        </div>
       </a>
     </li>`;
 }

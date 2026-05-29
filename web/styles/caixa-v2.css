@@ -10,9 +10,18 @@
     color: var(--ui-ink);
 }
 @media (max-width: 767px) {
-    .cxd { padding: 1.1rem 1rem 2.5rem; }
-    .cxd-title { font-size: 1.15rem; }
-    .cxd-header { margin-bottom: 1.1rem; }
+    /* padding-bottom generoso + safe-area pro iOS — assim o ultimo
+       lancamento nao fica escondido atras de nenhuma barra do sistema */
+    .cxd {
+        padding: 1.1rem 1rem;
+        padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    }
+    /* Breadcrumb "Todos os caixas" sai no mobile — a sidebar pull-down
+       e o botao de voltar do browser ja servem o mesmo proposito. */
+    .cxd-breadcrumb { display: none; }
+    .cxd-title { font-size: 1.45rem; letter-spacing: -0.022em; }
+    .cxd-sub   { font-size: 0.8rem; }
+    .cxd-header { margin-bottom: 1.1rem; padding-bottom: 0.9rem; }
 
     /* Toolbar empilha: filtro full-width em cima, ações dividindo a
        linha de baixo (o "+ Novo lançamento" ganha destaque). */
@@ -42,51 +51,63 @@
 .cxd-link-back svg { transition: transform 160ms var(--ui-ease); }
 .cxd-link-back:hover svg { transform: translateX(-2px); }
 
+/* Header — o titulo (data) e a identidade desta tela: dominante,
+   acompanhado de eyebrow editorial em cima e sub com meta abaixo.
+   Badge de estado pareado no canto direito (alinhamento baseline com
+   o titulo, nao com o sub) — dialoga com a hierarquia em vez de boiar. */
 .cxd-header {
     display: flex;
-    align-items: flex-end;
+    align-items: baseline;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1rem 1.5rem;
+    margin-bottom: 1.4rem;
+    padding-bottom: 1.1rem;
+    border-bottom: 1px solid var(--ui-border);
     flex-wrap: wrap;
 }
+.cxd-header-meta { min-width: 0; }
+.cxd-header-direita { flex-shrink: 0; }
+
 .cxd-eyebrow {
-    font-size: 0.66rem;
+    font-size: 0.64rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.2em;
     color: var(--ui-accent);
-    margin: 0 0 0.35rem;
+    margin: 0 0 0.5rem;
 }
 .cxd-title {
-    font-size: 1.45rem;
+    font-size: 1.85rem;
     font-weight: 700;
-    letter-spacing: -0.022em;
+    letter-spacing: -0.028em;
     color: var(--ui-ink);
     margin: 0;
-    line-height: 1.2;
-    text-transform: capitalize;
+    line-height: 1.15;
+    /* JS faz a capitalizacao da primeira letra; text-transform:capitalize
+       quebrava palavras compostas como "quarta-feira" e conectivos "de". */
 }
 .cxd-sub {
-    font-size: 0.8rem;
+    font-size: 0.86rem;
     color: var(--ui-ink-3);
-    margin: 0.25rem 0 0;
+    margin: 0.4rem 0 0;
     font-weight: 500;
+    font-variant-numeric: tabular-nums;
 }
 
 .cxd-badge {
-    font-size: 0.74rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 0.3rem 0.7rem;
+    letter-spacing: 0.12em;
+    padding: 0.32rem 0.7rem;
     border-radius: 999px;
     background: var(--ui-surface-2);
     color: var(--ui-ink-3);
     line-height: 1.4;
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.45rem;
+    white-space: nowrap;
 }
 .cxd-badge::before {
     content: '';
@@ -154,50 +175,102 @@
     .cxd-kpi--total { grid-column: 1 / -1; }
 }
 
+/* Widget KPI: label (eyebrow) a esquerda, valor dominante a direita,
+   ambos na MESMA LINHA com baseline alinhado. Sub-meta opcional
+   na linha abaixo (ocupando largura cheia).
+   Hierarquia: VALOR (peso) > LABEL (caps) > SUB (cinza pequeno). */
 .cxd-kpi {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: baseline;
+    column-gap: 0.85rem;
+    row-gap: 0.5rem;
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-md);
-    padding: 0.7rem 0.85rem;
-    transition: border-color 160ms var(--ui-ease);
+    padding: 0.85rem 1rem 0.9rem;
+    transition: border-color 160ms var(--ui-ease), background 160ms var(--ui-ease);
+    min-width: 0;
 }
 .cxd-kpi:hover { border-color: var(--ui-border-strong); }
-.cxd-kpi[data-zero="true"] { opacity: 0.55; }
+.cxd-kpi[data-zero="true"] { opacity: 0.5; }
 .cxd-kpi-label {
+    grid-column: 1;
+    grid-row: 1;
     font-size: 0.66rem;
     color: var(--ui-ink-3);
-    font-weight: 600;
-    text-transform: lowercase;
-    letter-spacing: 0.015em;
-    line-height: 1.3;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    line-height: 1.2;
+    /* Permite quebrar em 2 linhas quando o card e estreito ("EM
+       CONFERENCIA" etc.). A value continua alinhada com a primeira
+       linha do label via align-items: baseline no .cxd-kpi. */
 }
 .cxd-kpi-value {
-    font-size: 1.2rem;
+    grid-column: 2;
+    /* Span as duas linhas e centraliza vertical — assim o valor fica
+       no meio do "respiro" entre label e sub no card do Total, e nos
+       cards sem sub (row 2 vazia) continua na altura do label. */
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--ui-ink);
-    letter-spacing: -0.022em;
+    letter-spacing: -0.028em;
     font-variant-numeric: tabular-nums;
-    line-height: 1.1;
+    line-height: 1;
+    white-space: nowrap;
+    text-align: right;
 }
 .cxd-kpi-sub {
-    font-size: 0.68rem;
+    /* Sub fica DEBAIXO do label (mesma coluna esquerda), com respiro
+       vertical do row-gap. O valor mantem seu horizonte (linha 1) e
+       o sub apenas descreve o que o label representa. */
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 0.72rem;
     color: var(--ui-ink-3);
     font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    margin-top: 0;
+    text-align: left;
 }
 
-/* Total — destaque sólido suave verde (sem gradient) */
+/* MOBILE: mesmo grid baseline-aligned, so ajusta padding/sizes.
+   font-size do valor usa clamp() pra escalar entre 1.05rem (iPhone
+   SE 320px) e 1.4rem (tablets 600px) — sempre cabe sem vazar. */
+@media (max-width: 600px) {
+    .cxd-kpi {
+        padding: 0.7rem 0.9rem;
+        column-gap: 0.55rem;
+        min-width: 0;
+    }
+    .cxd-kpi-label { font-size: 0.62rem; letter-spacing: 0.14em; min-width: 0; }
+    .cxd-kpi-sub   { font-size: 0.7rem; }
+    .cxd-kpi-value {
+        font-size: clamp(1.05rem, 4.5vw, 1.4rem);
+        min-width: 0;
+        /* Fallback: quebra em caractere se nao couber (raro) */
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+}
+
+/* Total — destaque sólido suave verde. Valor com a MESMA medida dos
+   outros KPIs (1.5rem) pra alinhar visualmente no mesmo horizonte;
+   o destaque vem do background accent-soft e da cor accent do valor. */
 .cxd-kpi--total {
     background: var(--ui-accent-soft);
-    border-color: color-mix(in srgb, var(--ui-accent) 25%, var(--ui-border));
+    border-color: color-mix(in srgb, var(--ui-accent) 28%, var(--ui-border));
 }
 .cxd-kpi--total .cxd-kpi-value {
-    font-size: 1.35rem;
     color: var(--ui-accent);
 }
 .cxd-kpi--total .cxd-kpi-label { color: var(--ui-accent); font-weight: 700; }
+.cxd-kpi--total .cxd-kpi-sub   { color: var(--ui-accent-2); }
 
 /* Tons por estado dos lancamentos */
 .cxd-kpi[data-tom="analise"]   .cxd-kpi-value { color: var(--ui-info); }
@@ -205,47 +278,107 @@
 .cxd-kpi[data-tom="resolvido"] .cxd-kpi-value { color: var(--ui-accent); }
 .cxd-kpi[data-tom="cancelado"] .cxd-kpi-value { color: var(--ui-danger); }
 
-/* Linha de distribuicao por categoria — ocupa 1 linha cheia abaixo */
+/* Linha de distribuicao por categoria — faixa abaixo dos KPIs.
+   Anatomia: header (label + total) | chips com nº-primeiro. */
 .cxd-kpi-dist {
     grid-column: 1 / -1;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1.25rem;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.6rem 0.9rem;
+    padding: 0.85rem 1.1rem;
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-md);
-    flex-wrap: wrap;
+}
+@media (max-width: 740px) {
+    .cxd-kpi-dist { grid-template-columns: 1fr; }
+}
+
+/* Header — label editorial + total enxuto, separados por filete vertical
+   (desktop) ou empilhados (mobile). */
+.cxd-kpi-dist-head {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex-shrink: 0;
+    padding-right: 1.25rem;
+    border-right: 1px solid var(--ui-border);
+    min-width: 0;
+}
+@media (max-width: 740px) {
+    .cxd-kpi-dist-head {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.55rem;
+        padding-right: 0;
+        padding-bottom: 0.55rem;
+        border-right: 0;
+        border-bottom: 1px dashed var(--ui-border);
+    }
 }
 .cxd-kpi-dist-label {
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     color: var(--ui-ink-3);
-    font-weight: 600;
-    text-transform: lowercase;
-    letter-spacing: 0.01em;
-    flex-shrink: 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    line-height: 1.2;
 }
+.cxd-kpi-dist-total {
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+.cxd-kpi-dist-total strong {
+    color: var(--ui-ink);
+    font-weight: 700;
+    font-size: 0.92rem;
+    letter-spacing: -0.012em;
+    margin-right: 0.2rem;
+}
+
+/* Chips — agora numero PRIMEIRO (dado), nome depois (rotulo).
+   Inverte a leitura: voce ve "5 Pix" em vez de "Pix 5" — destaque
+   no que conta. */
 .cxd-kpi-dist-chips {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.45rem;
     flex-wrap: wrap;
     align-items: center;
+    min-width: 0;
 }
 .cxd-kpi-dist-chip {
     display: inline-flex;
     align-items: baseline;
-    gap: 0.3rem;
-    padding: 0.2rem 0.6rem;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
     background: var(--ui-surface-2);
     border-radius: 999px;
-    font-size: 0.78rem;
     line-height: 1.3;
+    transition: transform 160ms var(--ui-ease);
 }
-.cxd-kpi-dist-chip-nome { color: var(--ui-ink-2); font-weight: 600; }
+.cxd-kpi-dist-chip:hover { transform: translateY(-1px); }
 .cxd-kpi-dist-chip-n {
     font-weight: 700;
     color: var(--ui-ink);
     font-variant-numeric: tabular-nums;
+    font-size: 1rem;
+    letter-spacing: -0.018em;
+    line-height: 1;
+}
+.cxd-kpi-dist-chip-nome {
+    color: var(--ui-ink-2);
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: -0.005em;
+    text-transform: lowercase;
+}
+.cxd-kpi-dist-vazio {
+    font-size: 0.82rem;
+    color: var(--ui-ink-3);
+    font-style: italic;
 }
 .cxd-kpi-dist-chip[data-cat="pix"]         { background: rgba(15, 118, 110, 0.10); }
 .cxd-kpi-dist-chip[data-cat="pix"]         .cxd-kpi-dist-chip-nome { color: #0F766E; }
@@ -261,30 +394,53 @@
 .cxd-kpi-dist-chip[data-cat="obs"]         .cxd-kpi-dist-chip-nome { color: var(--ui-warn); }
 .cxd-kpi-dist-chip[data-cat="disponivel_retirada"] { background: rgba(139, 90, 43, 0.10); }
 .cxd-kpi-dist-chip[data-cat="disponivel_retirada"] .cxd-kpi-dist-chip-nome { color: #8B5A2B; }
-.cxd-kpi-dist-vazio {
-    font-size: 0.78rem;
-    color: var(--ui-ink-3);
-    font-style: italic;
-}
 
 /* ============================================================
-   Toolbar (filtros + acoes)
+   Toolbar (filtros + acoes) — STICKY logo abaixo do topbar
+   O topbar global tem ~3rem de altura (sticky top:0, z-index:20).
+   A toolbar gruda em top:3.25rem, com z-index menor e backdrop-blur
+   pra deixar a lista ler-se por baixo sem ofuscar os botoes da direita.
    ============================================================ */
 
 .cxd-toolbar {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 0.85rem;
     flex-wrap: wrap;
     justify-content: space-between;
+
+    position: sticky;
+    top: 3.25rem;
+    z-index: 12;
+    background: color-mix(in srgb, var(--ui-bg) 88%, transparent);
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    /* Sangra horizontal pra ocupar a largura cheia do .cxd (1.75rem
+       de padding do container), com filete inferior que separa da
+       lista sem cortes nas laterais. */
+    margin: 0 -1.75rem 0.85rem;
+    padding: 0.7rem 1.75rem;
+    box-shadow: 0 1px 0 0 var(--ui-border);
 }
+
 .cxd-acoes {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
     flex-shrink: 0;
+    margin-left: auto;
+}
+@media (max-width: 767px) {
+    /* No mobile, o .app-conteudo tem padding-top: 44px reservado pro
+       grip de pull-down da sidebar (sidebar-v2.css). A toolbar sticky
+       precisa colar LOGO ABAIXO desse grip — senao ela some atras dele
+       quando rola e os primeiros itens da lista se atropelam. */
+    .cxd-toolbar {
+        top: 44px;
+        margin: 0 -1rem 0.7rem;
+        padding: 0.6rem 1rem;
+    }
 }
 @media (max-width: 600px) {
     .cxd-toolbar { gap: 0.55rem; }
@@ -358,16 +514,25 @@
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-md);
     box-shadow: var(--ui-shadow-lg);
+    /* IMPORTANTE: o pop-select cxd usa menu INLINE (child do field).
+       Quando aberto, o menu precisa extender pra baixo SEM ser clipado.
+       Por isso o overflow do popover precisa ser visible — o header ja
+       tem border-radius proprio. */
     z-index: 30;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
+    /* Variavel ajustada via JS — sobe o popover quando ele transborda
+       a viewport (ex: dropdown interno expandiu). Default 0px. */
+    --cxd-pop-translateY: 0px;
+    transform: translateY(var(--cxd-pop-translateY));
+    transition: transform 200ms var(--ui-ease), opacity 160ms var(--ui-ease);
     animation: cxd-filter-fade 160ms var(--ui-ease);
 }
 .cxd-filter-pop[hidden] { display: none; }
 @keyframes cxd-filter-fade {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 .cxd-filter-pop-head {
@@ -377,6 +542,9 @@
     padding: 0.7rem 0.85rem 0.6rem;
     border-bottom: 1px solid var(--ui-border);
     background: var(--ui-surface-2);
+    /* Mantem o radius no header agora que o popover usa overflow: visible */
+    border-top-left-radius: var(--ui-r-md);
+    border-top-right-radius: var(--ui-r-md);
 }
 .cxd-filter-pop-title {
     font-size: 0.85rem;
@@ -412,6 +580,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
+    /* Ancora pra menu de pop-select inline (data-pop-anchor="parent") */
+    position: relative;
 }
 .cxd-filter-label {
     font-size: 0.68rem;
@@ -445,6 +615,161 @@ select.cxd-filter-input {
     background-position: right 0.7rem center;
     background-size: 9px 5px;
     cursor: pointer;
+}
+
+/* ============================================================
+   Pop-select skin do caixa (.cxd-pop) — trigger e menu se
+   "fundem" visualmente quando o select esta aberto.
+   Trigger fica com borda solida tinta e cantos inferiores retos;
+   menu portado para body ganha cantos superiores retos e top
+   border zerado, encostando exatamente abaixo do trigger.
+   ============================================================ */
+.cxd-filter-pop .pop-select-trigger {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-r-sm);
+    padding: 0.5rem 0.7rem;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.86rem;
+    color: var(--ui-ink);
+    line-height: 1.3;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 160ms var(--ui-ease),
+                border-radius 160ms var(--ui-ease),
+                box-shadow 160ms var(--ui-ease);
+}
+.cxd-filter-pop .pop-select-trigger:hover {
+    border-color: var(--ui-border-strong);
+}
+.cxd-filter-pop .pop-select-trigger:focus-visible {
+    outline: 0;
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent);
+}
+.cxd-filter-pop .pop-select-trigger[aria-expanded="true"] {
+    border-color: var(--ui-ink);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    background: var(--ui-surface);
+    /* halo abaixo desligado para a "fusao" parecer um bloco unico */
+    box-shadow: none;
+}
+.cxd-filter-pop .pop-select-trigger-texto.is-placeholder {
+    color: var(--ui-ink-3);
+    font-style: normal;
+    font-weight: 500;
+}
+.cxd-filter-pop .pop-select-trigger-caret {
+    color: var(--ui-ink-3);
+}
+.cxd-filter-pop .pop-select-trigger[aria-expanded="true"] .pop-select-trigger-caret {
+    color: var(--ui-ink);
+}
+
+/* Menu portado — quando carrega .cxd-pop, vira "extensao" do trigger:
+   - margin-top -7px desfaz o gap de 6px da posicionar() + 1px de borda
+   - sem border-top (a borda inferior do trigger ja faz o "solo")
+   - cantos superiores retos, inferiores arredondados
+   - mesma cor de borda tinta (var(--ui-ink)) que o trigger expandido
+   - box-sizing: border-box pra que o width = r.width (definido em JS)
+     valha tambem visualmente (sem padding/border alargando alem do trigger)
+   - padding horizontal ZERO pra items ficarem flush com a borda; o
+     padding lateral fica nos proprios items (mesmo valor do trigger, 0.7rem),
+     garantindo que o texto dos items alinha com o texto do trigger. */
+.pop-select-menu.cxd-pop {
+    box-sizing: border-box;
+    margin-top: -7px;
+    margin-left: 0;
+    margin-right: 0;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-ink);
+    border-top: 0;
+    border-radius: 0 0 var(--ui-r-sm) var(--ui-r-sm);
+    padding: 0.3rem 0;
+    box-shadow:
+        0 12px 24px -12px rgba(20, 20, 20, 0.18),
+        0 4px 8px -4px rgba(20, 20, 20, 0.08);
+    /* Anula o transform scale(0.99) + translateY(-6px) do legado;
+       o legado escala a partir de top center, o que desloca o
+       conteudo lateralmente em sub-pixels durante a animacao e em
+       alguns browsers persiste apos. Aqui so animamos opacidade. */
+    transform: none;
+    transform-origin: top left;
+    transition: opacity 160ms var(--ui-ease);
+    /* Reserva espaco pra scrollbar (quando aparecer) sem encolher
+       o conteudo — assim os items nao "pulam" ao abrir. */
+    scrollbar-gutter: stable;
+}
+.pop-select-menu.cxd-pop.is-aberto    { transform: none; opacity: 1; }
+.pop-select-menu.cxd-pop.is-fechando  { transform: none; opacity: 0; }
+
+/* Sem filete ambar lateral neste skin */
+.pop-select-menu.cxd-pop::before { display: none; }
+
+/* Variante INLINE (data-pop-anchor="parent" no select): o menu e
+   filho ABSOLUTE do .cxd-filter-field. Pop-out classico — NAO empurra
+   conteudo, NAO muda tamanho do popover. Tem scroll interno proprio.
+   Max-height responsiva (`min` entre rem absoluto e % da viewport)
+   garante que mesmo em celulares minusculos o dropdown caiba dentro
+   do body, sem clipar a ultima opcao. */
+.pop-select-menu.cxd-pop.pop-select-menu--inline {
+    position: absolute !important;
+    top: calc(100% - 1px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: auto !important;
+    width: auto !important;
+    z-index: 6;
+    max-height: min(11rem, 32dvh);
+    overflow-y: auto;
+    /* Bordas pra fundir com o trigger expandido pelo topo */
+    border: 1px solid var(--ui-ink);
+    border-top: 0;
+    border-radius: 0 0 var(--ui-r-sm) var(--ui-r-sm);
+    box-shadow: 0 6px 16px -6px rgba(20, 20, 20, 0.18);
+    /* Scrollbar visivel quando ha overflow (sinaliza "tem mais opcoes") */
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-border-strong) transparent;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+.pop-select-menu.cxd-pop.pop-select-menu--inline::-webkit-scrollbar { width: 6px; }
+.pop-select-menu.cxd-pop.pop-select-menu--inline::-webkit-scrollbar-thumb {
+    background: var(--ui-border-strong);
+    border-radius: 3px;
+}
+.pop-select-menu.cxd-pop.pop-select-menu--inline::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Itens — banda horizontal full-width dentro do menu. Padding lateral
+   0.7rem espelha o padding lateral do trigger (texto alinhado).
+   Sem border-radius nos itens — preserva a sensacao de "tubo unico"
+   abaixo do trigger; selecao marcada por filete lateral accent. */
+.pop-select-menu.cxd-pop .pop-select-item {
+    padding: 0.5rem 0.7rem;
+    border-radius: 0;
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.86rem;
+    color: var(--ui-ink);
+    background: transparent;
+    transition: background 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+.pop-select-menu.cxd-pop .pop-select-item:hover,
+.pop-select-menu.cxd-pop .pop-select-item.is-foco {
+    background: var(--ui-surface-2);
+    color: var(--ui-ink);
+}
+.pop-select-menu.cxd-pop .pop-select-item[aria-selected="true"] {
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent-2);
+    font-weight: 700;
+}
+.pop-select-menu.cxd-pop .pop-select-item[aria-selected="true"]:hover,
+.pop-select-menu.cxd-pop .pop-select-item[aria-selected="true"].is-foco {
+    background: color-mix(in srgb, var(--ui-accent-soft) 82%, var(--ui-accent));
+    color: var(--ui-accent-2);
 }
 
 /* Toggle switch (Ocultar resolvidos) */
@@ -500,7 +825,40 @@ select.cxd-filter-input {
 }
 .cxd-btn--link:hover { background: var(--ui-surface-3); color: var(--ui-ink-2); }
 
-/* Em mobile (<600px), popover ocupa quase a tela toda alinhado a esquerda */
+/* ============================================================
+   POPOVER COMO MODAL — header e footer SEMPRE visiveis (flex-shrink:0),
+   body scrolla internamente entre eles (flex:1 + min-height:0 +
+   overflow-y:auto). Popover com overflow:hidden contem tudo dentro
+   do seu max-height — garantindo que Limpar/Aplicar fiquem na borda
+   inferior, alcancaveis em qualquer tela.
+
+   Os dropdowns internos (Categoria/Estado) sao position:absolute MAS
+   ficam clipados pelo body — por isso definimos max-height: 11rem +
+   overflow-y: auto neles, pra que TODAS as opcoes sejam acessiveis
+   via scroll proprio do dropdown.
+   ============================================================ */
+.cxd-filter-pop {
+    max-height: calc(100vh - 5rem);
+    overflow: hidden;
+}
+.cxd-filter-pop-head { flex-shrink: 0; }
+.cxd-filter-body {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-border-strong) transparent;
+}
+.cxd-filter-body::-webkit-scrollbar { width: 6px; }
+.cxd-filter-body::-webkit-scrollbar-thumb { background: var(--ui-border-strong); border-radius: 3px; }
+.cxd-filter-body::-webkit-scrollbar-track { background: transparent; }
+.cxd-filter-pop-foot { flex-shrink: 0; }
+
+/* Mobile (<600px) — popover ocupa quase a tela toda alinhado a
+   esquerda. Mantem position: absolute (ancorado abaixo do trigger),
+   sem modal/bottom-sheet. */
 @media (max-width: 600px) {
     .cxd-filter-pop {
         left: 0;
@@ -558,10 +916,71 @@ select.cxd-filter-input {
     text-decoration: none;
     transition: background 160ms var(--ui-ease);
     line-height: 1.3;
+    position: relative;
 }
 .cxd-hint-pend:hover { background: #FDE68A; }
 .cxd-hint-pend.hidden { display: none; }
 .cxd-hint-pend strong { color: var(--ui-warn); }
+
+/* Tooltip no hover/focus mostrando o motivo (texto longo).
+   Aparece abaixo do botao, ancorado a direita. */
+.cxd-hint-pend[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--ui-ink);
+    color: var(--ui-bg);
+    font-size: 0.74rem;
+    font-weight: 500;
+    padding: 0.45rem 0.7rem;
+    border-radius: var(--ui-r-sm);
+    line-height: 1.35;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px -8px rgba(20, 20, 20, 0.35);
+    opacity: 0;
+    transform: translateY(-3px);
+    transition: opacity 160ms var(--ui-ease), transform 160ms var(--ui-ease);
+    pointer-events: none;
+    z-index: 30;
+}
+.cxd-hint-pend[data-tooltip]::before {
+    /* Setinha pequena ligando o tooltip ao botao */
+    content: '';
+    position: absolute;
+    top: calc(100% + 3px);
+    right: 1rem;
+    width: 8px; height: 8px;
+    background: var(--ui-ink);
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: opacity 160ms var(--ui-ease);
+    pointer-events: none;
+    z-index: 31;
+}
+.cxd-hint-pend[data-tooltip]:hover::after,
+.cxd-hint-pend[data-tooltip]:focus-visible::after {
+    opacity: 1;
+    transform: translateY(0);
+}
+.cxd-hint-pend[data-tooltip]:hover::before,
+.cxd-hint-pend[data-tooltip]:focus-visible::before {
+    opacity: 1;
+}
+@media (max-width: 480px) {
+    /* Mobile: tooltip ancorado a esquerda do canto (botao normalmente
+       fica no canto esquerdo da toolbar) e com text-wrap pra caber */
+    .cxd-hint-pend[data-tooltip]::after {
+        white-space: normal;
+        max-width: 14rem;
+        right: auto;
+        left: 0;
+    }
+    .cxd-hint-pend[data-tooltip]::before {
+        right: auto;
+        left: 1rem;
+    }
+}
 
 /* ============================================================
    Lista de lancamentos
@@ -575,24 +994,33 @@ select.cxd-filter-input {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.5rem;
+}
+/* Mobile: o ultimo lancamento precisa de margem inferior generosa pra
+   nao ficar grudado no fim do scroll, alem do padding-bottom do .cxd.
+   Combina com env(safe-area-inset-bottom) ja aplicado no container. */
+@media (max-width: 767px) {
+    .cxd-lanc-lista > li:last-child { margin-bottom: 1.5rem; }
 }
 
+/* Card ampliado: mais respiro vertical, gap maior, hierarquia
+   leitora — dot | NF + hora | cliente + detalhe | valor + categoria.
+   Valor recebe o maior peso (1.15rem) por ser a metrica principal. */
 .cxd-lanc {
     display: grid;
-    grid-template-columns: 10px 6rem 1fr auto;
-    gap: 0.85rem;
+    grid-template-columns: 10px 6.5rem 1fr auto;
+    gap: 1rem;
     align-items: center;
     width: 100%;
     background: var(--ui-surface);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-r-md);
-    padding: 0.7rem 0.95rem 0.7rem 0.75rem;
+    padding: 0.95rem 1.15rem 0.95rem 0.85rem;
     text-align: left;
     cursor: pointer;
     font-family: inherit;
     color: inherit;
-    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+    transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease), background 160ms var(--ui-ease);
     position: relative;
 }
 .cxd-lanc:hover {
@@ -651,48 +1079,48 @@ select.cxd-filter-input {
     color: var(--ui-ink-3);
 }
 
-/* Esquerda: NF + hora */
+/* ESQUERDA — NF (identificador) em mono, hora abaixo discreta */
 .cxd-lanc-esq {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 0.2rem;
     line-height: 1.2;
     flex-shrink: 0;
 }
 .cxd-lanc-nf {
     font-family: 'Manrope', monospace;
-    font-size: 0.82rem;
+    font-size: 0.92rem;
     font-weight: 700;
     color: var(--ui-ink);
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.012em;
 }
 .cxd-lanc-hora {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     color: var(--ui-ink-3);
     font-variant-numeric: tabular-nums;
-    margin-top: 0.05rem;
+    font-weight: 500;
 }
 
-/* Meio: cliente + detalhe */
+/* MEIO — cliente domina, detalhe abaixo como meta */
 .cxd-lanc-meio {
     display: flex;
     flex-direction: column;
-    gap: 0.18rem;
+    gap: 0.22rem;
     min-width: 0;
 }
 .cxd-lanc-cliente {
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--ui-ink);
-    letter-spacing: -0.012em;
+    letter-spacing: -0.014em;
     line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 .cxd-lanc-detalhe {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     color: var(--ui-ink-3);
     line-height: 1.35;
     overflow: hidden;
@@ -702,35 +1130,36 @@ select.cxd-filter-input {
 .cxd-lanc-detalhe--analise {
     color: var(--ui-info);
     font-style: italic;
+    font-weight: 500;
 }
 
-/* Direita: valor + categoria */
+/* DIREITA — valor com peso maximo (metrica principal) + chip */
 .cxd-lanc-dir {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 0.25rem;
+    gap: 0.32rem;
     text-align: right;
     flex-shrink: 0;
 }
 .cxd-lanc-valor {
-    font-size: 0.95rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: var(--ui-ink);
-    letter-spacing: -0.018em;
+    letter-spacing: -0.022em;
     font-variant-numeric: tabular-nums;
-    line-height: 1.15;
+    line-height: 1.1;
 }
 .cxd-lanc-cat {
-    font-size: 0.62rem;
+    font-size: 0.64rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 0.12rem 0.45rem;
+    letter-spacing: 0.12em;
+    padding: 0.18rem 0.55rem;
     border-radius: 999px;
     background: var(--ui-surface-2);
     color: var(--ui-ink-3);
-    line-height: 1.4;
+    line-height: 1.35;
     white-space: nowrap;
 }
 .cxd-lanc-cat[data-em-analise="true"]              { background: rgba(29, 78, 216, 0.10); color: var(--ui-info); }
@@ -742,27 +1171,64 @@ select.cxd-filter-input {
 .cxd-lanc-cat[data-cat="obs"]                      { background: var(--ui-warn-soft);     color: var(--ui-warn); }
 .cxd-lanc-cat[data-cat="disponivel_retirada"]      { background: rgba(139, 90, 43, 0.12); color: #8B5A2B; }
 
+/* ============================================================
+   MOBILE — card de lancamento em 2 linhas (cliente+valor na primeira,
+   NF+hora+categoria na segunda). Hierarquia: VALOR > CLIENTE > NF.
+   Status dot centralizado verticalmente entre as 2 linhas.
+   ============================================================ */
 @media (max-width: 600px) {
     .cxd-lanc {
-        grid-template-columns: 8px 1fr;
-        grid-template-rows: auto auto auto;
-        gap: 0.4rem 0.7rem;
-        padding: 0.7rem 0.85rem 0.7rem 0.7rem;
+        grid-template-columns: 10px 1fr auto;
+        grid-template-rows: auto auto;
+        grid-template-areas:
+            "status meio  dir"
+            "status esq   dir";
+        gap: 0.2rem 0.85rem;
+        padding: 0.85rem 1rem;
+        align-items: center;
     }
-    .cxd-lanc-status { grid-row: 1 / span 3; align-self: start; margin-top: 0.4rem; }
+    .cxd-lanc-status {
+        grid-area: status;
+        align-self: center;
+    }
+    .cxd-lanc-meio {
+        grid-area: meio;
+        min-width: 0;
+    }
     .cxd-lanc-esq {
+        grid-area: esq;
         flex-direction: row;
-        gap: 0.65rem;
+        gap: 0.5rem;
         align-items: baseline;
     }
-    .cxd-lanc-hora { margin-top: 0; }
     .cxd-lanc-dir {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        padding-top: 0.4rem;
-        border-top: 1px dashed var(--ui-border);
+        grid-area: dir;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 0.32rem;
+        padding-top: 0;
+        border-top: 0;
     }
+    /* Tipografia: valor domina, cliente sobe um pouco, NF/hora ficam
+       como meta secundaria. */
+    .cxd-lanc-nf      { font-size: 0.78rem; font-weight: 600; color: var(--ui-ink-3); }
+    .cxd-lanc-hora    { font-size: 0.72rem; }
+    .cxd-lanc-cliente { font-size: 1rem; }
+    .cxd-lanc-detalhe { font-size: 0.74rem; }
+    .cxd-lanc-valor   { font-size: 1.08rem; line-height: 1.1; }
+    .cxd-lanc-cat     { font-size: 0.6rem; padding: 0.14rem 0.45rem; }
+}
+
+/* Em telas muito estreitas (<360px iPhone SE etc.), reduz mais um pouco
+   pra nao quebrar — mas mantem hierarquia */
+@media (max-width: 360px) {
+    .cxd-lanc {
+        padding: 0.75rem 0.85rem;
+        gap: 0.18rem 0.7rem;
+    }
+    .cxd-lanc-cliente { font-size: 0.95rem; }
+    .cxd-lanc-valor   { font-size: 1rem; }
 }
 
 /* ============================================================
