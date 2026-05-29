@@ -1,4 +1,4 @@
-// supabase.js — cliente Supabase configurado para o Caixa Boti.
+// supabase.js — cliente Supabase configurado para o Ledo.
 //
 // Carrega supabase-js v2 via npm (gerenciado pelo Vite). As credenciais
 // vem do .env.local via import.meta.env.VITE_*. URL e anon key sao
@@ -35,7 +35,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     autoRefreshToken:  true,
     detectSessionInUrl: true,
     storage:           authStorageAdapter,
-    storageKey:        'caixa-boti-auth',
+    storageKey:        'ledo-auth',
     flowType:          'pkce',
   },
   // Configura o realtime para CP3 — ainda não subscreve nada aqui.
