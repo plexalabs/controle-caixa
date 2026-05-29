@@ -10,7 +10,6 @@ import '../styles/tokens.css';
 import '../styles/components.css';
 import '../styles/auth.css';
 import '../styles/auditoria.css';
-import '../styles/fora-do-horario.css';
 import '../styles/cat-retirada.css';
 import '../styles/sidebar-v2.css';
 import '../styles/sidebar-config.css';

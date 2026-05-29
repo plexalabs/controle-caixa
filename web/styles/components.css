@@ -6805,8 +6805,86 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     text-underline-offset: 3px;
 }
 
+/* Texto destacado dentro de .erro-texto — janela operacional, dados
+   importantes. Tonalidade accent verde, sem peso de chip. */
+.erro-texto strong {
+    color: var(--ui-accent-2);
+    font-weight: 700;
+}
+
+/* Footer admin (usado no /fora-do-horario) — sessao + relogio em
+   linhas hairline-separadas. Tipografia minima, info diagnostica. */
+.erro-footer {
+    margin: 1.5rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--ui-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.erro-footer-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--ui-ink-3);
+}
+.erro-footer-label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ui-ink-4);
+    min-width: 4rem;
+}
+.erro-footer-val {
+    color: var(--ui-ink-2);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.erro-footer-val em {
+    color: var(--ui-ink-3);
+    font-style: italic;
+    font-weight: 500;
+}
+.erro-footer-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ui-accent);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 160ms ease;
+}
+.erro-footer-btn:hover {
+    color: var(--ui-accent-2);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.erro-footer-pulse {
+    margin-left: auto;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--ui-accent);
+    animation: erro-pulse 2s ease-in-out infinite;
+    align-self: center;
+}
+@keyframes erro-pulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .erro-card { animation: none; }
+    .erro-footer-pulse { animation: none; }
 }
 
 
