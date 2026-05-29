@@ -19,9 +19,8 @@ import { renderAuditoria }     from './pages/configuracoes-auditoria.js';
 import { renderLixeira }       from './pages/configuracoes-lixeira.js';
 import { renderForaDoHorario } from './pages/fora-do-horario.js';
 import { dentroDaJanela }      from './janela.js';
-import { renderDemoVisual }    from './pages/demo-visual.js';
 import { renderDemoModal }     from './pages/demo-modal.js';
-import { renderDemoLogo }      from './pages/demo-logo.js';
+import { renderDemoTopo }      from './pages/demo-topo.js';
 import { renderRelatorios }    from './pages/relatorios.js';
 import { renderPendencias }    from './pages/pendencias.js';
 import { renderNotificacoes }  from './pages/notificacoes.js';
@@ -61,9 +60,8 @@ const rotas = [
   { padrao: /^\/perfil$/,                     handler: renderPerfil },
   { padrao: /^\/erros\/404$/,                 handler: renderErro404, aberta: true },
   { padrao: /^\/fora-do-horario$/,            handler: renderForaDoHorario, aberta: true },
-  { padrao: /^\/demo-visual$/,                handler: renderDemoVisual,    aberta: true },
   { padrao: /^\/demo-modal$/,                 handler: renderDemoModal,     aberta: true },
-  { padrao: /^\/demo-logo$/,                  handler: renderDemoLogo,      aberta: true },
+  { padrao: /^\/demo-topo$/,                  handler: renderDemoTopo,      aberta: true },
   // Catch-all editorial — sempre o último. Se chegou aqui é 404.
   { padrao: /.*/,                              handler: renderErro404, aberta: true },
 ];
@@ -83,10 +81,16 @@ export async function despachar() {
   // ficam em layout cheio.
   document.querySelector('#app')?.removeAttribute('data-shell');
 
-  // GATE da janela operacional: fora do horario, redireciona TUDO pra
-  // /fora-do-horario (exceto a propria pagina + /erros/404 pra evitar loop).
-  // /demo-visual tambem fica fora — e sandbox de teste.
-  if (url !== '/fora-do-horario' && url !== '/erros/404' && url !== '/demo-visual' && url !== '/demo-modal' && url !== '/demo-logo') {
+  // GATE da janela operacional: fora do horario, redireciona pra
+  // /fora-do-horario. Rotas ABERTAS (auth + erros + demos) ficam
+  // acessiveis 24/7 — operador precisa poder logar/sair sempre,
+  // mesmo fora do expediente.
+  const ROTAS_LIVRES = new Set([
+    '/fora-do-horario', '/erros/404',
+    '/login', '/cadastro', '/confirmar', '/recuperar', '/redefinir',
+    '/demo-modal', '/demo-topo',
+  ]);
+  if (!ROTAS_LIVRES.has(url)) {
     if (!(await dentroDaJanela())) {
       return navegar('/fora-do-horario');
     }

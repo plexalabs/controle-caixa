@@ -19,6 +19,7 @@ import '../styles/dashboard-v2.css';
 import '../styles/user-menu-v2.css';
 import '../styles/caixas-v2.css';
 import '../styles/caixa-v2.css';
+import '../styles/fechar-v2.css';
 import '../styles/modal-edit-v2.css';
 import '../styles/lancamento-v2.css';
 import '../styles/pendencias-v2.css';
@@ -31,9 +32,8 @@ import '../styles/vendedoras-v2.css';
 import '../styles/usuarios-v2.css';
 import '../styles/feriados-v2.css';
 import '../styles/sistema-v2.css';
-import '../styles/demo-visual.css';
 import '../styles/demo-modal.css';
-import '../styles/demo-logo.css';
+import '../styles/demo-topo.css';
 
 import * as Sentry              from '@sentry/browser';
 import { despachar }            from './router.js';
