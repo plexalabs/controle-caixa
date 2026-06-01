@@ -23,13 +23,18 @@ html[data-sb-collapsed="1"] { --sb-larg: 68px; }
 .app-conteudo {
     min-width: 0;
     min-height: 100vh;
-    margin-left: var(--sb-larg);
+    /* margin-left empurra todo o conteúdo (topbar + main) pra DEPOIS da sidebar.
+       Bumpamos com um gutter extra que escala com o viewport (1rem em telas
+       pequenas, até 2rem em widescreen) — garante respiro entre a borda da
+       sidebar e o conteúdo, somando ao padding interno de cada página. */
+    margin-left: calc(var(--sb-larg) + clamp(0.5rem, 0.8vw, 1.5rem));
+    margin-right: clamp(0.5rem, 0.8vw, 1.5rem);
     background: var(--ui-bg);
     font-family: 'Manrope', -apple-system, system-ui, sans-serif;
     transition: margin-left 200ms var(--ui-ease);
 }
 @media (max-width: 767px) {
-    .app-conteudo { margin-left: 0; }
+    .app-conteudo { margin-left: 0; margin-right: 0; }
     /* Configurações mantém o espaço do seu próprio hamburguer. */
     .app-conteudo--config { padding-top: 56px; }
     /* App principal: o topo é reservado pro grip do pull-down (44px). */
@@ -302,10 +307,13 @@ html[data-sb-collapsed="1"] { --sb-larg: 68px; }
    Estado RECOLHIDO — sidebar estreita, só ícones.
    Vale só no desktop: no mobile a sidebar é sempre off-canvas
    e completa, então o recolhido não pode esconder os rótulos.
+
+   Visual original preservado — labels somem por display:none,
+   sidebar mantém 68px. Mudanças aqui são SÓ de alinhamento:
+   brand sem sangrar, items perfeitamente centralizados,
+   badge do sino grudado no ícone, separador limpo.
    ============================================================ */
 @media (min-width: 768px) {
-html[data-sb-collapsed="1"] .sb-brand { padding: 0 0 1.3rem; }
-html[data-sb-collapsed="1"] .sb-brand-link { justify-content: center; }
 html[data-sb-collapsed="1"] .sb-brand-meta,
 html[data-sb-collapsed="1"] .sb-nav-label,
 html[data-sb-collapsed="1"] .sb-nav-group-label,
@@ -314,6 +322,20 @@ html[data-sb-collapsed="1"] .sb-user-dots,
 html[data-sb-collapsed="1"] .sb-collapse-label {
     display: none;
 }
+
+/* Brand: padding lateral mantido pra o hover do link não sangrar
+   pra fora da sidebar (era o problema do `margin: -0.15rem`). */
+html[data-sb-collapsed="1"] .sb-brand {
+    padding: 0 0.5rem 1.3rem;
+}
+html[data-sb-collapsed="1"] .sb-brand-link {
+    justify-content: center;
+    gap: 0;
+    padding: 0.15rem;
+    margin: 0;
+}
+
+/* Nav: padding lateral simétrico, items centralizados com gap zero. */
 html[data-sb-collapsed="1"] .sb-nav { padding: 0 0.55rem; }
 html[data-sb-collapsed="1"] .sb-nav-item,
 html[data-sb-collapsed="1"] .sb-collapse,
@@ -323,19 +345,36 @@ html[data-sb-collapsed="1"] .sb-user {
     padding-right: 0;
     gap: 0;
 }
-/* Separadores entre grupos quando não há rótulo de grupo */
+
+/* Separador entre grupos: linha curta centralizada via ::before,
+   sem padding/margin acumulados que davam um vão excessivo. */
+html[data-sb-collapsed="1"] .sb-nav-group { position: relative; }
 html[data-sb-collapsed="1"] .sb-nav-group + .sb-nav-group {
-    border-top: 1px solid var(--ui-border);
-    padding-top: 0.55rem;
-    margin-top: 0.2rem;
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
 }
-/* Badge vira um pontinho no canto do ícone */
+html[data-sb-collapsed="1"] .sb-nav-group + .sb-nav-group::before {
+    content: "";
+    position: absolute;
+    top: -0.1rem;
+    left: 50%;
+    width: 24px;
+    height: 1px;
+    background: var(--ui-border);
+    transform: translateX(-50%);
+}
+
+/* Badge do sino: pontinho grudado no canto superior-direito do
+   ÍCONE (não no canto do item). Item tem ~58px de largura útil
+   e o ícone 16px fica centralizado — colocar o ponto perto da
+   borda do ícone, não da borda do item. */
 html[data-sb-collapsed="1"] .sb-nav-badge {
     position: absolute;
-    top: 5px; right: 9px;
+    top: 6px;
+    right: 14px;
     margin: 0;
     min-width: 0;
-    width: 8px; height: 8px;
+    width: 9px; height: 9px;
     padding: 0;
     border-radius: 50%;
     background: var(--ui-accent);
@@ -343,6 +382,7 @@ html[data-sb-collapsed="1"] .sb-nav-badge {
     overflow: hidden;
     border: 2px solid var(--ui-surface);
 }
+
 html[data-sb-collapsed="1"] .sb-collapse-icon { transform: rotate(180deg); }
 } /* fim @media desktop — estado recolhido */
 

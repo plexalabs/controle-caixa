@@ -75,7 +75,7 @@ export default defineConfig({
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: blob:",
-        "connect-src 'self' https://shjtwrojdgotmxdbpbta.supabase.co wss://shjtwrojdgotmxdbpbta.supabase.co",
+        "connect-src 'self' https://uxgdygrkbvtllaajxzwr.supabase.co wss://uxgdygrkbvtllaajxzwr.supabase.co",
         "manifest-src 'self'",
         "frame-ancestors 'none'",
         "base-uri 'self'",
