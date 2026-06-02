@@ -50,7 +50,7 @@ AS $$
 DECLARE
     -- URL do projeto (publica, nao e segredo). Hardcoded para evitar exigir
     -- 2o secret no vault. Se trocar de projeto, atualizar aqui.
-    v_url   constant text := 'https://shjtwrojdgotmxdbpbta.supabase.co';
+    v_url   constant text := 'https://uxgdygrkbvtllaajxzwr.supabase.co';
     v_token text;
     v_request_id bigint;
 BEGIN

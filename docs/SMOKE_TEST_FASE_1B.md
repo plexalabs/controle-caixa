@@ -1,6 +1,6 @@
 # SMOKE TEST FASE 1B — refactor auth (email + senha + OTP via Resend)
 
-> Executado em **2026-04-29 ~21:43 BRT** contra o projeto Supabase `shjtwrojdgotmxdbpbta`.
+> Executado em **2026-04-29 ~21:43 BRT** contra o projeto Supabase `uxgdygrkbvtllaajxzwr`.
 > Branch: `fase-1b-refactor-auth` (commits `c27c7b8`, `c26458e`, `a41fafd`).
 
 ## Resumo
@@ -36,7 +36,7 @@ Limpeza: usuário deletado após teste.
 ### Validação 2 — Signup REST gera entrada com email_confirmed_at NULL
 
 ```bash
-curl -X POST "https://shjtwrojdgotmxdbpbta.supabase.co/auth/v1/signup" \
+curl -X POST "https://uxgdygrkbvtllaajxzwr.supabase.co/auth/v1/signup" \
   -H "apikey: <ANON_JWT>" \
   -H "Content-Type: application/json" \
   -d '{"email":"joaopedro@plexalabs.com","password":"CaixaBoti2026!"}'
@@ -73,7 +73,7 @@ operador  | 2026-04-29 21:43:57.500446-03
 ### Validação 7 — login pré-confirmação bloqueado
 
 ```bash
-curl -X POST "https://shjtwrojdgotmxdbpbta.supabase.co/auth/v1/token?grant_type=password" \
+curl -X POST "https://uxgdygrkbvtllaajxzwr.supabase.co/auth/v1/token?grant_type=password" \
   -H "apikey: <ANON_JWT>" \
   -d '{"email":"joaopedro@plexalabs.com","password":"CaixaBoti2026!"}'
 ```

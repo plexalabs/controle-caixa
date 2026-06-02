@@ -25,7 +25,7 @@ senha, só com código por email), o template já está pronto. Por enquanto
 
 ### Pré-requisito no Dashboard
 
-Em https://supabase.com/dashboard/project/shjtwrojdgotmxdbpbta/auth/providers
+Em https://supabase.com/dashboard/project/uxgdygrkbvtllaajxzwr/auth/providers
 → seção **Email** → garantir:
 - ✅ **Confirm email** está habilitado
 - ✅ **Email OTP Length** = `8`
@@ -36,7 +36,7 @@ o operador recebe link em vez de código.
 
 ## Como aplicar no Dashboard
 
-1. Abrir https://supabase.com/dashboard/project/shjtwrojdgotmxdbpbta/auth/templates
+1. Abrir https://supabase.com/dashboard/project/uxgdygrkbvtllaajxzwr/auth/templates
 2. Aplicar **2 templates obrigatórios**:
    - **Confirm signup** ← copiar `confirmation.html`
    - **Reset Password** ← copiar `recovery.html`

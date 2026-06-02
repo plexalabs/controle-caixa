@@ -407,7 +407,7 @@ Branch: `fase-1-backend`. Cada migration é arquivo separado em `supabase/migrat
 
 ### 4.1. Setup do projeto
 
-- [x] **BACK-01** — Projeto Supabase `controle-caixa-prod` criado via MCP em 2026-04-29 18:17 UTC. Org `flptgnpxtbzradqaijdl` (Plexa Lab's), região `sa-east-1`, plano Pro. **Project ref:** `shjtwrojdgotmxdbpbta`. **Postgres 17.6.1.111** (release channel `ga`). Custo: $10/mês recorrente.
+- [x] **BACK-01** — Projeto Supabase `controle-caixa-prod` criado via MCP em 2026-04-29 18:17 UTC. Org `flptgnpxtbzradqaijdl` (Plexa Lab's), região `sa-east-1`, plano Pro. **Project ref:** `uxgdygrkbvtllaajxzwr`. **Postgres 17.6.1.111** (release channel `ga`). Custo: $10/mês recorrente.
 - [x] **BACK-01b** — `.env.example` criado na raiz com placeholders documentados.
 - [ ] Habilitar extensões: `pgcrypto`, `uuid-ossp`, `pg_cron`, `pgjwt`, `http`, `pg_net`.
 - [ ] Definir timezone `America/Sao_Paulo`.
@@ -861,7 +861,7 @@ Para o MVP ser considerado entregue, **todos** devem passar.
 ### Fase 1 — concluída em 2026-04-29
 
 **Pronto:**
-- Projeto Supabase `controle-caixa-prod` (ref `shjtwrojdgotmxdbpbta`) ACTIVE_HEALTHY na região `sa-east-1`, Postgres 17.6.1.111.
+- Projeto Supabase `controle-caixa-prod` (ref `uxgdygrkbvtllaajxzwr`) ACTIVE_HEALTHY na região `sa-east-1`, Postgres 17.6.1.111.
 - 23 migrations aplicadas e versionadas (001-016, 020-024, 030-037, 040-042, 050, 060-062, 012b).
 - 10 tabelas em `public` com RLS habilitado e policies por papel.
 - 7 funções de trigger + 8 RPCs públicas + 4 helpers em schema `app`.
@@ -873,7 +873,7 @@ Para o MVP ser considerado entregue, **todos** devem passar.
 
 **Pendente (aguarda input do Operador / fora de escopo da Fase 1):**
 - Cadastrar Google OAuth no Supabase (espera `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` do Operador).
-- Invocar `app.configurar_cron(<service_role_key>, 'https://shjtwrojdgotmxdbpbta.supabase.co')` no SQL Editor para ativar 4 jobs cron de edge functions.
+- Invocar `app.configurar_cron(<service_role_key>, 'https://uxgdygrkbvtllaajxzwr.supabase.co')` no SQL Editor para ativar 4 jobs cron de edge functions.
 - Edge functions opcionais `enviar_email_notificacao` e `alertar_anomalia` — não bloqueiam Fase 2/3.
 - Realtime publication — adiar para Fase 2 quando a Web subscrever os channels.
 - Popular `vendedora` e `feriado` antes do UAT.

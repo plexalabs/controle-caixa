@@ -14,13 +14,13 @@
 
 - [ ] `RESEND_API_KEY` em mãos (formato `re_...`). Disponível em `docs/Vault.md` local.
 - [ ] Domínio `plexalabs.com` já verificado no Resend (DKIM + SPF passando). Confirmar em Resend → Domains.
-- [ ] Acesso de **Owner** ou **Developer** ao projeto Supabase `controle-caixa-prod` (ref `shjtwrojdgotmxdbpbta`).
+- [ ] Acesso de **Owner** ou **Developer** ao projeto Supabase `controle-caixa-prod` (ref `uxgdygrkbvtllaajxzwr`).
 
 ---
 
 ## Passo 1 — Habilitar Custom SMTP
 
-1. Acessar https://supabase.com/dashboard/project/shjtwrojdgotmxdbpbta/auth/providers
+1. Acessar https://supabase.com/dashboard/project/uxgdygrkbvtllaajxzwr/auth/providers
 2. Localizar a seção **"SMTP Settings"** (rola para baixo na página de Auth Providers).
 3. Toggle **Enable Custom SMTP** → ON.
 4. Preencher exatamente:
@@ -57,7 +57,7 @@
 
 ## Passo 3 — Editar template "Confirm signup" (OTP em pt-BR)
 
-1. Acessar https://supabase.com/dashboard/project/shjtwrojdgotmxdbpbta/auth/templates
+1. Acessar https://supabase.com/dashboard/project/uxgdygrkbvtllaajxzwr/auth/templates
 2. Selecionar **"Confirm signup"** na lista lateral.
 3. Em **Subject heading**, colar:
    ```
@@ -116,7 +116,7 @@ Não vamos usar magic link no MVP, mas se algum cliente acidentalmente disparar:
 
 ## Passo 5 — URL Configuration (referência)
 
-Para a Fase 2 (Web), configurar em https://supabase.com/dashboard/project/shjtwrojdgotmxdbpbta/auth/url-configuration:
+Para a Fase 2 (Web), configurar em https://supabase.com/dashboard/project/uxgdygrkbvtllaajxzwr/auth/url-configuration:
 
 - **Site URL:** `https://controle-caixa.pages.dev` (dev) — atualizar para `https://caixa-boti.plexalabs.com` quando UAT aprovar.
 - **Redirect URLs (Additional):**

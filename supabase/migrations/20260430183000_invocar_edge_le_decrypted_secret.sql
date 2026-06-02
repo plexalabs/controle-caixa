@@ -25,7 +25,7 @@ SECURITY DEFINER
 SET search_path = app, pg_temp
 AS $$
 DECLARE
-    v_url    constant text := 'https://shjtwrojdgotmxdbpbta.supabase.co';
+    v_url    constant text := 'https://uxgdygrkbvtllaajxzwr.supabase.co';
     v_token  text;
     v_request_id bigint;
     v_erro   text;

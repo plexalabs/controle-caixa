@@ -256,7 +256,7 @@ Decisão de modelagem do Operador:
 Sistema rodando em `https://caixa-boti.plexalabs.com` via:
 - **Cloudflare Pages** servindo o build estático (`dist/`)
 - **Custom domain** em zona Cloudflare com SSL automático
-- **Supabase** continua hospedado em `shjtwrojdgotmxdbpbta.supabase.co`
+- **Supabase** continua hospedado em `uxgdygrkbvtllaajxzwr.supabase.co`
 - **Variáveis de ambiente** em prod: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SENTRY_DSN`, `NODE_VERSION=20`
 
 ### Decisões arquiteturais finais

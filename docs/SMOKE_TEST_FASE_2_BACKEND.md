@@ -6,7 +6,7 @@ operador `joaopedro@plexalabs.com` (admin+operador).
 
 ## Setup
 
-- Projeto: `controle-caixa-prod` (`shjtwrojdgotmxdbpbta`)
+- Projeto: `controle-caixa-prod` (`uxgdygrkbvtllaajxzwr`)
 - 4 migrations CP4 aplicadas:
   - 201 `estado_lancamento_finalizado_cancelado_pos`
   - 202 `lancamento_observacao_imutavel`

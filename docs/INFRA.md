@@ -16,14 +16,14 @@ Internet → caixa-boti.plexalabs.com → Cloudflare Pages (CDN global)
                                               ↓
                                         Browser do usuario
                                               ↓
-                                  Supabase (shjtwrojdgotmxdbpbta)
+                                  Supabase (uxgdygrkbvtllaajxzwr)
 ```
 
 ### Variáveis de ambiente (painel Cloudflare Pages)
 
 | Variável | Valor |
 |---|---|
-| `VITE_SUPABASE_URL` | `https://shjtwrojdgotmxdbpbta.supabase.co` |
+| `VITE_SUPABASE_URL` | `https://uxgdygrkbvtllaajxzwr.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | (anon JWT do projeto) |
 | `VITE_SENTRY_DSN` | DSN do projeto Sentry |
 | `NODE_VERSION` | `20` |
@@ -112,7 +112,7 @@ Cron `0 3 1 * *` = todo dia 1 do mês às 3h da manhã (horário do servidor Sup
 
 ```bash
 curl -X POST -H "Authorization: Bearer SERVICE_ROLE" \
-  https://shjtwrojdgotmxdbpbta.supabase.co/functions/v1/arquivar-mensal
+  https://uxgdygrkbvtllaajxzwr.supabase.co/functions/v1/arquivar-mensal
 ```
 
 Resposta esperada:
@@ -156,7 +156,7 @@ CP-PRE-DEPLOY-1), conferir:
 ## Backups do banco (Supabase Pro)
 
 Supabase Pro inclui **Daily Backups** automáticos com retenção de 7 dias
-— visível em [Dashboard → Database → Backups](https://supabase.com/dashboard/project/shjtwrojdgotmxdbpbta/database/backups).
+— visível em [Dashboard → Database → Backups](https://supabase.com/dashboard/project/uxgdygrkbvtllaajxzwr/database/backups).
 Antes do deploy em produção, confirmar que está ativo e considerar
 habilitar **Point-in-Time Recovery (PITR)** pra granularidade fina (qualquer
 ponto nos últimos 7 dias, em vez de apenas o snapshot diário).

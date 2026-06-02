@@ -1,6 +1,6 @@
 # SMOKE TEST INTEGRAL — FASE 1 BACKEND
 
-> Executado em **2026-04-29 ~20:38 BRT** contra o projeto Supabase `shjtwrojdgotmxdbpbta` (`controle-caixa-prod`).
+> Executado em **2026-04-29 ~20:38 BRT** contra o projeto Supabase `uxgdygrkbvtllaajxzwr` (`controle-caixa-prod`).
 > Conformidade com `docs/03 §11.9` — todas as 8 validações + 2 extras passaram.
 
 ## Resumo

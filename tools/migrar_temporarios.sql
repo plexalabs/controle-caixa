@@ -1,7 +1,7 @@
 -- tools/migrar_temporarios.sql — migracao unica dos placeholders CP3 → CP4.
 --
 -- Como rodar (uma vez, manualmente):
---   psql "postgresql://postgres:<DB_PASSWORD>@db.shjtwrojdgotmxdbpbta.supabase.co:5432/postgres" \
+--   psql "postgresql://postgres:<DB_PASSWORD>@db.uxgdygrkbvtllaajxzwr.supabase.co:5432/postgres" \
 --        -f tools/migrar_temporarios.sql
 --
 -- Pre-requisitos:

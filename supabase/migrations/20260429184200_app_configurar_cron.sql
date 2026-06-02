@@ -7,7 +7,7 @@
 --
 --   SELECT app.configurar_cron(
 --       p_service_role_key := '<eyJ... service_role JWT>',
---       p_project_url      := 'https://shjtwrojdgotmxdbpbta.supabase.co'
+--       p_project_url      := 'https://uxgdygrkbvtllaajxzwr.supabase.co'
 --   );
 
 CREATE OR REPLACE FUNCTION app.configurar_cron(

@@ -58,7 +58,7 @@ Para confirmar que o `pg_net` e o `app.invocar_edge` estavam corretos, e o probl
 
 ```sql
 SELECT net.http_post(
-    url     := 'https://shjtwrojdgotmxdbpbta.supabase.co/functions/v1/cria_caixa_diario',
+    url     := 'https://uxgdygrkbvtllaajxzwr.supabase.co/functions/v1/cria_caixa_diario',
     body    := '{}'::jsonb,
     headers := jsonb_build_object(
         'Authorization', 'Bearer eyJhbGc...iNYDow4v...' /* anon_key real */,
