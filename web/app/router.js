@@ -34,7 +34,7 @@ import { pegarSessao }         from './supabase.js';
 // fragment de token; supabase-js cria sessão automaticamente, e o handler
 // confere se há sessão antes de mostrar o form.
 const rotas = [
-  { padrao: /^\/$/,                  handler: () => navegar('/dashboard'), aberta: true },
+  { padrao: /^\/$/,                  handler: ({ sessao }) => navegar(sessao ? '/dashboard' : '/login'), aberta: true },
   { padrao: /^\/login$/,             handler: renderLogin,                 aberta: true },
   { padrao: /^\/cadastro$/,          handler: renderCadastro,              aberta: true },
   { padrao: /^\/confirmar$/,         handler: renderConfirmar,             aberta: true },
@@ -86,7 +86,7 @@ export async function despachar() {
   // acessiveis 24/7 — operador precisa poder logar/sair sempre,
   // mesmo fora do expediente.
   const ROTAS_LIVRES = new Set([
-    '/fora-do-horario', '/erros/404',
+    '/', '/fora-do-horario', '/erros/404',
     '/login', '/cadastro', '/confirmar', '/recuperar', '/redefinir',
     '/demo-modal', '/demo-topo',
   ]);

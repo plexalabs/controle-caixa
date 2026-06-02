@@ -34,35 +34,63 @@ import '../styles/sistema-v2.css';
 import '../styles/demo-modal.css';
 import '../styles/demo-topo.css';
 
-import * as Sentry              from '@sentry/browser';
 import { despachar }            from './router.js';
 import { supabase, pegarSessao } from './supabase.js';
 import { mostrarToast }         from './notifications.js';
 import { prepararAuthStorage }  from './auth-storage.js';
 import { pegarPapeis }          from './papeis.js';
 
-// Sentry: só ativo em PROD com DSN definido. Dev fica silencioso pra
-// não poluir o dashboard com ruído de desenvolvimento. Operador deve
-// configurar VITE_SENTRY_DSN no .env.production antes do deploy
-// (ver docs/INFRA.md).
+// Tira o skeleton de boot (em index.html) assim que o JS escrever
+// qualquer coisa dentro do #app. Observer roda na ANTES de qualquer
+// await — garante que o usuario nao ve um piscar entre skeleton e app.
+(function watchBoot() {
+  if (typeof document === 'undefined') return;
+  const app = document.getElementById('app');
+  const boot = document.querySelector('.ledo-boot');
+  if (!app || !boot) return;
+  const mo = new MutationObserver(() => {
+    if (app.children.length > 0) {
+      boot.style.opacity = '0';
+      boot.style.pointerEvents = 'none';
+      setTimeout(() => boot.remove(), 250);
+      mo.disconnect();
+    }
+  });
+  mo.observe(app, { childList: true });
+})();
+
+// Sentry: lazy-load em PROD (50KB+ não pode bloquear o primeiro paint).
+// Inicializa em paralelo ao boot da app — se um erro do boot for perdido
+// nos primeiros milissegundos, o operador refresha. Pequeno trade-off de
+// observabilidade pra ganho grande de FCP.
 if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    environment: 'production',
-    tracesSampleRate: 0.1,  // 10% das transações
-    integrations: [],
-    // Sistema interno (operadores autenticados) — IP e user-agent ajudam
-    // o debug. Configuração recomendada pelo painel do Sentry pra apps
-    // próprios da empresa.
-    sendDefaultPii: true,
-    // Higiene mesmo com PII ativo: nunca enviar tokens de auth em URLs.
-    beforeSend(event) {
-      if (event.request?.url) {
-        event.request.url = event.request.url
-          .replace(/[?&](token|access_token|refresh_token|code)=[^&]+/g, '$1=REDACTED');
-      }
-      return event;
-    },
+  // requestIdleCallback agenda pra quando o navegador estiver ocioso;
+  // fallback pra setTimeout em browsers (Safari) que não o expõem.
+  const agendar = (cb) =>
+    'requestIdleCallback' in window
+      ? requestIdleCallback(cb, { timeout: 2000 })
+      : setTimeout(cb, 1500);
+
+  agendar(async () => {
+    try {
+      const Sentry = await import('@sentry/browser');
+      Sentry.init({
+        dsn: import.meta.env.VITE_SENTRY_DSN,
+        environment: 'production',
+        tracesSampleRate: 0.1,
+        integrations: [],
+        sendDefaultPii: true,
+        beforeSend(event) {
+          if (event.request?.url) {
+            event.request.url = event.request.url
+              .replace(/[?&](token|access_token|refresh_token|code)=[^&]+/g, '$1=REDACTED');
+          }
+          return event;
+        },
+      });
+    } catch (e) {
+      console.warn('[sentry] init falhou:', e);
+    }
   });
 }
 

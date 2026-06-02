@@ -23,7 +23,7 @@
     <meta property="og:description" content="Auditoria diária de caixa">
     <meta property="og:image" content="/og-image.png">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://caixa-boti.plexalabs.com">
+    <meta property="og:url" content="https://ledo.plexalabs.com">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
@@ -31,20 +31,115 @@
     <meta name="twitter:description" content="Auditoria diária de caixa">
     <meta name="twitter:image" content="/og-image.png">
 
+    <!-- Conexão antecipada com o Supabase pra reduzir latência na 1ª request.
+         DNS + TCP + TLS handshake já ficam quentes antes do JS pedir. -->
+    <link rel="preconnect" href="https://uxgdygrkbvtllaajxzwr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://uxgdygrkbvtllaajxzwr.supabase.co">
+
+    <!-- Pre-discover do bundle JS (defer descoberta em paralelo ao parse). -->
+    <link rel="modulepreload" href="/app/main.js">
+
     <!-- Google Fonts: Fraunces (display serif) + Manrope (body humanist sans).
-         Não-padrão, com personalidade — evita o "AI slop" de Inter/Roboto. -->
+         Pesos enxutos — só os que o app usa de verdade. font-display:swap
+         garante que o texto aparece logo com fonte fallback. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&family=Manrope:wght@400;600;700&display=swap" media="all">
 
-    <!-- Tailwind, tokens e components agora sao importados via main.js
-         (build pelo Vite + PostCSS). Config em tailwind.config.js. -->
+    <!-- Skeleton crítico inline — pinta o caderno e o nome do app
+         INSTANTANEAMENTE (sem esperar bundle/fontes). Some assim que o
+         JS escreve em #app. Pesa ~1.5KB no HTML, vale como FCP imediato. -->
+    <style>
+      :root {
+        --boot-bg:    #F5EFE6;
+        --boot-card:  #FAF6EF;
+        --boot-ink:   #1F1A14;
+        --boot-musgo: #2A3D2C;
+        --boot-mute:  #6E665B;
+      }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--boot-bg);
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+        color: var(--boot-ink);
+      }
+      .ledo-boot {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 1.25rem;
+        background: var(--boot-bg);
+        z-index: 9999;
+        animation: ledo-boot-out 250ms ease-in 5s forwards;
+      }
+      .ledo-boot__logo {
+        width: 56px; height: 56px;
+        border-radius: 14px;
+        background: var(--boot-card);
+        display: grid; place-items: center;
+        box-shadow: 0 4px 12px -6px rgba(15,76,58,0.16);
+      }
+      .ledo-boot__logo svg { width: 36px; height: 36px; }
+      .ledo-boot__name {
+        font-family: ui-serif, Georgia, 'Times New Roman', serif;
+        font-style: italic;
+        font-size: 1.65rem;
+        color: var(--boot-musgo);
+        letter-spacing: -0.01em;
+        line-height: 1;
+      }
+      .ledo-boot__tag {
+        font-size: 0.7rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--boot-mute);
+        font-weight: 600;
+      }
+      .ledo-boot__pulse {
+        width: 36px; height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent, var(--boot-musgo), transparent
+        );
+        background-size: 200% 100%;
+        animation: ledo-pulse 1.1s ease-in-out infinite;
+        border-radius: 1px;
+        opacity: 0.65;
+      }
+      @keyframes ledo-pulse {
+        0%, 100% { background-position: 200% 0; }
+        50%      { background-position: -200% 0; }
+      }
+      @keyframes ledo-boot-out {
+        to { opacity: 0; visibility: hidden; }
+      }
+      /* Quando o JS renderiza no #app, esconde o boot. */
+      #app:not(:empty) ~ .ledo-boot,
+      #app:not(:empty) .ledo-boot { display: none; }
+      @media (prefers-reduced-motion: reduce) {
+        .ledo-boot__pulse { animation: none; opacity: 0.45; }
+      }
+    </style>
 </head>
 <body class="bg-papel text-tinta antialiased font-sans">
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:bg-musgo focus:text-papel focus:px-3 focus:py-2 focus:rounded-md focus:z-50">
         Pular para o conteúdo
     </a>
+
     <div id="app" role="main"></div>
+
+    <!-- Skeleton inicial — desaparece quando o JS popula #app. -->
+    <div class="ledo-boot" aria-hidden="true">
+      <span class="ledo-boot__tag">caderno</span>
+      <div class="ledo-boot__logo">
+        <svg viewBox="0 0 2048 2048" xmlns="http://www.w3.org/2000/svg" fill="#2A3D2C" aria-hidden="true">
+          <path d="M818.5 337.4c-8.3 2.4-15.5 5.5-21.2 9.3-6.4 4.2-62.6 57.5-141.8 134.3-8.2 8-18.8 18.1-23.5 22.5s-18.6 17.7-31 29.6c-12.4 11.8-34.2 32.5-48.5 46-14.3 13.4-33.8 31.8-43.3 40.9s-20.7 19.6-25 23.5c-4.2 3.8-13.5 12.7-20.7 19.6-7.1 7-16.4 15.7-20.6 19.5S423.2 701 408.4 715c-14.7 14-31.8 30.2-37.8 35.9-6.1 5.8-19.6 18.6-30.1 28.6-27.2 26-99.4 94.7-123.5 117.6-11.3 10.7-24.1 22.5-28.4 26.4-4.4 3.8-13.1 12.2-19.5 18.5-9.6 9.6-12 12.7-14.8 18.8-1.9 4.1-3.8 9.9-4.4 13-.5 3.1-.9 23-.9 44.2 0 43 .2 44.9 6.7 57.2 5.2 9.9 11.8 16.1 27.4 25.2 7.4 4.4 19.3 11.4 26.4 15.7 7.2 4.2 19.2 11.2 26.7 15.5 28.7 16.5 45.9 26.7 46.4 27.5.3.5-9.4 20.5-21.5 44.4-12.2 23.9-22.1 44.2-22.1 45.1s2 3.6 4.4 6c4.1 4.2 4.6 4.4 10.3 4.4 3.3 0 11.1-.9 17.3-2 13.8-2.5 13.2-3 18.6 12 6.4 17.5 10.5 19.8 28.8 16.1 14.6-3.1 15.1-3 17.9 2.6 1.4 2.7 3.2 7.1 4.1 10 3.3 9.9 10 16.3 17.3 16.3 1.5 0 7.9-1.2 14.2-2.7l11.3-2.8 1.9 2.4c1 1.3 2.7 4.6 3.6 7.4 3.3 9.5 7.7 17.1 11.2 19.4 4.3 2.9 10.3 3 22.5.4 5.6-1.2 9.8-1.6 11.2-1.1 1.5.6 3.3 3.8 6.4 11.7 4.9 12.2 8.4 16.4 14.8 18.4 3.8 1.1 5.4 1 15-1.4 12-3.1 14.5-3.3 16-1.4.6.7 2.9 5.6 5 10.9 4.1 10.2 9 17.6 13.4 20.2 3.9 2.4 9.3 2.1 11.9-.7 1.1-1.2 10.1-18.6 20-38.5 9.8-20 18.2-36.2 18.7-36 1.8.7 27.2 16.4 33.7 20.8 3.9 2.6 9.9 6.3 13.6 8.3 3.6 2 7.5 4.7 8.7 5.9 1.1 1.3 4.4 7.3 7.3 13.3 6.1 13.2 12.8 22.5 21.2 29.7 3.4 2.9 8.2 7.1 10.7 9.3 8.8 8.1 29.9 18.5 43 21.4 3 .7 13 1.6 22.2 2l16.7.7 8.3 5.1c4.6 2.7 16.2 9.6 25.8 15.3s27 16.1 38.5 23c11.6 7 29.3 17.7 39.5 23.7 26.8 15.9 26.9 16 33.5 20.1 3.3 2.1 19.7 12 36.5 22.1s35 21.1 40.5 24.4c9.9 6 12.4 7.4 40.9 24.1 8.2 4.8 16.7 10 19 11.5 2.2 1.6 6.1 3.8 8.6 5.1 2.5 1.2 10.8 5.9 18.5 10.5 7.7 4.5 25.3 14.9 39 23 13.8 8.1 31.3 18.6 39 23.2 58.7 35.6 66.7 40.1 79.1 44.2 19.1 6.4 35.6 6.3 56.4-.4 19.2-6.3 30.7-14.8 67-49.9 9.1-8.7 20.6-19.8 25.5-24.6 15.5-14.9 49.6-47.3 55.3-52.5 3.1-2.8 12.4-11.5 20.7-19.5 8.4-8 18.8-17.9 23.2-22 16.9-16 63.7-60.5 84.6-80.5 12-11.6 32.3-30.9 45-42.9 12.8-12 36.3-34.5 52.2-50 43.4-41.9 52-50.2 75.5-72.6 11.8-11.3 28.9-27.7 38-36.5 15.1-14.7 50.9-48.8 84.3-80.4 36-33.9 59.9-57.7 63.2-62.6 4.2-6.4 7.1-14.2 8.6-23.4.7-4.1 1-24.8 1-54.5-.1-40.1-.4-48.8-1.7-54-4-15.6-12.5-24.4-37-38.2-7.6-4.3-19-10.8-25.3-14.6-6.3-3.7-11.8-6.8-12.3-6.8-.4 0-4.8-2.4-9.6-5.3-27-16.4-30.8-18.3-33.2-16.5-5.2 3.8-16.9 14.1-17.3 15.2-.5 1.3 13 10.1 28.5 18.7 4.6 2.5 15.3 8.5 23.8 13.3 8.5 4.9 20 11.4 25.5 14.4 20.2 11.2 23.4 13.3 26.8 17.2 6.3 7.5 7.1 15.4 2.2 25-2.9 5.7-3.5 6.3-26.9 28-29.9 27.7-50.3 46.9-74.6 70-12.4 11.8-36.5 34.8-53.5 51-17.1 16.2-37.7 36-46 44-8.2 8-23.5 22.7-34 32.5-10.4 9.9-26.9 25.6-36.6 35-9.6 9.3-28.3 26.9-41.4 39s-29.8 27.6-37 34.5c-7.1 6.9-23.1 21.9-35.4 33.5-12.4 11.5-33.3 31.3-46.5 44-13.3 12.6-34.3 32.4-46.7 44-29.6 27.6-72.3 68-92.9 88-29.6 28.7-44.6 42.3-49.6 44.8-9.9 4.9-14.9 6-25.8 5.5-12-.6-12.5-.8-40.6-17.8-10.2-6.2-20.9-12.7-23.8-14.4s-8.1-4.8-11.5-6.8c-14.6-8.9-41.3-24.7-54.7-32.6-8-4.7-18.3-10.9-23-13.7-4.7-2.9-10.7-6.5-13.5-8.1-8.8-4.9-49.9-29.6-52.9-31.7-1.6-1.1-6.3-3.9-10.5-6.2s-16.6-9.6-27.6-16.2c-20.4-12.2-59.3-35.3-81-48-40.7-23.9-82.9-40.9-120.7-48.7-6.8-1.4-20.6-3.3-30.8-4.3-10.2-.9-18.7-1.8-18.9-1.9-.4-.4 112.4-112.9 300-299.4 67.2-66.8 169.7-168.9 227.7-226.8 58.1-57.8 106.3-105.2 107.3-105.2 3.1 0 36.3 7.1 51.9 11.2 24.5 6.3 68.6 24.2 91.5 37.2 4.4 2.5 17.9 10 30 16.7s26.7 15 32.5 18.4 14.6 8.4 19.5 11.1c5 2.6 11.3 6.3 14.2 8.1l5.2 3.3 10.3-8.6c5.7-4.7 10.4-9 10.6-9.4.2-.5-2.7-2.5-6.5-4.6-14.5-7.9-41.3-23-52.8-29.8z"/>
+        </svg>
+      </div>
+      <span class="ledo-boot__name">Ledo</span>
+      <div class="ledo-boot__pulse"></div>
+    </div>
+
     <div id="toast-container" aria-live="polite" aria-atomic="false"
          class="fixed bottom-6 right-6 space-y-2 z-50 max-w-sm"></div>
 
