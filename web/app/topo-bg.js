@@ -10,24 +10,34 @@
 const DEFAULTS = {
   escala: 0.008,
   vel:    0.00025,
-  niveis: 8,
+  niveis: 6,        // 8 -> 6: 25% menos passes de marching squares por frame
   seed:   1337,
-  cell:   7,
-  dprMax: 1.75,
+  cell:   9,        // 7 -> 9: ~1.65x menos celulas no grid
+  dprMax: 1.5,      // 1.75 -> 1.5: 25% menos pixels desenhados em telas Retina
   hue:    82,
+  fpsCap: 30,       // throttle para 30fps — economia de ~50% CPU sem perda visual
 };
 
 export function iniciarTopografia(canvas, opcoes = {}) {
   if (!canvas) return { stop() {} };
+
+  // prefers-reduced-motion: usuario pediu calma — desenha 1 frame estatico
+  // e nao roda o RAF loop. Acessibilidade + economia CPU em laptops fracos.
+  const reduzido = typeof window !== 'undefined'
+    && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
   const ctx = canvas.getContext('2d');
   const cfg = { ...DEFAULTS, ...opcoes };
   const noise = criarSimplexNoise(cfg.seed);
-  let { escala, vel, niveis, cell: CELL, dprMax, hue } = cfg;
+  let { escala, vel, niveis, cell: CELL, dprMax, hue, fpsCap } = cfg;
 
   let gridBuf = null;
   let larguraCss, alturaCss, colunas, linhas;
   let rafId = null;
   let t = 0;
+  let pausado = false;
+  let ultimoFrame = 0;
+  const minDelta = 1000 / fpsCap;
 
   function redimensionar() {
     const dpr = Math.min(window.devicePixelRatio || 1, dprMax);
@@ -194,8 +204,7 @@ export function iniciarTopografia(canvas, opcoes = {}) {
     ctx.stroke();
   }
 
-  function frame() {
-    t += vel;
+  function renderizar() {
     ctx.clearRect(0, 0, larguraCss, alturaCss);
     const cols = colunas;
     for (let j = 0; j < linhas; j++) {
@@ -209,15 +218,49 @@ export function iniciarTopografia(canvas, opcoes = {}) {
       const level = -0.9 + (1.8 * k) / (niveis - 1);
       desenharContorno(level);
     }
+  }
+
+  function frame(now) {
+    if (pausado) { rafId = null; return; }
+    // Throttle pra fpsCap. RAF roda no rate do display (60/120Hz);
+    // a gente decide quando ja deu tempo de renderizar o proximo.
+    const delta = now - ultimoFrame;
+    if (delta >= minDelta) {
+      ultimoFrame = now - (delta % minDelta);
+      t += vel;
+      renderizar();
+    }
     rafId = requestAnimationFrame(frame);
   }
-  rafId = requestAnimationFrame(frame);
+
+  // Pausa quando a aba nao esta visivel — economia massiva quando o
+  // operador minimiza o navegador ou troca de aba.
+  function onVisChange() {
+    if (document.hidden) {
+      pausado = true;
+      if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; }
+    } else if (pausado) {
+      pausado = false;
+      ultimoFrame = 0;
+      rafId = requestAnimationFrame(frame);
+    }
+  }
+  document.addEventListener('visibilitychange', onVisChange);
+
+  if (reduzido) {
+    // 1 frame estatico — visual presente, zero CPU contínuo
+    renderizar();
+  } else {
+    rafId = requestAnimationFrame(frame);
+  }
 
   return {
     stop() {
+      pausado = true;
       if (rafId != null) cancelAnimationFrame(rafId);
       rafId = null;
       window.removeEventListener('resize', redimensionar);
+      document.removeEventListener('visibilitychange', onVisChange);
     },
     setEscala(v) { escala = v; },
     setVel(v)    { vel = v; },

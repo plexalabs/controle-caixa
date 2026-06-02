@@ -5368,7 +5368,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     display: flex; align-items: center; justify-content: center;
     background: var(--c-papel);
     color: transparent;
-    transition: all 180ms var(--ease-out);
+    transition: background-color 180ms, color 180ms, border-color 180ms, transform 180ms, box-shadow 180ms, opacity 180ms var(--ease-out);
     margin-top: 1px;
 }
 .us-check.is-marcado .us-check-marca {
@@ -5753,7 +5753,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     padding: 0.34rem 0.85rem;
     border-radius: var(--r-pill);
     cursor: pointer;
-    transition: all 160ms var(--ease-out);
+    transition: background-color 160ms, color 160ms, border-color 160ms, transform 160ms, box-shadow 160ms, opacity 160ms var(--ease-out);
 }
 .rel-quick-btn:hover { border-color: var(--c-musgo); color: var(--c-musgo); transform: translateY(-1px); }
 .rel-quick-btn.is-ativo { background: var(--c-musgo); color: var(--c-papel); border-color: var(--c-musgo); }
@@ -5776,7 +5776,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     color: var(--c-tinta-2);
     cursor: pointer;
     user-select: none;
-    transition: all 160ms var(--ease-out);
+    transition: background-color 160ms, color 160ms, border-color 160ms, transform 160ms, box-shadow 160ms, opacity 160ms var(--ease-out);
     background: var(--c-papel);
 }
 .rel-check-pill input { position: absolute; opacity: 0; pointer-events: none; }
@@ -5786,7 +5786,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     border: 1.5px solid var(--c-papel-3);
     border-radius: 3px;
     background: transparent;
-    transition: all 160ms var(--ease-out);
+    transition: background-color 160ms, color 160ms, border-color 160ms, transform 160ms, box-shadow 160ms, opacity 160ms var(--ease-out);
     position: relative;
 }
 .rel-check-pill input:checked ~ .rel-check-pill-marca {
@@ -6175,7 +6175,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 160ms var(--ease-out);
+    transition: background-color 160ms, color 160ms, border-color 160ms, transform 160ms, box-shadow 160ms, opacity 160ms var(--ease-out);
     flex-shrink: 0;
     user-select: none;
 }
@@ -6302,7 +6302,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     font-size: 0.85rem;
     color: var(--c-tinta-2);
     cursor: pointer;
-    transition: all 160ms var(--ease-out);
+    transition: background-color 160ms, color 160ms, border-color 160ms, transform 160ms, box-shadow 160ms, opacity 160ms var(--ease-out);
     font-variant-numeric: tabular-nums;
     font-weight: 500;
 }
@@ -6342,7 +6342,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     cursor: pointer;
     font-size: 0.7rem;
     line-height: 1;
-    transition: all 160ms var(--ease-out);
+    transition: background-color 160ms, color 160ms, border-color 160ms, transform 160ms, box-shadow 160ms, opacity 160ms var(--ease-out);
 }
 .sis-time-btn:hover { background: var(--c-musgo); color: var(--c-papel); border-color: var(--c-musgo); }
 .sis-time-btn:active { transform: scale(0.94); }
@@ -6538,7 +6538,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     text-decoration: none;
     padding: 0.4rem 0.7rem;
     border-radius: var(--r-sm);
-    transition: all 180ms var(--ease-out);
+    transition: background-color 180ms, color 180ms, border-color 180ms, transform 180ms, box-shadow 180ms, opacity 180ms var(--ease-out);
 }
 .dash-quadro-cta:hover {
     background: rgba(15, 76, 58, 0.08);
@@ -6581,7 +6581,7 @@ input[type="datetime-local"].field-input:hover::-webkit-calendar-picker-indicato
     padding: 0.7rem 0.85rem 0.7rem 1rem;
     cursor: pointer;
     font-family: 'Manrope', sans-serif;
-    transition: all 180ms var(--ease-out);
+    transition: background-color 180ms, color 180ms, border-color 180ms, transform 180ms, box-shadow 180ms, opacity 180ms var(--ease-out);
     position: relative;
     overflow: hidden;
 }
