@@ -50,31 +50,32 @@ function corpoForm() {
           </h3>
 
           <p class="man2-esq-texto">
-            Pedido e valor já bastam. NF entra quando faturar,
-            categoria quando o pagamento ficar claro.
+            Só o pedido é obrigatório. NF e valor entram quando faturar —
+            você tem até <strong>1 hora</strong> pra preencher esses dois.
           </p>
         </aside>
 
         <form id="form-add-nf" class="man2-dir" novalidate>
-          <div class="man2-grid">
-            <div class="field" style="margin-bottom:0">
-              <label class="field-label" for="codigo_pedido">Código do pedido *</label>
-              <input id="codigo_pedido" name="codigo_pedido" required maxlength="11" class="field-input"
-                     autocomplete="off" inputmode="numeric"
-                     placeholder="123.456.789" />
-            </div>
-            <div class="field" style="margin-bottom:0">
-              <label class="field-label" for="valor_nf">Valor (R$) *</label>
-              <input id="valor_nf" name="valor_nf" type="number" step="0.01" min="0.01" required
-                     class="field-input" inputmode="decimal" />
-            </div>
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label" for="codigo_pedido">Código do pedido *</label>
+            <input id="codigo_pedido" name="codigo_pedido" required maxlength="11" class="field-input"
+                   autocomplete="off" inputmode="numeric"
+                   placeholder="123.456.789" />
           </div>
 
-          <div class="field" style="margin-bottom:0">
-            <label class="field-label" for="numero_nf">Número da NF</label>
-            <input id="numero_nf" name="numero_nf" maxlength="6" class="field-input"
-                   autocomplete="off" inputmode="numeric"
-                   placeholder="12.345" />
+          <div class="man2-grid">
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label" for="valor_nf">Valor (R$)</label>
+              <input id="valor_nf" name="valor_nf" type="number" step="0.01" min="0"
+                     class="field-input" inputmode="decimal"
+                     placeholder="preencher depois" />
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label" for="numero_nf">Número da NF</label>
+              <input id="numero_nf" name="numero_nf" maxlength="6" class="field-input"
+                     autocomplete="off" inputmode="numeric"
+                     placeholder="12.345" />
+            </div>
           </div>
 
           <div class="field" style="margin-bottom:0">
@@ -149,18 +150,18 @@ function ligarComportamento() {
     const nomeCliente = formatarNomeCliente(f('cliente_nome').value);
     f('cliente_nome').value = nomeCliente;
 
-    // Pedido e obrigatorio (regra de negocio: lancamento existe a partir
-    // do pedido, NF entra depois quando faturado). NF vazia vai como
-    // placeholder '—' para satisfazer NOT NULL do schema legado — o
-    // operador completa quando faturar.
+    // Pedido e obrigatorio. NF e valor opcionais — schema aceita NULL.
+    // Operador tem janela de 1h (config lancamento.editar_nf_valor_minutos)
+    // pra preencher/editar esses dois apos criar.
     const codigoPedido = soDigitos(f('codigo_pedido').value);
     const numeroNF     = soDigitos(f('numero_nf').value);
+    const valorStr     = f('valor_nf').value.trim();
     const payload = {
       p_data_caixa:      estado.dataCaixa,
-      p_numero_nf:       numeroNF || '—',
+      p_numero_nf:       numeroNF || null,
       p_codigo_pedido:   codigoPedido,
       p_cliente_nome:    nomeCliente || '— sem cliente —',
-      p_valor_nf:        Number(f('valor_nf').value),
+      p_valor_nf:        valorStr ? Number(valorStr) : null,
       // categoria=NULL + estado=pendente passa pelo check
       // lancamento_categoria_estado e marca a NF como "em análise".
       p_categoria:       null,

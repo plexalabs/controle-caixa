@@ -587,6 +587,9 @@ function traduzirErroBanco(error) {
   // Editar/excluir
   if (m.includes('motivo da edição') || m.includes('motivo da exclusão')) return 'O motivo precisa ter pelo menos 10 caracteres.';
   if (m.includes('janela para editar categoria expirou')) return error.message;
+  if (m.includes('janela para editar nf/valor expirou')) {
+    return 'A janela de 1h para preencher/editar NF e valor já expirou. Esses dois campos ficam travados a partir desse momento.';
+  }
   if (m.includes('nenhum campo enviado para edição')) return 'Nenhum campo foi alterado.';
   if (m.includes('lancamento.editar_categoria') || m.includes('permissão negada (lancamento.editar_categoria')) return 'Você não tem permissão para alterar a categoria.';
   if (m.includes('lancamento.editar') || m.includes('permissão negada (lancamento.editar')) return 'Você não tem permissão para editar lançamentos.';
